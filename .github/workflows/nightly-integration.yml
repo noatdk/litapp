@@ -111,9 +111,14 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${RUNNER_TEMP}/litapp-release.jks"
 
-      - name: Cordova prepare Android
+      - name: Cordova Android platform and prepare
         if: steps.android.outputs.sign == 'true'
-        run: ./node_modules/.bin/ionic cordova prepare android --no-interactive
+        run: |
+          set -euo pipefail
+          if [[ ! -d platforms/android ]]; then
+            ./node_modules/.bin/ionic cordova platform add android --no-interactive
+          fi
+          ./node_modules/.bin/ionic cordova prepare android --no-interactive
 
       - name: Build Android release APK
         if: steps.android.outputs.sign == 'true'
