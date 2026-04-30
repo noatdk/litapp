@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files, SeriesFollow } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files, Series } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
@@ -32,7 +32,7 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
-    public seriesFollow: SeriesFollow,
+    public seriesFollow: Series,
   ) {
     this.story = navParams.get('story');
 
