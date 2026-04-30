@@ -34,7 +34,7 @@ jobs:
       - name: Export env for in-app update manifest
         shell: bash
         run: |
-          echo "APP_JSON_RAW_BASE=https://raw.githubusercontent.com/${{ github.repository }}/${INTEGRATION_BRANCH}" >> "$GITHUB_ENV"
+          echo "APP_JSON_RAW_BASE=https://raw.githubusercontent.com/${{ github.repository }}/${{ env.INTEGRATION_BRANCH }}" >> "$GITHUB_ENV"
           echo "GITHUB_TAGS_REPO=${{ github.repository }}" >> "$GITHUB_ENV"
 
       - name: Setup Node
