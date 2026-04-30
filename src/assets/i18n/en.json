@@ -89,6 +89,9 @@
   "HISTORY_TITLE_DOWNLOADED": "Downloaded",
   "HISTORY_TOOLTIP_DOWNLOADS": "Toggle downloaded-only filter",
   "HISTORY_TOOLTIP_CLEAR": "Clear history",
+  "HISTORY_CONTINUE_READING": "Continue reading",
+  "HISTORY_NEW_CHAPTERS": "New chapters in followed series",
+  "STORYDETAIL_TOOLTIP_FOLLOW_SERIES": "Toggle following series",
 
   "SEARCH_TITLE": "Search",
   "SEARCH_PLACEHOLDER": "Search stories",
