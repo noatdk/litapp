@@ -17,6 +17,7 @@ import {
   STORY_KEY,
   RECENTQUERIES_KEY,
   SETTINGS_KEY,
+  FILTERS_KEY,
 } from '../../providers/db';
 import { handleNoCordovaError } from '../../app/utils';
 
@@ -34,6 +35,9 @@ export class SettingsPage {
   settingsReady = false;
   form: FormGroup;
   newBlockedTag: string = '';
+  newBlockedAuthorId: string = '';
+  newBlockedSeriesId: string = '';
+  newBlockedCategoryId: string = '';
 
   translations;
   languages;
@@ -67,8 +71,38 @@ export class SettingsPage {
     }
   }
 
+  addBlockedAuthorId() {
+    if (this.filters.addBlockedAuthorId(this.newBlockedAuthorId)) {
+      this.newBlockedAuthorId = '';
+    }
+  }
+
+  addBlockedSeriesId() {
+    if (this.filters.addBlockedSeriesId(this.newBlockedSeriesId)) {
+      this.newBlockedSeriesId = '';
+    }
+  }
+
+  addBlockedCategoryId() {
+    if (this.filters.addBlockedCategoryId(this.newBlockedCategoryId)) {
+      this.newBlockedCategoryId = '';
+    }
+  }
+
   removeBlockedTag(tag: string) {
     this.filters.removeBlockedTag(tag);
+  }
+
+  removeBlockedAuthorId(id: string) {
+    this.filters.removeBlockedAuthorId(id);
+  }
+
+  removeBlockedSeriesId(id: string) {
+    this.filters.removeBlockedSeriesId(id);
+  }
+
+  removeBlockedCategoryId(id: string) {
+    this.filters.removeBlockedCategoryId(id);
   }
 
   ionViewWillEnter() {
@@ -128,7 +162,7 @@ export class SettingsPage {
 
     this.storage
       .forEach((value, key, i) => {
-        if ([STARREDQUERIES_KEY, RECENTQUERIES_KEY, STORYSTYLEOPTIONS_KEY, FEED_KEY, SETTINGS_KEY, HISTORY_KEY].indexOf(key) > -1) {
+        if ([STARREDQUERIES_KEY, RECENTQUERIES_KEY, STORYSTYLEOPTIONS_KEY, FEED_KEY, SETTINGS_KEY, HISTORY_KEY, FILTERS_KEY].indexOf(key) > -1) {
           data[key] = value;
         } else if (key.indexOf(STORY_KEY) > -1 && (value.downloaded || data[HISTORY_KEY].indexOf(value.id) > -1)) {
           // add stories that are either downloaded or in history
