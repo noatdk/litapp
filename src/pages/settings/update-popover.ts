@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavParams, ViewController } from 'ionic-angular';
 import { BrowserTab } from '@ionic-native/browser-tab';
+import { ENV } from '../../app/env';
 import { handleNoCordovaError } from '../../app/utils';
 import { Api } from '../../providers/providers';
 
@@ -44,12 +45,11 @@ export class UpdatePopover {
   constructor(navParams: NavParams, private viewCtrl: ViewController, private browser: BrowserTab, private api: Api) {
     this.data = navParams.get('data') || {};
 
-    // https://api.github.com/repos/theilluminatus/litapp/git/refs/tags
-    this.api.get('repos/theilluminatus/litapp/git/refs/tags', undefined, undefined, 5).subscribe((list: any[]) => {
+    const tagsRepo = ENV.GITHUB_TAGS_REPO || 'theilluminatus/litapp';
+    this.api.get(`repos/${tagsRepo}/git/refs/tags`, undefined, undefined, 5).subscribe((list: any[]) => {
       const tagSha = Array.isArray(list) ? list.reverse()[0].object.sha : '';
       if (!tagSha) return;
-      // https://api.github.com/repos/theilluminatus/litapp/git/tags/157d1d7b1574edbeb30e0aa4432e43dda38a6694
-      this.api.get(`repos/theilluminatus/litapp/git/tags/${tagSha}`, undefined, undefined, 5).subscribe((tag: any) => {
+      this.api.get(`repos/${tagsRepo}/git/tags/${tagSha}`, undefined, undefined, 5).subscribe((tag: any) => {
         this.changelog = tag.message.replace(/\n/gi, '\n\n');
       });
     });
