@@ -83,9 +83,13 @@ jobs:
       - name: Setup Android SDK
         if: steps.android.outputs.sign == 'true'
         uses: android-actions/setup-android@v3
+        env:
+          SKIP_JDK_VERSION_CHECK: 'true'
 
       - name: Install Android API 27 (Cordova 7)
         if: steps.android.outputs.sign == 'true'
+        env:
+          SKIP_JDK_VERSION_CHECK: 'true'
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-27" "build-tools;27.0.3"
