@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { EmptyObservable } from 'rxjs/observable/EmptyObservable';
+import 'rxjs/add/operator/publishReplay';
 
 import { Category } from '../models/category';
 import { Api } from './shared/api';
@@ -10,8 +11,11 @@ export class Categories {
   private categories: any = [];
   // Sorts first by 'master', 'story', 'poem', respectively, then by name
   private sortMap: Map<string, number> = new Map<string, number>();
+  // id → name, populated from the same source as `categories` for sync access.
+  private namesById: Map<number, string> = new Map<number, string>();
 
   constructor(public api: Api, public translate: TranslateService) {
+    // Replayed cache shared across all subscribers; connect() keeps it warm.
     this.categories = this.api.get('3/tagsportal/categories', null).map((cats: any[]) => {
       const tempcats: Category[] = [];
 
@@ -40,6 +44,14 @@ export class Categories {
       });
 
       return tempcats;
+    }).publishReplay(1);
+    this.categories.connect();
+
+    // Mirror the cache into a sync id -> name map for nameSync().
+    this.categories.subscribe((cats: Category[]) => {
+      cats.forEach(c => {
+        if (c && c.id != null && c.name) this.namesById.set(c.id, c.name);
+      });
     });
 
     this.sortMap.set('master', 0);
@@ -61,6 +73,12 @@ export class Categories {
     return this.categories.map((cats: Category[]) => {
       return cats.find((cat: Category) => cat.id === id);
     });
+  }
+
+  // Sync lookup for callers that can't subscribe; '' until the list loads.
+  nameSync(id: number): string {
+    if (id == null) return '';
+    return this.namesById.get(id) || '';
   }
 
   getAll() {

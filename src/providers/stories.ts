@@ -12,13 +12,6 @@ import { Globals } from './globals';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
 
-const decodeHTML = (s: string) => {
-  const txt = document.createElement('textarea');
-  txt.innerHTML = s;
-  const value = txt.value;
-  return value;
-};
-
 /*
   Angular http typing doesn't seem to handle tuples well
   so we cast to the more strictly typed SearchResultType in public methods.
@@ -408,6 +401,8 @@ export class Stories {
   persist(story: Story): Promise<void> {
     const cleanedStory = Object.assign({}, story);
     if (cleanedStory.author && cleanedStory.author.stories) delete cleanedStory.author.stories;
+    // category is resolved at render time from categoryID; don't persist it.
+    delete cleanedStory.category;
     return this.storage.set(`${STORY_KEY}_${story.id}`, cleanedStory);
   }
 
@@ -463,7 +458,6 @@ export class Stories {
       id: item.what.id.toString(),
       title: item.what.title,
       description: item.what.description,
-      category: decodeHTML(item.what.category_info.name),
       categoryID: item.what.category,
       lang: this.g.getLanguage(item.what.language),
       timestamp: item.when,
@@ -495,7 +489,6 @@ export class Stories {
       id: item.id.toString(),
       title: item.title,
       description: item.description,
-      category: decodeHTML(item.category_info.name),
       categoryID: item.category,
       lang: this.g.getLanguage(item.language),
       timestamp: Math.round(Date.parse(item.date_added) / 1000),
@@ -527,7 +520,6 @@ export class Stories {
       id: item.id.toString(),
       title: item.name,
       description: item.description,
-      category: item.category.name,
       categoryID: item.category.id,
       lang: item.lang,
       timestamp: item.timestamp_published,
@@ -560,7 +552,6 @@ export class Stories {
       id: item.id.toString(),
       title: item.title,
       description: item.description,
-      category: decodeHTML(item.category_info.name),
       categoryID: item.category,
       lang: this.g.getLanguage(item.language),
       timestamp: Math.round(Date.parse(`${timestampParts[2]}-${timestampParts[0]}-${timestampParts[1]}T00:00:00`) / 1000),
