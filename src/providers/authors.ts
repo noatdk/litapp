@@ -19,9 +19,6 @@ export class Authors {
 
   // Get an authors bio
   getDetails(id: any) {
-    const filter = [{ property: 'user_id', value: id }];
-    const params = { filter: JSON.stringify(filter).trim() };
-
     let cached = this.authors.get(id);
     if (cached && cached.bio) {
       return Observable.of(cached);
@@ -29,10 +26,11 @@ export class Authors {
 
     const loader = this.ux.showLoader();
     return this.api
-      .get('1/user-bio', params)
+      .get(`3/authors/${id}`)
       .map((data: any) => {
         if (loader) loader.dismiss();
-        if (!data.success) {
+        const profile = Array.isArray(data) ? data[0] : data;
+        if (!profile || !profile.userid) {
           this.ux.showToast();
           console.error('author.getDetails');
           return null;
@@ -40,14 +38,17 @@ export class Authors {
 
         if (!cached) {
           cached = new Author({
-            id: data.user.profile.id,
-            picture: data.user.profile.userpic === oldDefaultUserPic ? defaultUserPic : data.user.profile.userpic,
-            name: data.user.profile.username,
+            id: profile.userid,
+            picture: profile.userpic === oldDefaultUserPic ? defaultUserPic : profile.userpic,
+            name: profile.username,
           });
         }
 
-        cached.storycount = data.user.profile.submissions_count;
-        cached.bio = data.user.profile.description;
+        cached.storycount = profile.submissions_count;
+        cached.bio = profile.biography;
+        // The endpoint includes `following` only when the request is authenticated.
+        // Don't clobber an existing value if it isn't returned.
+        if (typeof profile.following === 'boolean') cached.following = profile.following;
 
         this.authors.set(cached.id, cached);
         return cached;
