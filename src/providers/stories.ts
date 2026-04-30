@@ -329,7 +329,8 @@ export class Stories {
     const filter = [{ property: 'submission_id', value: parseInt(story.id) }];
     const data = new FormData();
     data.append('user_id', this.user.getId());
-    data.append('session_id', this.user.getSession());
+    // Authentication is now via the auth_token cookie set during login;
+    // session_id is no longer issued by the auth flow.
     data.append('vote', String(rating));
     data.append('filter', JSON.stringify(filter));
 

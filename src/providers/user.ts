@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import 'rxjs/add/operator/toPromise';
-import { Md5 } from 'ts-md5/dist/md5';
 import { Storage } from '@ionic/storage';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -9,6 +8,9 @@ import { USER_KEY, FEED_KEY, LIST_KEY } from './db';
 import { Api } from './shared/api';
 import { Settings } from './settings';
 import { UX } from './shared/ux';
+
+// urls[6] in api.ts — auth.literotica.com.
+const AUTH_URL_INDEX = 6;
 
 @Injectable()
 export class User {
@@ -36,42 +38,36 @@ export class User {
     return this.ready;
   }
 
+  // Three-step JWT login flow that matches the website's own XHR sequence:
+  //   1. POST auth.literotica.com/login {login,password}  → sets sessionid cookie
+  //   2. GET  auth.literotica.com/check?timestamp=<unix>  → sets auth_token (JWT) cookie
+  //   3. GET  /api/3/users/session                        → returns user profile
+  // After step 2 the auth_token cookie is sent automatically with every
+  // subsequent literotica.com request (withCredentials: true is already on by
+  // default for /api/* calls), so authenticated v3 endpoints just work.
   login(info: any) {
     const loader = this.ux.showLoader();
+    const authOpts = { withCredentials: true, responseType: 'text' as 'text' };
 
-    const data = new FormData();
-    data.append('username', info.username);
-    data.append('password', String(Md5.hashStr(info.password)));
-
-    return this.api.post('2/auth/login', data, undefined, true).map((res: any) => {
-      if (res.success) {
-        this.processAndGetMoreInfo(res, info);
+    return this.api
+      .post('login', JSON.stringify({ login: info.username, password: info.password }), {
+        ...authOpts,
+        headers: { 'Content-Type': 'application/json' },
+      }, false, AUTH_URL_INDEX)
+      .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
+      .switchMap(() => this.api.get('3/users/session'))
+      .map((res: any) => {
         if (loader) loader.dismiss();
-      } else {
-        if (loader) loader.dismiss();
-        throw Observable.throw(res);
-      }
-    });
-  }
-
-  processAndGetMoreInfo(resp: any, info: any) {
-    this.user = {
-      id: resp.login.user.user_id,
-      username: resp.login.user.username,
-      session: resp.login.session_id,
-      date: new Date().getTime(),
-    };
-    this.storage.set(USER_KEY, this.user);
-
-    // second api to get lists
-    const data = new FormData();
-    data.append('command', 'Login');
-    data.append('uname', info.username);
-    data.append('pwd', info.password);
-
-    // getting cookie from second api
-    // TODO: check if cookie set correctly? -> message on fail
-    this.api.post('members/login.php', data, { withCredentials: true }, undefined, 2).subscribe();
+        if (!res || !res.userid) {
+          throw Observable.throw(res);
+        }
+        this.user = {
+          id: res.userid,
+          username: res.username,
+          date: new Date().getTime(),
+        };
+        this.storage.set(USER_KEY, this.user);
+      });
   }
 
   isLoggedIn(): boolean {
@@ -84,10 +80,6 @@ export class User {
 
   getName() {
     return this.user.username;
-  }
-
-  getSession() {
-    return this.user.session;
   }
 
   getDetails() {
