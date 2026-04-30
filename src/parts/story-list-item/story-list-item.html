@@ -9,6 +9,7 @@
     <h2>
       <ion-icon name="eye" *ngIf="story?.cached && !story?.downloaded && !ishistory"></ion-icon>
       <ion-icon name="download" *ngIf="story?.downloaded"></ion-icon>
+      <ion-icon name="paper" color="secondary" *ngIf="memos.hasStoryMemo(story?.id)"></ion-icon>
       {{story?.title}}
       <small *ngIf="story?.currentpage > 0 && ishistory">
         ({{Math.min(100, Math.round((story?.currentpage+1)*100 / story?.length))}}%)

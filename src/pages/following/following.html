@@ -28,7 +28,10 @@
       <ion-avatar>
         <ion-img [src]="author?.picture + ''"></ion-img>
       </ion-avatar>
-      <h2>{{author.name}}</h2>
+      <h2>
+        <ion-icon name="paper" color="secondary" *ngIf="memos.hasAuthorMemo(author?.id)"></ion-icon>
+        {{author.name}}
+      </h2>
 
       <ion-note item-end>
         <button

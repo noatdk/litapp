@@ -21,6 +21,17 @@
       <button
         ion-button
         icon-only
+        (click)="openMemo($event)"
+        [tooltip]="'MEMO_BUTTON' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="memos.hasAuthorMemo(author?.id) ? 'paper' : 'paper-outline'"></ion-icon>
+      </button>
+
+      <button
+        ion-button
+        icon-only
         *ngIf="user.isLoggedIn()"
         (click)="followToggle()"
         [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
@@ -44,6 +55,11 @@
       <ion-icon name="arrow-down"></ion-icon>
     </div>
   </div>
+
+  <p class="memo" *ngIf="memos.hasAuthorMemo(author?.id)" (click)="openMemo($event)">
+    <strong><ion-icon name="paper" color="secondary"></ion-icon> {{ 'MEMO_TITLE' | translate }}: </strong>
+    {{ memos.getAuthorMemo(author?.id) }}
+  </p>
 
   <ion-segment [(ngModel)]="openSegment">
     <ion-segment-button value="stories" (click)="loadSubmissions()">

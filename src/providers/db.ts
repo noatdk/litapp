@@ -9,3 +9,4 @@ export const LIST_KEY: string = '_list';
 export const GLOBALS_KEY: string = '_globals';
 export const VERSION_KEY: string = '_version';
 export const SETTINGS_KEY: string = '_settings';
+export const MEMOS_KEY: string = '_memos';

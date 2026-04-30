@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { NavController, PopoverController, LoadingController } from 'ionic-angular';
 
-import { User } from '../../providers/providers';
+import { Memos, User } from '../../providers/providers';
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
 
@@ -22,6 +22,7 @@ export class StoryListItem {
     private popoverCtrl: PopoverController,
     private loadingCtrl: LoadingController,
     public user: User,
+    public memos: Memos,
   ) {}
 
   pressPosition = null;

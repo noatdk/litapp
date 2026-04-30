@@ -5,9 +5,16 @@ import { TooltipsModule } from 'ionic-tooltips';
 
 import { StoryDetailPage } from './story-detail';
 import { BookmarkPopoverModule } from '../../parts/bookmark-popover/bookmark-popover.module';
+import { MemoPopoverModule } from '../../parts/memo-popover/memo-popover.module';
 
 @NgModule({
   declarations: [StoryDetailPage],
-  imports: [IonicPageModule.forChild(StoryDetailPage), TranslateModule.forChild(), TooltipsModule, BookmarkPopoverModule],
+  imports: [
+    IonicPageModule.forChild(StoryDetailPage),
+    TranslateModule.forChild(),
+    TooltipsModule,
+    BookmarkPopoverModule,
+    MemoPopoverModule,
+  ],
 })
 export class StoryDetailPageModule {}

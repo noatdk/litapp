@@ -1,0 +1,18 @@
+<ion-list class="memo-editor">
+  <ion-list-header>{{ 'MEMO_TITLE' | translate }}</ion-list-header>
+  <ion-item>
+    <ion-textarea
+      [(ngModel)]="memo"
+      placeholder="{{ 'MEMO_PLACEHOLDER' | translate }}"
+      rows="6"
+      autofocus
+    ></ion-textarea>
+  </ion-item>
+  <ion-item class="memo-actions">
+    <button ion-button clear small color="danger" (click)="clear()" *ngIf="memos.has(kind, id)">
+      {{ 'DELETE_BUTTON' | translate }}
+    </button>
+    <button ion-button clear small (click)="cancel()">{{ 'CANCEL_BUTTON' | translate }}</button>
+    <button ion-button clear small color="primary" (click)="save()">{{ 'DONE_BUTTON' | translate }}</button>
+  </ion-item>
+</ion-list>
