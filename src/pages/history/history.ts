@@ -3,7 +3,7 @@ import { IonicPage, NavController, AlertController, PopoverController } from 'io
 import { TranslateService } from '@ngx-translate/core';
 import { Storage } from '@ionic/storage';
 
-import { Stories, Settings, History, SeriesFollow } from '../../providers/providers';
+import { Stories, Settings, History, Series } from '../../providers/providers';
 import { Story } from '../../models/story';
 
 @IonicPage({ priority: 'high' })
@@ -31,7 +31,7 @@ export class HistoryPage {
     public history: History,
     public settings: Settings,
     private popoverCtrl: PopoverController,
-    public seriesFollow: SeriesFollow,
+    public seriesFollow: Series,
   ) {
     this.translate.get(['HISTORY_TOOLTIP_CLEAR', 'CONFIRM', 'OK_BUTTON', 'CANCEL_BUTTON']).subscribe(values => {
       this.translations = values;
@@ -44,9 +44,6 @@ export class HistoryPage {
       this.buildList();
       this.refreshShelves();
 
-      // Daily-cap polling for new chapters in followed series. Triggered when
-      // the user lands on the History tab so it doesn't hit the network on
-      // app start when the user might just be reading an open story.
       if (!this.settings.allSettings.offlineMode && this.seriesFollow.isPollDue()) {
         this.seriesFollow.poll().then(() => this.refreshShelves());
       }

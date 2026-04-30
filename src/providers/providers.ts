@@ -13,10 +13,10 @@ import { UX } from './shared/ux';
 import { Files } from './files';
 import { Filters } from './filters';
 import { Memos } from './memos';
-import { SeriesFollow } from './series-follow';
+import { Series } from './series';
 
 // Do not import from this barrelfile inside the barrel, no loops!
 export {
   Analytics, Api, Stories, Authors, Lists, Categories, Feed, Globals,
-  History, Settings, User, UX, Files, Filters, Memos, SeriesFollow,
+  History, Settings, User, UX, Files, Filters, Memos, Series,
 };

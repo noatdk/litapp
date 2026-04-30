@@ -62,14 +62,16 @@
     <h2 *ngIf="newChapters.length || inProgress.length">{{ 'HISTORY_TITLE' | translate }}</h2>
   </ng-container>
 
-  <p *ngIf="!filteredStories.length; else listElement" class="empty-placeholder">
+  <p *ngIf="!filteredStories.length" class="empty-placeholder">
     {{ 'HISTORY_EMPTY' | translate:{HISTORY_LIMIT: HISTORY_LIMIT} }}
   </p>
-  <story-list
-    [stories]="filteredStories | orderBy: sortMethod"
-    (onDeleteBySwiping)="delete($event)"
-    (onDownloadBySwiping)="download($event)"
-    ishistory="true"
-  >
-  </story-list>
+  <ng-container *ngIf="filteredStories.length">
+    <story-list
+      [stories]="filteredStories | orderBy: sortMethod"
+      (onDeleteBySwiping)="delete($event)"
+      (onDownloadBySwiping)="download($event)"
+      ishistory="true"
+    >
+    </story-list>
+  </ng-container>
 </ion-content>

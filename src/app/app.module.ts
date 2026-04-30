@@ -39,7 +39,7 @@ import {
   Files,
   Filters,
   Memos,
-  SeriesFollow,
+  Series,
 } from '../providers/providers';
 import { MyApp } from './app.component';
 import { UpdatePopoverModule } from '../pages/settings/update-popover.module';
@@ -111,7 +111,7 @@ export function provideSettings(storage: Storage) {
     Files,
     Filters,
     Memos,
-    SeriesFollow,
+    Series,
     // packages
     AndroidFullScreen,
     BrowserTab,
