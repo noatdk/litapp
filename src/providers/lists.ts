@@ -11,9 +11,20 @@ import { Api } from './shared/api';
 import { LIST_KEY } from './db';
 import { UX } from './shared/ux';
 
+// Persisted lists are revalidated against the server in the background once
+// they age past this. Local mutations (add/remove story, edit, delete) bump
+// the timestamp so they don't immediately trigger a re-fetch.
+const LIST_CACHE_TTL_MS = 60 * 60 * 1000;
+
+interface CachedLists {
+  at: number;
+  lists: List[];
+}
+
 @Injectable()
 export class Lists {
   private lists: List[];
+  private cachedAt: number = 0;
   private ready;
 
   constructor(public api: Api, public s: Stories, public settings: Settings, public user: User, public storage: Storage, public ux: UX) {
@@ -27,18 +38,27 @@ export class Lists {
           return;
         }
 
-        if (res[3]) {
-          this.lists = res[3];
+        this.restoreCache(res[3]);
+
+        if (this.lists && this.lists.length > 0) {
+          // Cache hit: serve immediately so onReady() consumers (e.g. the
+          // bookmark icon) don't block on the network.
+          resolve();
+          if (this.isStale()) this.revalidate();
+          return;
         }
 
+        // No cache (first run or cleared): full fetch, then resolve.
         this.query(true).subscribe((lists: any) => {
+          if (!lists.length) {
+            resolve();
+            return;
+          }
           let done = 0;
-          lists.forEach((l, i) => {
-            this.getById(l.urlname, true).subscribe(d => {
+          lists.forEach(l => {
+            this.getById(l.urlname, true).subscribe(() => {
               done += 1;
-              if (done === lists.length) {
-                resolve();
-              }
+              if (done === lists.length) resolve();
             });
           });
         });
@@ -48,6 +68,108 @@ export class Lists {
 
   onReady() {
     return this.ready;
+  }
+
+  // Pulls a possibly-legacy storage payload back into memory. Older builds
+  // wrote a bare List[] under LIST_KEY; we now wrap it as { at, lists }.
+  private restoreCache(raw: any) {
+    if (!raw) return;
+    if (Array.isArray(raw)) {
+      // Legacy shape: assume stale so we revalidate at first opportunity.
+      this.lists = raw;
+      this.cachedAt = 0;
+    } else {
+      this.lists = raw.lists || [];
+      this.cachedAt = raw.at || 0;
+    }
+
+    // Re-link list.stories[] to the canonical Story instances held by the
+    // Stories provider. Storage roundtrips strip object identity, which would
+    // otherwise make `list.stories.indexOf(story)` always return -1 for a
+    // story handed in from a fresh search/feed response.
+    this.lists.forEach(l => {
+      if (!l.stories) return;
+      l.stories = l.stories.map(s => this.s.relink(s));
+    });
+  }
+
+  private isStale(): boolean {
+    return !this.cachedAt || Date.now() - this.cachedAt >= LIST_CACHE_TTL_MS;
+  }
+
+  private persist() {
+    if (!this.settings.allSettings.cachelists || !this.user.isLoggedIn()) return;
+    this.cachedAt = Date.now();
+    const payload: CachedLists = { at: this.cachedAt, lists: this.lists };
+    this.storage.set(LIST_KEY, payload);
+  }
+
+  // Background re-fetch of list metadata. Patches existing List instances in
+  // place so consumers holding references keep working. If a list's `size`
+  // changed server-side, drop its `stories` so the next access re-pages it.
+  private revalidate() {
+    this.api
+      .get(`3/users/${this.user.getId()}/lists`)
+      .map((d: any) => {
+        if (!d || d.error || !Array.isArray(d)) return null;
+
+        const seen = new Set<number>();
+        d.forEach((l: any) => {
+          seen.add(l.id);
+          const existing = this.lists && this.lists.find(x => x.id === l.id);
+          if (!existing) {
+            this.lists.push(
+              new List({
+                id: l.id,
+                urlname: l.urlname,
+                name: l.title,
+                description: l.description,
+                visibility: !l.is_private,
+                size: l.stories_count,
+                isdeletable: l.is_deletable,
+                createtimestamp: l.created_at,
+                updatetimestamp: l.updated_at,
+                lastPage: -1,
+              }),
+            );
+            return;
+          }
+          // Patch metadata. If size changed, drop cached stories.
+          existing.name = l.title;
+          existing.description = l.description;
+          existing.visibility = !l.is_private;
+          existing.isdeletable = l.is_deletable;
+          existing.updatetimestamp = l.updated_at;
+          if (existing.size !== l.stories_count) {
+            existing.size = l.stories_count;
+            existing.stories = undefined;
+            existing.lastPage = -1;
+          }
+        });
+
+        // Drop lists removed server-side.
+        for (let i = this.lists.length - 1; i >= 0; i--) {
+          if (!seen.has(this.lists[i].id)) this.lists.splice(i, 1);
+        }
+
+        this.persist();
+        return this.lists;
+      })
+      .catch(error => {
+        // Best-effort background sync — log and move on. The cache is still
+        // usable; consumers will see whatever was previously persisted.
+        console.error('lists.revalidate', error);
+        return Observable.of(null);
+      })
+      .subscribe();
+  }
+
+  // True iff `story` appears in any cached list. Compared by id so storage
+  // roundtrips don't break the check (cached list.stories[] are plain objects
+  // until relinked).
+  isBookmarked(story: Story): boolean {
+    if (!this.lists || !story || story.id == null) return false;
+    return this.lists.some(l => !!l.stories && l.stories.some(s => s.id === story.id));
   }
 
   query(hideLoader?: boolean) {
@@ -86,7 +208,7 @@ export class Lists {
               lastPage: -1,
             }),
         );
-        this.storage.set(LIST_KEY, this.lists);
+        this.persist();
 
         return this.lists;
       })
@@ -96,14 +218,6 @@ export class Lists {
         console.error('lists.query', error);
         return Observable.of([]);
       });
-  }
-
-  // True iff `story` appears in any cached list. Returns false if the lists
-  // haven't loaded yet, so callers can render an unbookmarked icon as the
-  // safe default and update once Lists.onReady() resolves.
-  isBookmarked(story: Story): boolean {
-    if (!this.lists || !story) return false;
-    return this.lists.some(l => !!l.stories && l.stories.indexOf(story) > -1);
   }
 
   getById(urlname: string, hideLoader?: boolean) {
@@ -137,7 +251,7 @@ export class Lists {
             loop(next, newPartialList);
           } else {
             this.lists[this.lists.indexOf(list)] = newPartialList;
-            this.storage.set(LIST_KEY, this.lists);
+            this.persist();
             if (loader) loader.dismiss();
             observer.next(newPartialList);
             observer.complete();
@@ -206,9 +320,12 @@ export class Lists {
       .subscribe(d => {
         if (d) {
           if (!list.stories) list['stories'] = [];
-          list.stories.push(story);
-          list.size += 1;
-          this.storage.set(LIST_KEY, this.lists);
+          // Avoid duplicates if a stale revalidation interleaves with the add.
+          if (!list.stories.some(s => s.id === story.id)) {
+            list.stories.push(story);
+            list.size += 1;
+          }
+          this.persist();
         } else {
           this.ux.showToast();
           console.error('lists.addStory', [list, story]);
@@ -234,7 +351,7 @@ export class Lists {
             }
           });
           list.size -= 1;
-          this.storage.set(LIST_KEY, this.lists);
+          this.persist();
         } else {
           this.ux.showToast();
           console.error('lists.removeStory', [list, story]);
@@ -270,7 +387,7 @@ export class Lists {
             createtimestamp: res.list.created_at,
           }),
         );
-        this.storage.set(LIST_KEY, this.lists);
+        this.persist();
 
         return true;
       })
@@ -304,7 +421,7 @@ export class Lists {
             l.visibility = !res.list.is_private;
           }
         });
-        this.storage.set(LIST_KEY, this.lists);
+        this.persist();
 
         return true;
       })
@@ -330,7 +447,7 @@ export class Lists {
             this.lists.splice(i, 1);
           }
         });
-        this.storage.set(LIST_KEY, this.lists);
+        this.persist();
 
         return true;
       })
@@ -344,6 +461,7 @@ export class Lists {
   refresh() {
     this.storage.remove(LIST_KEY);
     this.lists = null;
+    this.cachedAt = 0;
     return this.query();
   }
 }

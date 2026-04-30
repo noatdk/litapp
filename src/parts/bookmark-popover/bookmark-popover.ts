@@ -39,12 +39,16 @@ export class BookmarkPopover {
     this.unregister();
   }
 
+  hasStory(list: List): boolean {
+    return !!list && !!list.stories && list.stories.some(s => s.id === this.story.id);
+  }
+
   toggleFromList(list: List) {
     if (!list.stories) {
       // load list before adding
       this.l.getById(list.urlname).subscribe();
     } else {
-      if (list.stories.indexOf(this.story) > -1) {
+      if (list.stories.some(s => s.id === this.story.id)) {
         this.l.removeStory(list, this.story);
 
         // Cheap hack to use the focus state as a loading indicator when adding items

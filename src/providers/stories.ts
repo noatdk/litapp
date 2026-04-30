@@ -68,6 +68,19 @@ export class Stories {
     return this.ready;
   }
 
+  // Returns the canonical Story instance for `s`, registering it in the
+  // in-memory map if absent. Used by other providers (Lists) to deduplicate
+  // story references after a storage roundtrip — JSON.parse'd plain objects
+  // get folded back into a single instance per id.
+  relink(s: any): Story {
+    if (!s || s.id == null) return s;
+    const existing = this.stories.get(s.id);
+    if (existing) return existing;
+    const story = s instanceof Story ? s : new Story(s);
+    this.stories.set(story.id, story);
+    return story;
+  }
+
   // ----------------------------------------------------------------------
   // Searching
   // ----------------------------------------------------------------------
