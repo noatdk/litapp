@@ -148,7 +148,7 @@ export class Lists {
         });
 
         // Drop lists removed server-side.
-        for (let i = this.lists.length - 1; i >= 0; i--) {
+        for (let i = this.lists.length - 1; i >= 0; i -= 1) {
           if (!seen.has(this.lists[i].id)) this.lists.splice(i, 1);
         }
 
