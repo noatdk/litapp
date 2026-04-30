@@ -192,6 +192,7 @@
   "LANGUAGE": "Language",
   "TIMESTAMP": "Timestamp",
   "COMMENTS": "Comments",
+  "COMMENTS_LOADMORE": "Load more comments",
   "SUBMISSIONS": "Submissions",
   "FAVORITES": "Favorites",
   "BYAUTHOR": "by",
