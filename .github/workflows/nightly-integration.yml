@@ -80,19 +80,23 @@ jobs:
           distribution: temurin
           java-version: '11'
 
-      - name: Setup Android SDK
+      - name: Android SDK packages (runner cmdline-tools; avoid setup-android JDK17-only sdkmanager)
         if: steps.android.outputs.sign == 'true'
-        uses: android-actions/setup-android@v3
-        env:
-          SKIP_JDK_VERSION_CHECK: 'true'
-
-      - name: Install Android API 27 (Cordova 7)
-        if: steps.android.outputs.sign == 'true'
-        env:
-          SKIP_JDK_VERSION_CHECK: 'true'
         run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-27" "build-tools;27.0.3"
+          set -euo pipefail
+          ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ROOT" >> "$GITHUB_ENV"
+          SM="$ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SM" ]]; then
+            SM="$(find "$ROOT/cmdline-tools" -maxdepth 4 -name sdkmanager -type f -executable 2>/dev/null | head -1)"
+          fi
+          if [[ ! -x "${SM:-}" ]]; then
+            echo "::error::sdkmanager not found under $ROOT/cmdline-tools (runner image layout changed)"
+            exit 1
+          fi
+          yes | "$SM" --licenses >/dev/null 2>&1 || true
+          "$SM" "platforms;android-27" "build-tools;27.0.3"
 
       - name: Decode Android keystore
         if: steps.android.outputs.sign == 'true'
