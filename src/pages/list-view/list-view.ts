@@ -44,7 +44,7 @@ export class ListViewPage {
     this.stories = this.list.stories.filter((story: Story) => {
       if (story.title.toLowerCase().indexOf(query) > -1) return true;
       if (story.description.toLowerCase().indexOf(query) > -1) return true;
-      if (story.category.toLowerCase().indexOf(query) > -1) return true;
+      if (this.c.nameSync(story.categoryID).toLowerCase().indexOf(query) > -1) return true;
       if (story.author.name.toLowerCase().indexOf(query) > -1) return true;
 
       const matchingTags = story.tags.filter(tag => {
@@ -94,7 +94,7 @@ export class ListViewPage {
 ## [${s.title}](https://literotica.com/s/${s.url}) (by ${s.author.name})
 > ${s.description}
 - Created at: ${s.timestamp}
-- Category: ${s.category}
+- Category: ${this.c.nameSync(s.categoryID)}
 - Rating: ${s.rating} (${s.viewcount} views)
 
 `;

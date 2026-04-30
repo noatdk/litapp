@@ -28,7 +28,7 @@
     </p>
 
     <p class="tags">
-      <strong>{{story?.category}}</strong>
+      <strong>{{ story?.categoryID | categoryName | async }}</strong>
       <span *ngFor="let tag of story?.tags">#{{tag}} </span>
     </p>
 

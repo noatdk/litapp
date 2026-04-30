@@ -147,7 +147,7 @@ export class StoryDetailPage {
   </h1>
 
   <ul>
-    <li>Category: ${this.story.category} (Tags: [${this.story.tags.join(', ')}])</li>
+    <li>Category: ${this.c.nameSync(this.story.categoryID)} (Tags: [${this.story.tags.join(', ')}])</li>
     <li>Rating: ${this.story.rating} (${this.story.viewcount} views)</li>
     <li>${this.story.length} pages</li>
     <li>Timestamp: ${new Date(parseInt(this.story.timestamp) * 1000).toISOString()}</li>
