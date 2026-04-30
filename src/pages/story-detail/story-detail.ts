@@ -204,11 +204,16 @@ export class StoryDetailPage {
 
   // updates part of story
   refreshStory() {
-    // This only refreshes basic things like seriesId, title, content, tags... no fancy data found during searches
+    // getById refreshes structure (content / pages / series id), getMetadata
+    // refreshes the live badges + counts (is_new, is_hot, rate, view_count, ...)
+    // that the pages endpoint doesn't return.
     this.stories.getById(this.story.id, true).subscribe(story => {
       this.updateValues(story);
-      this.myrating = this.story.myrating;
-      this.stories.cache(this.story);
+      this.stories.getMetadata(this.story.id).subscribe(meta => {
+        if (meta) this.updateValues(meta);
+        this.myrating = this.story.myrating;
+        this.stories.cache(this.story);
+      });
     });
   }
 

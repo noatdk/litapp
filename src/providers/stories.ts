@@ -112,7 +112,14 @@ export class Stories {
     return this.search(filter, page, null, null, '1/user-favorites') as Observable<SearchResultType>;
   }
 
-  getTop(id?: any, page?: number) {
+  getTop(id?: any, page?: number, period?: 'week' | 'month' | 'year' | 'all', language?: number) {
+    // The v3 popular endpoint exposes the website's period filter (week / month /
+    // year / all-time). Fall back to the legacy v1/top for the unfiltered case so
+    // existing callers keep their behavior.
+    if (period) {
+      return this.getPopular(id, page, period, language);
+    }
+
     const filter: any[] = [{ property: 'type', value: 'story' }];
 
     if (id) {
@@ -120,6 +127,16 @@ export class Stories {
     }
 
     return this.search(filter, page, null, null, '1/top') as Observable<SearchResultType>;
+  }
+
+  // 3/stories/popular/{categoryId} — top stories within a period.
+  // categoryId of 0 (or omitted) means all categories.
+  getPopular(id?: any, page?: number, period?: string, language?: number) {
+    const filter: any = {};
+    if (period) filter.period = period;
+    if (language != null) filter.language = language;
+
+    return this.newsearch(filter, page, 0, `3/stories/popular/${id || 0}`, true) as Observable<SearchResultType>;
   }
 
   getNew(id?: any, page?: number) {
@@ -271,6 +288,45 @@ export class Stories {
   // ----------------------------------------------------------------------
   // Specific Story/series endpoints
   // ----------------------------------------------------------------------
+
+  // 3/stories/{id} — cheap metadata refresh (badges, counts, tags, series block).
+  // Does NOT update full content — use getById for that. Mutates and returns the
+  // cached Story instance when one exists so subscribers update in place.
+  getMetadata(id: any): Observable<Story | null> {
+    return this.api
+      .get(`3/stories/${id}`)
+      .map((data: any) => {
+        const sub = data && data.submission;
+        if (!sub || !sub.id) {
+          console.error('stories.getMetadata', [id]);
+          return null;
+        }
+
+        const cached = this.stories.get(sub.id) || new Story({ id: sub.id.toString() });
+        cached.title = sub.title;
+        cached.description = sub.description;
+        cached.categoryID = sub.category;
+        cached.lang = this.g.getLanguage(sub.language);
+        cached.rating = sub.rate_all;
+        cached.viewcount = sub.view_count;
+        cached.ishot = sub.is_hot;
+        cached.isnew = sub.is_new;
+        cached.iswriterspick = sub.writers_pick;
+        cached.iscontestwinner = sub.contest_winner > 0;
+        cached.commentsenabled = sub.enable_comments > 0;
+        cached.ratingenabled = sub.allow_vote > 0;
+        cached.tags = !sub.tags ? [] : sub.tags.map(t => t.tag);
+        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        if (data.meta && data.meta.pages_count) cached.length = data.meta.pages_count;
+
+        this.stories.set(cached.id, cached);
+        return cached;
+      })
+      .catch(error => {
+        console.error('stories.getMetadata', [id], error);
+        return Observable.of(null);
+      });
+  }
 
   // Get a story by ID
   getById(id: any, force: boolean = false, noLoaderDismiss = false): Observable<Story | null> {
