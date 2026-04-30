@@ -8,7 +8,7 @@ import { FileChooser } from '@ionic-native/file-chooser';
 import { FilePath } from '@ionic-native/file-path';
 import { Device } from '@ionic-native/device';
 
-import { Globals, Api, UX, Settings, User, Files } from '../../providers/providers';
+import { Globals, Api, UX, Settings, User, Files, Filters } from '../../providers/providers';
 import {
   STARREDQUERIES_KEY,
   STORYSTYLEOPTIONS_KEY,
@@ -33,6 +33,7 @@ export class SettingsPage {
   options: any = {};
   settingsReady = false;
   form: FormGroup;
+  newBlockedTag: string = '';
 
   translations;
   languages;
@@ -57,7 +58,18 @@ export class SettingsPage {
     public files: Files,
     public fileChooser: FileChooser,
     public filePath: FilePath,
+    public filters: Filters,
   ) {}
+
+  addBlockedTag() {
+    if (this.filters.addBlockedTag(this.newBlockedTag)) {
+      this.newBlockedTag = '';
+    }
+  }
+
+  removeBlockedTag(tag: string) {
+    this.filters.removeBlockedTag(tag);
+  }
 
   ionViewWillEnter() {
     this.translate.get(['PASTEPROMPT_MSG']).subscribe(values => {

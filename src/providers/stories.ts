@@ -7,6 +7,7 @@ import { AlertController } from 'ionic-angular';
 import { Story } from '../models/story';
 import { STORY_KEY } from './db';
 import { Authors } from './authors';
+import { Filters } from './filters';
 import { User } from './user';
 import { Globals } from './globals';
 import { Api } from './shared/api';
@@ -33,6 +34,7 @@ export class Stories {
     public translate: TranslateService,
     public alertCtrl: AlertController,
     public ux: UX,
+    public filters: Filters,
   ) {
     this.ready = new Promise((resolve, reject) => {
       this.storage.keys().then(keys => {
@@ -166,7 +168,7 @@ export class Stories {
         }
 
         const stories = !data.submissions ? [] : data.submissions.map(story => this.extractFromSearch(story));
-        return [stories, data.total as number];
+        return [this.filters.apply(stories), data.total as number];
       })
       .catch(error => {
         if (loader) loader.dismiss();
@@ -217,7 +219,7 @@ export class Stories {
           return [[], 0];
         }
 
-        return [stories.map(story => this.extractFromNewSearch(story)), total];
+        return [this.filters.apply(stories.map(story => this.extractFromNewSearch(story))), total];
       })
       .catch(error => {
         if (loader) loader.dismiss();

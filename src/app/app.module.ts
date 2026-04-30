@@ -37,6 +37,7 @@ import {
   UX,
   Api,
   Files,
+  Filters,
 } from '../providers/providers';
 import { MyApp } from './app.component';
 import { UpdatePopoverModule } from '../pages/settings/update-popover.module';
@@ -106,6 +107,7 @@ export function provideSettings(storage: Storage) {
     User,
     UX,
     Files,
+    Filters,
     // packages
     AndroidFullScreen,
     BrowserTab,

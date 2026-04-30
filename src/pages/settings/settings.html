@@ -79,6 +79,32 @@
     </ion-list>
   </form>
 
+  <!-- Filters -->
+  <h3>{{ 'SETTINGS_CAT_FILTERS' | translate }}</h3>
+  <p>{{ 'SETTINGS_FILTERS_HINT' | translate }}</p>
+  <ion-list>
+    <ion-item>
+      <ion-input
+        type="text"
+        [(ngModel)]="newBlockedTag"
+        placeholder="{{ 'SETTINGS_FILTERS_PLACEHOLDER' | translate }}"
+        (keyup.enter)="addBlockedTag()"
+      ></ion-input>
+      <button ion-button item-end clear icon-only (click)="addBlockedTag()" [disabled]="!newBlockedTag">
+        <ion-icon name="add"></ion-icon>
+      </button>
+    </ion-item>
+    <ion-item *ngFor="let tag of filters.getBlockedTags()">
+      <ion-label>#{{ tag }}</ion-label>
+      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedTag(tag)">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </ion-item>
+    <ion-item *ngIf="filters.getBlockedTags().length === 0" class="placeholder">
+      {{ 'SETTINGS_FILTERS_EMPTY' | translate }}
+    </ion-item>
+  </ion-list>
+
   <!-- About -->
   <h3>{{'SETTINGS_ABOUTAPP' | translate}}</h3>
   <button ion-button (click)="g.checkForUpdates(true)" *ngIf="!options.offlineMode && !g.isWebApp()">

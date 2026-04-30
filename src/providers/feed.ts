@@ -5,6 +5,7 @@ import { Storage } from '@ionic/storage';
 import { FeedItem } from '../models/feeditem';
 import { Stories } from './stories';
 import { Authors } from './authors';
+import { Filters } from './filters';
 import { User } from './user';
 import { Settings } from './settings';
 import { FEED_KEY } from './db';
@@ -28,6 +29,7 @@ export class Feed {
     public settings: Settings,
     public storage: Storage,
     public ux: UX,
+    public filters: Filters,
   ) {
     this.ready = new Promise((resolve, reject) => {
       Promise.all([this.settings.load(), this.user.onReady()]).then(() => {
@@ -108,8 +110,14 @@ export class Feed {
               return new FeedItem(null);
             }
           })
-          // filter out invalid items and only show stories when setting is true
-          .filter((item: FeedItem) => !!item.id && (!this.settings.allSettings.onlyShowStoriesInFeed || !!item.story));
+          // filter out invalid items, blocklisted stories, and (optionally)
+          // non-story activity entries.
+          .filter((item: FeedItem) => {
+            if (!item.id) return false;
+            if (this.settings.allSettings.onlyShowStoriesInFeed && !item.story) return false;
+            if (item.story && this.filters.isBlocked(item.story)) return false;
+            return true;
+          });
 
         items.forEach(i => this.feed.push(i));
         this.feedtimeout = new Date().getTime() + this.timeout;
