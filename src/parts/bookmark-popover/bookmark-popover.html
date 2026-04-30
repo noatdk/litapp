@@ -5,7 +5,7 @@
     <ion-note item-end>
       <button ion-button icon-only clear="true" [tooltip]="'BOOKMARK_BUTTON' | translate" event="press" navTooltip>
         <ng-container *ngIf="list?.stories">
-          <ion-icon [name]="list?.stories?.indexOf(story) > -1 ? 'star' : 'star-outline'"></ion-icon>
+          <ion-icon [name]="hasStory(list) ? 'star' : 'star-outline'"></ion-icon>
         </ng-container>
       </button>
     </ion-note>
