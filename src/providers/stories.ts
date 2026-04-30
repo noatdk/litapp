@@ -328,6 +328,29 @@ export class Stories {
       });
   }
 
+  // 3/stories/{slug}/comments/after — public, oldest-first, cursor by comment id.
+  // Pass after=0 for the first page; use the last item's id for subsequent pages.
+  getComments(story: Story, after: number = 0) {
+    const slug = (story && story.url ? story.url : '').replace(/^.*\/s\//, '').split('?')[0];
+    if (!slug) return Observable.of({ comments: [], total: 0, perPage: 0 });
+
+    const params = { params: JSON.stringify({ after }) };
+    return this.api
+      .get(`3/stories/${slug}/comments/after`, params)
+      .map((data: any) => {
+        const items = (data && data.data) || [];
+        return {
+          comments: items.map(c => this.extractComment(c)),
+          total: (data && data.meta && data.meta.total) || 0,
+          perPage: (data && data.meta && data.meta.per_page) || items.length,
+        };
+      })
+      .catch(error => {
+        console.error('stories.getComments', [story && story.id, after], error);
+        return Observable.of({ comments: [], total: 0, perPage: 0 });
+      });
+  }
+
   // Get a story by ID
   getById(id: any, force: boolean = false, noLoaderDismiss = false): Observable<Story | null> {
     const cached = this.stories.get(id);
@@ -640,5 +663,14 @@ export class Stories {
 
     this.stories.set(story.id, story);
     return story;
+  }
+
+  extractComment(item): { user: string; text: string; timestamp: string } {
+    return {
+      user: item.author && item.author.username,
+      text: item.text,
+      // unix seconds → ISO string so the template's date pipe can format it
+      timestamp: item.date ? new Date(item.date * 1000).toISOString() : '',
+    };
   }
 }

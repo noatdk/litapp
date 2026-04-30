@@ -51,8 +51,22 @@ export class StoryDetailPage {
         this.story.series = story.series;
         this.story.length = story.length;
         this.story.lang = story.lang;
+
+        this.loadComments();
       });
+    } else {
+      this.loadComments();
     }
+  }
+
+  // Pulls the first page of comments via 3/stories/{slug}/comments/after.
+  // The endpoint paginates by comment id; subsequent pages would pass the last
+  // comment.id as `after`. For now we just show the first page.
+  loadComments() {
+    if (!this.story || !this.story.commentsenabled) return;
+    this.stories.getComments(this.story).subscribe(res => {
+      this.story.comments = res.comments;
+    });
   }
 
   showAuthor(author: Author) {

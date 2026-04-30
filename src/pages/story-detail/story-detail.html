@@ -157,12 +157,12 @@
     </form>
   </ng-container>
 
-  <ng-container *ngIf="story.comments && story.commentsenabled">
+  <ng-container *ngIf="story.comments && story.comments.length > 0 && story.commentsenabled">
     <h2>{{'COMMENTS' | translate}}</h2>
     <ion-list class="comments">
       <ion-item *ngFor="let comment of story.comments">
         <h3>{{comment.user}}</h3>
-        <h6>{{comment.timestamp}}</h6>
+        <h6>{{comment.timestamp | date:'medium'}}</h6>
         <p>{{comment.text}}</p>
       </ion-item>
     </ion-list>
