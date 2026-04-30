@@ -73,14 +73,14 @@ jobs:
       - name: Production build (sanity)
         run: npm run build
 
-      - name: Setup Java (Android signing build)
+      - name: Setup Java 17 (cmdline-tools sdkmanager needs JDK 17+ on ubuntu-latest)
         if: steps.android.outputs.sign == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
-      - name: Android SDK packages (runner cmdline-tools; avoid setup-android JDK17-only sdkmanager)
+      - name: Android SDK packages (runner image)
         if: steps.android.outputs.sign == 'true'
         run: |
           set -euo pipefail
@@ -89,14 +89,21 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ROOT" >> "$GITHUB_ENV"
           SM="$ROOT/cmdline-tools/latest/bin/sdkmanager"
           if [[ ! -x "$SM" ]]; then
-            SM="$(find "$ROOT/cmdline-tools" -maxdepth 4 -name sdkmanager -type f -executable 2>/dev/null | head -1)"
+            SM="$(find "$ROOT/cmdline-tools" -maxdepth 5 -name sdkmanager -type f -executable 2>/dev/null | head -1)"
           fi
           if [[ ! -x "${SM:-}" ]]; then
-            echo "::error::sdkmanager not found under $ROOT/cmdline-tools (runner image layout changed)"
+            echo "::error::sdkmanager not found under $ROOT/cmdline-tools"
             exit 1
           fi
-          yes | "$SM" --licenses >/dev/null 2>&1 || true
+          (yes || true) | "$SM" --licenses >/dev/null 2>&1 || true
           "$SM" "platforms;android-27" "build-tools;27.0.3"
+
+      - name: Setup Java 11 (Cordova 7 / Gradle)
+        if: steps.android.outputs.sign == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
 
       - name: Decode Android keystore
         if: steps.android.outputs.sign == 'true'
