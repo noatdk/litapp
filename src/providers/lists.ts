@@ -98,6 +98,14 @@ export class Lists {
       });
   }
 
+  // True iff `story` appears in any cached list. Returns false if the lists
+  // haven't loaded yet, so callers can render an unbookmarked icon as the
+  // safe default and update once Lists.onReady() resolves.
+  isBookmarked(story: Story): boolean {
+    if (!this.lists || !story) return false;
+    return this.lists.some(l => !!l.stories && l.stories.indexOf(story) > -1);
+  }
+
   getById(urlname: string, hideLoader?: boolean) {
     const list = this.lists.find(l => l.urlname === urlname);
 
