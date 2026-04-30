@@ -10,6 +10,7 @@
       <ion-icon name="eye" *ngIf="story?.cached && !story?.downloaded && !ishistory"></ion-icon>
       <ion-icon name="download" *ngIf="story?.downloaded"></ion-icon>
       <ion-icon name="paper" color="secondary" *ngIf="memos.hasStoryMemo(story?.id)"></ion-icon>
+      <ion-icon name="albums" color="secondary" *ngIf="story?.series > 0 && memos.hasSeriesMemo(story?.series)"></ion-icon>
       {{story?.title}}
       <small *ngIf="story?.currentpage > 0 && ishistory">
         ({{Math.min(100, Math.round((story?.currentpage+1)*100 / story?.length))}}%)
@@ -29,7 +30,7 @@
     </p>
 
     <p class="tags">
-      <strong>{{story?.category}}</strong>
+      <strong>{{ story?.categoryID | categoryName | async }}</strong>
       <span *ngFor="let tag of story?.tags">#{{tag}} </span>
     </p>
 
@@ -43,7 +44,10 @@
         event="press"
         navTooltip
       >
-        <ion-icon name="star-outline"></ion-icon>
+        <ion-icon
+          [name]="lists.isBookmarked(story) ? 'star' : 'star-outline'"
+          [color]="lists.isBookmarked(story) ? 'secondary' : ''"
+        ></ion-icon>
       </button>
     </ion-note>
   </button>

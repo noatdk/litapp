@@ -17,6 +17,7 @@ import {
   STORY_KEY,
   RECENTQUERIES_KEY,
   SETTINGS_KEY,
+  MEMOS_KEY,
 } from '../../providers/db';
 import { handleNoCordovaError } from '../../app/utils';
 
@@ -116,7 +117,7 @@ export class SettingsPage {
 
     this.storage
       .forEach((value, key, i) => {
-        if ([STARREDQUERIES_KEY, RECENTQUERIES_KEY, STORYSTYLEOPTIONS_KEY, FEED_KEY, SETTINGS_KEY, HISTORY_KEY].indexOf(key) > -1) {
+        if ([STARREDQUERIES_KEY, RECENTQUERIES_KEY, STORYSTYLEOPTIONS_KEY, FEED_KEY, SETTINGS_KEY, HISTORY_KEY, MEMOS_KEY].indexOf(key) > -1) {
           data[key] = value;
         } else if (key.indexOf(STORY_KEY) > -1 && (value.downloaded || data[HISTORY_KEY].indexOf(value.id) > -1)) {
           // add stories that are either downloaded or in history

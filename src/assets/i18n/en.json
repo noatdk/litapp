@@ -84,8 +84,10 @@
   "REFRESH_BUTTON": "Refresh",
   "OPENLINK_BUTTON": "Open in browser",
   "MEMO_BUTTON": "Memo",
+  "MEMO_SERIES_BUTTON": "Series memo",
   "MEMO_TITLE": "Personal memo",
-  "MEMO_PLACEHOLDER": "Notes you keep about this story or author. Saved on this device only.",
+  "MEMO_SERIES_TITLE": "Series memo",
+  "MEMO_PLACEHOLDER": "Private notes saved on this device only.",
 
   "HISTORY_TITLE": "History",
   "HISTORY_EMPTY": "This list will show the last {{HISTORY_LIMIT}} read stories. Check out the tabs below to start reading some!",

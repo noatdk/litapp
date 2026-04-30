@@ -136,6 +136,15 @@ export class StoryDetailPage {
     popover.present({ ev });
   }
 
+  openSeriesMemo(ev: UIEvent) {
+    if (!this.story || !this.story.series) return;
+    const popover = this.popoverCtrl.create('MemoPopover', {
+      kind: 'series',
+      id: this.story.series,
+    });
+    popover.present({ ev });
+  }
+
   share() {
     this.socialSharing.share(null, null, null, this.story.url).catch(err =>
       handleNoCordovaError(err, () => {
