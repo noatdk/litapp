@@ -12,6 +12,10 @@ import { User } from './user';
 import { UX } from './shared/ux';
 import { Files } from './files';
 import { Filters } from './filters';
+import { Memos } from './memos';
 
 // Do not import from this barrelfile inside the barrel, no loops!
-export { Analytics, Api, Stories, Authors, Lists, Categories, Feed, Globals, History, Settings, User, UX, Files, Filters };
+export {
+  Analytics, Api, Stories, Authors, Lists, Categories, Feed, Globals,
+  History, Settings, User, UX, Files, Filters, Memos,
+};

@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files, Memos } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
@@ -32,6 +32,7 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
+    public memos: Memos,
   ) {
     this.story = navParams.get('story');
 
@@ -125,6 +126,14 @@ export class StoryDetailPage {
     popover.present({
       ev,
     });
+  }
+
+  openMemo(ev: UIEvent) {
+    const popover = this.popoverCtrl.create('MemoPopover', {
+      kind: 'story',
+      id: this.story.id,
+    });
+    popover.present({ ev });
   }
 
   share() {

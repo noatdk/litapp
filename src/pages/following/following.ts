@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams, PopoverController } from 'ionic-angular';
 
 import { Author } from '../../models/author';
-import { Authors, Files } from '../../providers/providers';
+import { Authors, Files, Memos } from '../../providers/providers';
 
 @IonicPage()
 @Component({
@@ -19,6 +19,7 @@ export class FollowingPage {
     public a: Authors,
     private popoverCtrl: PopoverController,
     public files: Files,
+    public memos: Memos,
   ) {
     this.a.getFollowing().subscribe(authors => {
       this.authors = authors;

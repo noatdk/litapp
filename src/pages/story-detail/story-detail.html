@@ -61,6 +61,17 @@
         <ion-icon name="open"></ion-icon>
       </button>
 
+      <button
+        ion-button
+        icon-only
+        (click)="openMemo($event)"
+        [tooltip]="'MEMO_BUTTON' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="memos.hasStoryMemo(story.id) ? 'paper' : 'paper-outline'"></ion-icon>
+      </button>
+
       <button ion-button icon-only (click)="share()" [tooltip]="'SHARE_BUTTON' | translate" event="press" navTooltip>
         <ion-icon name="share"></ion-icon>
       </button>
@@ -79,6 +90,11 @@
     <button ion-button *ngIf="!settings.allSettings.offlineMode" (click)="showRelated()">
       <ion-icon name="pricetags"></ion-icon>&nbsp; {{'STORYDETAIL_RELATED' | translate }}
     </button>
+  </p>
+
+  <p class="memo" *ngIf="memos.hasStoryMemo(story.id)" (click)="openMemo($event)">
+    <strong><ion-icon name="paper" color="secondary"></ion-icon> {{ 'MEMO_TITLE' | translate }}: </strong>
+    {{ memos.getStoryMemo(story.id) }}
   </p>
 
   <h2>{{'DETAILS' | translate}}</h2>

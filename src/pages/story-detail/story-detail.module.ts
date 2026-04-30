@@ -6,6 +6,7 @@ import { TooltipsModule } from 'ionic-tooltips';
 import { StoryDetailPage } from './story-detail';
 import { BookmarkPopoverModule } from '../../parts/bookmark-popover/bookmark-popover.module';
 import { PipesModule } from '../../pipes/pipes.module';
+import { MemoPopoverModule } from '../../parts/memo-popover/memo-popover.module';
 
 @NgModule({
   declarations: [StoryDetailPage],
@@ -15,6 +16,7 @@ import { PipesModule } from '../../pipes/pipes.module';
     TooltipsModule,
     BookmarkPopoverModule,
     PipesModule,
+    MemoPopoverModule,
   ],
 })
 export class StoryDetailPageModule {}
