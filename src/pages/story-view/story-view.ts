@@ -31,6 +31,11 @@ export class StoryViewPage {
   @ViewChild('range') range: any;
   @ViewChild('rootElement') rootElement: any;
 
+  private scrollElement: HTMLElement;
+  private scrollSaveTimeout: any;
+  private pauseSub: any;
+  private resumeSub: any;
+
   settings = {
     fontsize: 15,
     lineheight: 21.5,
@@ -139,9 +144,23 @@ export class StoryViewPage {
 
       this.rootElement.nativeElement.style.setProperty('--statusbar-height', `${this.statusBarHeight}px`);
     }, 10);
+
+    setTimeout(() => {
+      this.bindScroll();
+      this.restoreScroll();
+    }, 50);
+
+    this.pauseSub = this.platform.pause.subscribe(() => this.persistScroll());
+    this.resumeSub = this.platform.resume.subscribe(() => {
+      setTimeout(() => this.restoreScroll(), 50);
+    });
   }
 
   ionViewWillLeave() {
+    this.persistScroll();
+    this.unbindScroll();
+    if (this.pauseSub) this.pauseSub.unsubscribe();
+    if (this.resumeSub) this.resumeSub.unsubscribe();
     if (this.enableImmersive) {
       this.androidFullScreen.showSystemUI();
     }
@@ -225,6 +244,9 @@ export class StoryViewPage {
   }
 
   slideChanged() {
+    // Persist previous slide scroll before switching active element.
+    this.persistScroll();
+
     const currentIndex = this.slidesElement.getActiveIndex();
     if (currentIndex >= this.slides.length) {
       this.goToNextInSeries();
@@ -237,6 +259,11 @@ export class StoryViewPage {
       this.story.currentpage = currentIndex;
       this.stories.cache(this.story);
     }
+
+    setTimeout(() => {
+      this.bindScroll();
+      this.restoreScroll();
+    }, 50);
   }
 
   goToNextInSeries() {
@@ -295,6 +322,80 @@ export class StoryViewPage {
 
     popover.present({
       ev,
+    });
+  }
+
+  // ----------------------------------------------------------------------
+  // Scroll persistence
+  // ----------------------------------------------------------------------
+
+  private getActivePageIndex(): number {
+    try {
+      if (this.slidesElement) return this.slidesElement.getActiveIndex();
+    } catch (err) {
+      // ignore
+    }
+    return this.story && typeof this.story.currentpage === 'number' ? this.story.currentpage : 0;
+  }
+
+  private getScrollKey(page: number): string {
+    return `storyscroll:${this.story.id}:${page}`;
+  }
+
+  private getScrollElement(): HTMLElement {
+    if (!this.rootElement || !this.rootElement.nativeElement) return undefined;
+
+    // ngx-scrollbar renders a dedicated scroll view element; keep the query tight for perf.
+    const activeSlide = this.rootElement.nativeElement.querySelector('ion-slide.swiper-slide-active');
+    if (!activeSlide) return undefined;
+    return activeSlide.querySelector('.ng-scrollbar-view') || activeSlide.querySelector('.scroll-content');
+  }
+
+  private bindScroll() {
+    const el = this.getScrollElement();
+    if (!el || this.scrollElement === el) return;
+
+    this.unbindScroll();
+    this.scrollElement = el;
+    this.scrollElement.addEventListener('scroll', this.onScroll as any);
+  }
+
+  private unbindScroll() {
+    if (this.scrollElement) {
+      this.scrollElement.removeEventListener('scroll', this.onScroll as any);
+    }
+    this.scrollElement = undefined;
+    if (this.scrollSaveTimeout) clearTimeout(this.scrollSaveTimeout);
+    this.scrollSaveTimeout = undefined;
+  }
+
+  private onScroll = () => {
+    if (this.scrollSaveTimeout) return;
+    this.scrollSaveTimeout = setTimeout(() => {
+      this.scrollSaveTimeout = undefined;
+      this.persistScroll();
+    }, 200);
+  }
+
+  private persistScroll() {
+    const page = this.getActivePageIndex();
+    const el = this.scrollElement || this.getScrollElement();
+    if (!el) return;
+
+    const top = Math.max(0, Math.floor(el.scrollTop || 0));
+    this.storage.set(this.getScrollKey(page), top);
+  }
+
+  private restoreScroll() {
+    const page = this.getActivePageIndex();
+    const el = this.scrollElement || this.getScrollElement();
+    if (!el) return;
+
+    this.storage.get(this.getScrollKey(page)).then((top: number) => {
+      if (typeof top !== 'number' || isNaN(top)) return;
+      setTimeout(() => (el.scrollTop = top), 0);
+      // extra restore pass for images/font layout changes
+      setTimeout(() => (el.scrollTop = top), 250);
     });
   }
 }
