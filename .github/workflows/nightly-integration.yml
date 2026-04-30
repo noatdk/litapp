@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event_name == 'push' && github.sha || 'fork/integration' }}
 
-      - name: Detect Android signing (avoid secrets.* in if — rejects workflow on this fork)
+      - name: Detect Android signing (do not use secrets in step if)
         id: android
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -33,6 +33,11 @@ jobs:
           else
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Explain missing APK release (secrets)
+        if: steps.android.outputs.sign != 'true'
+        run: |
+          echo "::notice::No GitHub Release/APK: add Actions secrets ANDROID_KEYSTORE_BASE64 (base64 .jks) and ANDROID_KEYSTORE_PASSWORD (store + key password; alias litapp unless ANDROID_KEY_ALIAS is set). Until then this job only validates the branch."
 
       - name: Export env for in-app update manifest
         shell: bash
