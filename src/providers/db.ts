@@ -11,3 +11,4 @@ export const VERSION_KEY: string = '_version';
 export const SETTINGS_KEY: string = '_settings';
 export const FILTERS_KEY: string = '_filters';
 export const MEMOS_KEY: string = '_memos';
+export const SERIES_FOLLOW_KEY: string = '_seriesFollow';

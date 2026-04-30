@@ -42,6 +42,26 @@
 </ion-header>
 
 <ion-content padding>
+  <ng-container *ngIf="!onlyDownloaded">
+    <ng-container *ngIf="newChapters.length">
+      <h2>
+        <ion-icon name="notifications" color="secondary"></ion-icon>
+        {{ 'HISTORY_NEW_CHAPTERS' | translate }} ({{ newChapters.length }})
+      </h2>
+      <story-list [stories]="newChapters" ishistory="false"></story-list>
+    </ng-container>
+
+    <ng-container *ngIf="inProgress.length">
+      <h2>
+        <ion-icon name="bookmarks"></ion-icon>
+        {{ 'HISTORY_CONTINUE_READING' | translate }} ({{ inProgress.length }})
+      </h2>
+      <story-list [stories]="inProgress" ishistory="true"></story-list>
+    </ng-container>
+
+    <h2 *ngIf="newChapters.length || inProgress.length">{{ 'HISTORY_TITLE' | translate }}</h2>
+  </ng-container>
+
   <p *ngIf="!filteredStories.length; else listElement" class="empty-placeholder">
     {{ 'HISTORY_EMPTY' | translate:{HISTORY_LIMIT: HISTORY_LIMIT} }}
   </p>

@@ -3,7 +3,7 @@ import { IonicPage, NavController, AlertController, PopoverController } from 'io
 import { TranslateService } from '@ngx-translate/core';
 import { Storage } from '@ionic/storage';
 
-import { Stories, Settings, History } from '../../providers/providers';
+import { Stories, Settings, History, SeriesFollow } from '../../providers/providers';
 import { Story } from '../../models/story';
 
 @IonicPage({ priority: 'high' })
@@ -13,6 +13,8 @@ import { Story } from '../../models/story';
 })
 export class HistoryPage {
   filteredStories: Story[] = [];
+  inProgress: Story[] = [];
+  newChapters: Story[] = [];
   sortMethod: string;
 
   HISTORY_LIMIT = History.HISTORY_LIMIT;
@@ -29,6 +31,7 @@ export class HistoryPage {
     public history: History,
     public settings: Settings,
     private popoverCtrl: PopoverController,
+    public seriesFollow: SeriesFollow,
   ) {
     this.translate.get(['HISTORY_TOOLTIP_CLEAR', 'CONFIRM', 'OK_BUTTON', 'CANCEL_BUTTON']).subscribe(values => {
       this.translations = values;
@@ -36,10 +39,30 @@ export class HistoryPage {
   }
 
   ionViewWillEnter() {
-    Promise.all([this.history.onReady(), this.settings.load()]).then(() => {
+    Promise.all([this.history.onReady(), this.settings.load(), this.seriesFollow.onReady()]).then(() => {
       this.onlyDownloaded = this.settings.allSettings.offlineMode;
       this.buildList();
+      this.refreshShelves();
+
+      // Daily-cap polling for new chapters in followed series. Triggered when
+      // the user lands on the History tab so it doesn't hit the network on
+      // app start when the user might just be reading an open story.
+      if (!this.settings.allSettings.offlineMode && this.seriesFollow.isPollDue()) {
+        this.seriesFollow.poll().then(() => this.refreshShelves());
+      }
     });
+  }
+
+  private refreshShelves() {
+    // In-progress: stories the user has started but not finished. Most-
+    // recent first. Excludes stories not actually paginated yet (length 0).
+    this.inProgress = this.history
+      .getStories()
+      .slice()
+      .reverse()
+      .filter(s => s && s.length && s.currentpage > 0 && s.currentpage < s.length - 1);
+
+    this.newChapters = this.seriesFollow.getAllNewChapters();
   }
 
   toggleDownloaded() {

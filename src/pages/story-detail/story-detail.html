@@ -52,6 +52,18 @@
       <button
         ion-button
         icon-only
+        *ngIf="story.series > 0"
+        (click)="toggleFollowSeries()"
+        [tooltip]="'STORYDETAIL_TOOLTIP_FOLLOW_SERIES' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="seriesFollow.isFollowed(story.series) ? 'notifications' : 'notifications-outline'"></ion-icon>
+      </button>
+
+      <button
+        ion-button
+        icon-only
         (click)="openLink()"
         *ngIf="!settings.allSettings.offlineMode"
         [tooltip]="'OPENLINK_BUTTON' | translate"
