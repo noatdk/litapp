@@ -15,5 +15,12 @@
 </ion-header>
 
 <ion-content padding>
+  <ion-segment *ngIf='order=="top"' [(ngModel)]="period" (ionChange)="reload()">
+    <ion-segment-button value="all">{{ 'TOPLIST_PERIOD_ALL' | translate }}</ion-segment-button>
+    <ion-segment-button value="year">{{ 'TOPLIST_PERIOD_YEAR' | translate }}</ion-segment-button>
+    <ion-segment-button value="month">{{ 'TOPLIST_PERIOD_MONTH' | translate }}</ion-segment-button>
+    <ion-segment-button value="week">{{ 'TOPLIST_PERIOD_WEEK' | translate }}</ion-segment-button>
+  </ion-segment>
+
   <story-list [stories]="stories" infinite="true" (ionInfinite)="loadMore($event)"></story-list>
 </ion-content>

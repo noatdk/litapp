@@ -5,6 +5,8 @@ import { Story } from '../../models/story';
 import { Stories, Globals } from '../../providers/providers';
 import { Category } from '../../models/category';
 
+type TopPeriod = 'all' | 'year' | 'month' | 'week';
+
 @IonicPage()
 @Component({
   selector: 'page-top-list',
@@ -15,6 +17,7 @@ export class TopListPage {
   currentpage = 1;
   cat: Category;
   order: string;
+  period: TopPeriod = 'all';
 
   constructor(public navCtrl: NavController, public navParams: NavParams, public s: Stories, public globals: Globals) {
     this.cat = navParams.get('category');
@@ -25,8 +28,17 @@ export class TopListPage {
       return;
     }
 
+    this.reload();
+  }
+
+  // Re-runs the initial fetch. Called from the constructor and whenever the
+  // user picks a different period in the Top segment.
+  reload() {
+    this.stories = [];
+    this.currentpage = 1;
+
     if (this.order === 'top') {
-      this.s.getTop(this.cat.id).subscribe(data => {
+      this.s.getTop(this.cat.id, 1, this.period).subscribe(data => {
         this.stories = data[0];
       });
     }
@@ -46,7 +58,7 @@ export class TopListPage {
     this.currentpage += 1;
 
     if (this.order === 'top') {
-      this.s.getTop(this.cat.id, this.currentpage).subscribe(data => {
+      this.s.getTop(this.cat.id, this.currentpage, this.period).subscribe(data => {
         this.addNewToList(data, event);
       });
     }
