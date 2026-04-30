@@ -3,19 +3,20 @@ import { Storage } from '@ionic/storage';
 
 import { MEMOS_KEY } from './db';
 
-// Per-user, client-side notes attached to a story or an author. Not synced
+// Per-user, client-side notes attached to a story, author, or series. Not synced
 // with the server — these are private scratch-pad annotations the reader
 // keeps for themselves (continuity notes, reminders, "TODO: re-read").
-type EntityKind = 'story' | 'author';
+type EntityKind = 'story' | 'author' | 'series';
 
 interface MemosData {
   stories: { [id: string]: string };
   authors: { [id: string]: string };
+  series: { [id: string]: string };
 }
 
 @Injectable()
 export class Memos {
-  private data: MemosData = { stories: {}, authors: {} };
+  private data: MemosData = { stories: {}, authors: {}, series: {} };
   private ready: Promise<void>;
 
   constructor(public storage: Storage) {
@@ -24,6 +25,7 @@ export class Memos {
         this.data = {
           stories: (d.stories && typeof d.stories === 'object') ? d.stories : {},
           authors: (d.authors && typeof d.authors === 'object') ? d.authors : {},
+          series: (d.series && typeof d.series === 'object') ? d.series : {},
         };
       }
     });
@@ -64,8 +66,14 @@ export class Memos {
   getAuthorMemo(id: any) { return this.get('author', id); }
   setAuthorMemo(id: any, memo: string) { this.set('author', id, memo); }
 
+  hasSeriesMemo(id: any) { return this.has('series', id); }
+  getSeriesMemo(id: any) { return this.get('series', id); }
+  setSeriesMemo(id: any, memo: string) { this.set('series', id, memo); }
+
   private bucket(kind: EntityKind) {
-    return kind === 'author' ? this.data.authors : this.data.stories;
+    if (kind === 'author') return this.data.authors;
+    if (kind === 'series') return this.data.series;
+    return this.data.stories;
   }
 
   private persist() {

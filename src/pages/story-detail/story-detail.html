@@ -84,6 +84,18 @@
         <ion-icon [name]="memos.hasStoryMemo(story.id) ? 'paper' : 'paper-outline'"></ion-icon>
       </button>
 
+      <button
+        ion-button
+        icon-only
+        *ngIf="story.series > 0"
+        (click)="openSeriesMemo($event)"
+        [tooltip]="'MEMO_SERIES_BUTTON' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="memos.hasSeriesMemo(story.series) ? 'albums' : 'albums-outline'"></ion-icon>
+      </button>
+
       <button ion-button icon-only (click)="share()" [tooltip]="'SHARE_BUTTON' | translate" event="press" navTooltip>
         <ion-icon name="share"></ion-icon>
       </button>
@@ -107,6 +119,11 @@
   <p class="memo" *ngIf="memos.hasStoryMemo(story.id)" (click)="openMemo($event)">
     <strong><ion-icon name="paper" color="secondary"></ion-icon> {{ 'MEMO_TITLE' | translate }}: </strong>
     {{ memos.getStoryMemo(story.id) }}
+  </p>
+
+  <p class="memo" *ngIf="story.series > 0 && memos.hasSeriesMemo(story.series)" (click)="openSeriesMemo($event)">
+    <strong><ion-icon name="albums" color="secondary"></ion-icon> {{ 'MEMO_SERIES_TITLE' | translate }}: </strong>
+    {{ memos.getSeriesMemo(story.series) }}
   </p>
 
   <h2>{{'DETAILS' | translate}}</h2>

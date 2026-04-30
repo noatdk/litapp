@@ -3,17 +3,21 @@ import { IonicPage, NavParams, ViewController } from 'ionic-angular';
 
 import { Memos } from '../../providers/providers';
 
-// Tiny editor surfaced from story-detail / author pages. Receives `kind`
-// ('story' | 'author') and `id` via NavParams; persists via Memos provider.
+// Tiny editor surfaced from story-detail / author / series pages. Receives `kind`
+// ('story' | 'author' | 'series') and `id` via NavParams; persists via Memos provider.
 @IonicPage({ priority: 'low' })
 @Component({
   selector: 'memo-popover',
   templateUrl: 'memo-popover.html',
 })
 export class MemoPopover {
-  kind: 'story' | 'author';
+  kind: 'story' | 'author' | 'series';
   id: any;
   memo: string = '';
+
+  get memoHeaderKey(): string {
+    return this.kind === 'series' ? 'MEMO_SERIES_TITLE' : 'MEMO_TITLE';
+  }
 
   constructor(navParams: NavParams, public viewCtrl: ViewController, public memos: Memos) {
     this.kind = navParams.get('kind');
