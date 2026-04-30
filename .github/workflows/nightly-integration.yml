@@ -8,14 +8,11 @@ on:
   push:
     branches:
       - 'fork/integration'
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 concurrency:
   group: integration-ci-${{ github.repository }}
   cancel-in-progress: false
-
-env:
-  INTEGRATION_BRANCH: fork/integration
 
 jobs:
   build:
@@ -29,12 +26,12 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event_name == 'push' && github.ref || 'fork/integration' }}
+          ref: ${{ github.event_name == 'push' && github.sha || 'fork/integration' }}
 
       - name: Export env for in-app update manifest
         shell: bash
         run: |
-          echo "APP_JSON_RAW_BASE=https://raw.githubusercontent.com/${{ github.repository }}/${{ env.INTEGRATION_BRANCH }}" >> "$GITHUB_ENV"
+          echo "APP_JSON_RAW_BASE=https://raw.githubusercontent.com/${{ github.repository }}/fork/integration" >> "$GITHUB_ENV"
           echo "GITHUB_TAGS_REPO=${{ github.repository }}" >> "$GITHUB_ENV"
 
       - name: Setup Node
@@ -127,4 +124,4 @@ jobs:
 
       - name: Push integration branch
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: git push origin "HEAD:${{ env.INTEGRATION_BRANCH }}"
+        run: git push origin HEAD:fork/integration
