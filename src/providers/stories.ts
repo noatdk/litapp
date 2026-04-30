@@ -329,10 +329,11 @@ export class Stories {
   }
 
   // 3/stories/{slug}/comments/after — public, oldest-first, cursor by comment id.
-  // Pass after=0 for the first page; use the last item's id for subsequent pages.
+  // Pass after=0 for the first page; for subsequent pages pass the lastId
+  // returned in the previous response.
   getComments(story: Story, after: number = 0) {
     const slug = (story && story.url ? story.url : '').replace(/^.*\/s\//, '').split('?')[0];
-    if (!slug) return Observable.of({ comments: [], total: 0, perPage: 0 });
+    if (!slug) return Observable.of({ comments: [], total: 0, perPage: 0, lastId: 0 });
 
     const params = { params: JSON.stringify({ after }) };
     return this.api
@@ -343,11 +344,12 @@ export class Stories {
           comments: items.map(c => this.extractComment(c)),
           total: (data && data.meta && data.meta.total) || 0,
           perPage: (data && data.meta && data.meta.per_page) || items.length,
+          lastId: items.length ? items[items.length - 1].id : after,
         };
       })
       .catch(error => {
         console.error('stories.getComments', [story && story.id, after], error);
-        return Observable.of({ comments: [], total: 0, perPage: 0 });
+        return Observable.of({ comments: [], total: 0, perPage: 0, lastId: after });
       });
   }
 

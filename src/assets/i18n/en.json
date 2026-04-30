@@ -217,6 +217,7 @@
   "LANGUAGE": "Language",
   "TIMESTAMP": "Timestamp",
   "COMMENTS": "Comments",
+  "COMMENTS_LOADMORE": "Load more comments",
   "TOPLIST_PERIOD_ALL": "All time",
   "TOPLIST_PERIOD_YEAR": "Year",
   "TOPLIST_PERIOD_MONTH": "Month",

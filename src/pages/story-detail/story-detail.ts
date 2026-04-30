@@ -18,6 +18,9 @@ import { Category } from '../../models/category';
 export class StoryDetailPage {
   story: Story;
   myrating: number;
+  commentsTotal: number = 0;
+  commentsCursor: number = 0;
+  commentsLoading: boolean = false;
 
   constructor(
     public navCtrl: NavController,
@@ -59,14 +62,23 @@ export class StoryDetailPage {
     }
   }
 
-  // Pulls the first page of comments via 3/stories/{slug}/comments/after.
-  // The endpoint paginates by comment id; subsequent pages would pass the last
-  // comment.id as `after`. For now we just show the first page.
-  loadComments() {
-    if (!this.story || !this.story.commentsenabled) return;
-    this.stories.getComments(this.story).subscribe(res => {
-      this.story.comments = res.comments;
+  // Pulls comments via 3/stories/{slug}/comments/after. With after=0 we replace
+  // the list (initial load); otherwise we append for "load more". The cursor
+  // is the id of the last comment we've seen.
+  loadComments(append: boolean = false) {
+    if (!this.story || !this.story.commentsenabled || this.commentsLoading) return;
+    this.commentsLoading = true;
+    const after = append ? this.commentsCursor : 0;
+    this.stories.getComments(this.story, after).subscribe(res => {
+      this.story.comments = append ? (this.story.comments || []).concat(res.comments) : res.comments;
+      this.commentsTotal = res.total;
+      this.commentsCursor = res.lastId;
+      this.commentsLoading = false;
     });
+  }
+
+  hasMoreComments(): boolean {
+    return !!this.story && !!this.story.comments && this.story.comments.length < this.commentsTotal;
   }
 
   showAuthor(author: Author) {

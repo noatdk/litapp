@@ -158,7 +158,7 @@
   </ng-container>
 
   <ng-container *ngIf="story.comments && story.comments.length > 0 && story.commentsenabled">
-    <h2>{{'COMMENTS' | translate}}</h2>
+    <h2>{{'COMMENTS' | translate}} <small *ngIf="commentsTotal">({{story.comments.length}}/{{commentsTotal}})</small></h2>
     <ion-list class="comments">
       <ion-item *ngFor="let comment of story.comments">
         <h3>{{comment.user}}</h3>
@@ -166,5 +166,8 @@
         <p>{{comment.text}}</p>
       </ion-item>
     </ion-list>
+    <button ion-button block clear *ngIf="hasMoreComments()" [disabled]="commentsLoading" (click)="loadComments(true)">
+      {{'COMMENTS_LOADMORE' | translate}}
+    </button>
   </ng-container>
 </ion-content>
