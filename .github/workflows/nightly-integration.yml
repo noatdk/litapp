@@ -221,6 +221,8 @@ jobs:
       - name: Record nightly Android manifest bump on integration branch
         if: steps.android.outputs.sign == 'true'
         run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
           git add app.json src/providers/globals.ts config.xml package.json package-lock.json
           git diff --staged --quiet || git commit -m "chore(nightly): bump Android nightly version"
 
