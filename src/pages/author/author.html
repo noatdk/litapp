@@ -48,12 +48,56 @@
 </ion-header>
 
 <ion-content padding>
-  <ion-img [src]="author?.picture + ''"></ion-img>
-  <p *ngIf="author?.jointimestamp">{{'AUTHOR_JOINDATE' | translate}}: {{author?.jointimestamp*1000 | date}}</p>
-  <p *ngIf="author?.updatetimestamp">{{'AUTHOR_UPDATEDATE' | translate}}: {{author?.updatetimestamp*1000 | date}}</p>
+  <div class="profile-header">
+    <ion-img class="avatar" [src]="author?.picture + ''"></ion-img>
+    <div class="ident">
+      <h1>{{ author?.name }}</h1>
+      <p class="title" *ngIf="author?.usertitle">{{ author?.usertitle }}</p>
+      <p class="meta">
+        <ng-container *ngIf="author?.jointimestamp">
+          <ion-icon name="calendar"></ion-icon>
+          {{ 'AUTHOR_JOINED' | translate }} {{ author?.jointimestamp * 1000 | date:'mediumDate' }}
+        </ng-container>
+        <ng-container *ngIf="author?.location">
+          &nbsp;·&nbsp;<ion-icon name="pin"></ion-icon> {{ author?.location }}
+        </ng-container>
+      </p>
+    </div>
+  </div>
 
-  <div class="bio" (click)="toggleBio()">
-    <p #biotext [innerHTML]="author?.bio" [style.maxHeight]="showBio ? 'unset' : '115px'"></p>
+  <div class="stats" *ngIf="author">
+    <div class="stat" *ngIf="author.storycount != null">
+      <strong>{{ author.storycount | number }}</strong>
+      <small>{{ 'SUBMISSIONS' | translate }}</small>
+    </div>
+    <div
+      class="stat stat--tappable"
+      *ngIf="author.followersCount != null"
+      [class.stat--disabled]="!author.followersCount"
+      tappable
+      (click)="openFollowers()"
+    >
+      <strong>{{ author.followersCount | number }}</strong>
+      <small>{{ 'AUTHOR_FOLLOWERS' | translate }}</small>
+    </div>
+    <div
+      class="stat stat--tappable"
+      *ngIf="author.followingsCount != null"
+      [class.stat--disabled]="!author.followingsCount"
+      tappable
+      (click)="openFollowing()"
+    >
+      <strong>{{ author.followingsCount | number }}</strong>
+      <small>{{ 'AUTHOR_FOLLOWING' | translate }}</small>
+    </div>
+    <div class="stat" *ngIf="author.commentsCount != null">
+      <strong>{{ author.commentsCount | number }}</strong>
+      <small>{{ 'AUTHOR_COMMENTS' | translate }}</small>
+    </div>
+  </div>
+
+  <div class="bio" *ngIf="author?.bio" (click)="onBioClick($event)">
+    <p #biotext [innerHTML]="bioHtml()" [style.maxHeight]="showBio ? 'unset' : '115px'"></p>
     <div class="arrow" *ngIf="showArrow && !showBio">
       <ion-icon name="arrow-down"></ion-icon>
     </div>
@@ -61,25 +105,143 @@
 
   <memo-preview kind="author" [id]="author?.id"></memo-preview>
 
-  <ion-segment [(ngModel)]="openSegment">
-    <ion-segment-button value="stories" (click)="loadSubmissions()">
-      {{ 'SUBMISSIONS' | translate }} ({{author?.storycount}})
-    </ion-segment-button>
-    <ion-segment-button value="favs" (click)="loadFavs()">
-      {{ 'FAVORITES' | translate }} <ng-container *ngIf="author?.favs">({{author?.favs.length}})</ng-container>
-    </ion-segment-button>
-  </ion-segment>
+  <ng-container *ngIf="author?.lists?.length">
+    <h3>{{ 'AUTHOR_LISTS' | translate }}</h3>
+    <ion-list class="author-lists">
+      <ion-item *ngFor="let l of author.lists">
+        <ion-icon
+          item-start
+          [name]="l.submissionType === 'poem' ? 'paper'
+                  : l.submissionType === 'audio' ? 'musical-notes'
+                  : l.submissionType === 'illustra' ? 'image'
+                  : l.submissionType === 'ink' ? 'game-controller-b'
+                  : 'bookmark'"
+        ></ion-icon>
+        <h3>{{ l.title }}</h3>
+        <p *ngIf="l.description">{{ l.description }}</p>
+        <ion-note item-end>{{ l.storiesCount }}</ion-note>
+      </ion-item>
+    </ion-list>
+  </ng-container>
+
+  <!-- Sticky tab bar — segment plus a sort button (mirrors the History
+       page's sort funnel). Clings to the top of the scroll viewport once
+       the user scrolls past the profile header. -->
+  <div class="tab-bar">
+    <ion-segment [(ngModel)]="openSegment" class="tab-bar__segment">
+      <ion-segment-button value="stories" (click)="loadSubmissions()">
+        {{ 'SUBMISSIONS' | translate }} ({{author?.storycount}})
+      </ion-segment-button>
+      <ion-segment-button value="favs" (click)="loadFavs()">
+        {{ 'FAVORITES' | translate }}
+        <ng-container *ngIf="author?.favoriteStoriesCount != null && !author?.favs">({{author?.favoriteStoriesCount}})</ng-container>
+        <ng-container *ngIf="author?.favs">({{author?.favs.length}})</ng-container>
+      </ion-segment-button>
+    </ion-segment>
+
+    <button
+      ion-button
+      icon-only
+      clear
+      class="tab-bar__sort"
+      [disabled]="openSegment !== 'stories'"
+      (click)="openSortPopover($event)"
+      [tooltip]="'AUTHOR_SORT_BY' | translate"
+      event="press"
+      navTooltip
+    >
+      <ion-icon name="funnel"></ion-icon>
+    </button>
+  </div>
 
   <p class="warning" *ngIf="openSegment=='stories' && missingStoryCount > 0">
     {{translations.AUTHOR_MISSING_STORIES.replace("{value}", missingStoryCount)}}
   </p>
 
-  <story-list-normal
-    *ngIf="openSegment=='stories'"
-    [stories]="author?.stories"
-    infinite="true"
-    (ionInfinite)="loadMoreSubmissions($event)"
-  ></story-list-normal>
+  <ng-container *ngIf="openSegment=='stories'">
+    <p
+      *ngIf="submissionsSort !== 'default' && hasUnloadedSubmissions()"
+      class="submissions-sort-hint"
+    >
+      {{ 'AUTHOR_SORT_INCOMPLETE' | translate }}
+    </p>
+    <ion-list class="submissions-list" *ngIf="submissionRows.length">
+      <ng-container *ngFor="let row of submissionRows">
+        <!-- Standalone story — same card the rest of the app uses -->
+        <story-list-item
+          *ngIf="row.kind === 'story'"
+          [story]="row.story"
+        ></story-list-item>
+
+        <!-- Series group — expandable, woven inline with the standalone cards -->
+        <div
+          *ngIf="row.kind === 'series'"
+          class="series-card"
+          [class.series-card--expanded]="row.expanded"
+        >
+          <button ion-item detail-none class="series-card__item" (click)="toggleSeriesRow(row)">
+            <h2>
+              <ion-icon class="series-card__icon" name="albums"></ion-icon>
+              {{ row.series.title }}
+              <ion-badge *ngIf="row.series.isHot" color="red">{{ 'HOT_TAG' | translate }}</ion-badge>
+              <ion-badge color="medium">{{ row.series.chaptersCount }} {{ 'HISTORY_PARTS_LABEL' | translate }}</ion-badge>
+            </h2>
+            <p class="series-card__stats">
+              <span *ngIf="row.series.totalViews"><ion-icon name="eye"></ion-icon> {{ formatCount(row.series.totalViews) }}</span>
+              <span *ngIf="row.series.totalFavorites"><ion-icon name="heart"></ion-icon> {{ formatCount(row.series.totalFavorites) }}</span>
+              <span *ngIf="row.series.totalComments"><ion-icon name="text"></ion-icon> {{ formatCount(row.series.totalComments) }}</span>
+              <span *ngIf="row.series.totalLists"><ion-icon name="bookmark"></ion-icon> {{ formatCount(row.series.totalLists) }}</span>
+            </p>
+            <p class="tags" *ngIf="row.series.categoryID">
+              <strong>{{ row.series.categoryID | categoryName | async }}</strong>
+            </p>
+            <ion-note
+              *ngIf="row.chapters.length > SERIES_PREVIEW_COUNT"
+              item-end
+              class="series-card__note"
+            >
+              <ion-icon class="series-card__chevron" [name]="row.expanded ? 'arrow-dropup' : 'arrow-dropdown'"></ion-icon>
+            </ion-note>
+          </button>
+
+          <div class="series-card__chapters">
+            <story-list-item
+              *ngFor="let chapter of (row.expanded ? row.chapters : (row.chapters | slice:0:SERIES_PREVIEW_COUNT))"
+              [story]="chapter"
+            ></story-list-item>
+
+            <button
+              *ngIf="!row.expanded && row.chapters.length > SERIES_PREVIEW_COUNT"
+              ion-item
+              detail-none
+              class="series-card__more"
+              (click)="toggleSeriesRow(row)"
+            >
+              <ion-icon item-start name="arrow-dropdown"></ion-icon>
+              <ion-label>
+                {{ 'AUTHOR_SERIES_SHOW_MORE' | translate:{count: row.chapters.length - SERIES_PREVIEW_COUNT} }}
+              </ion-label>
+            </button>
+
+            <button
+              *ngIf="row.expanded"
+              ion-button
+              block
+              clear
+              small
+              (click)="openSeriesPage(row)"
+            >
+              {{ 'HISTORY_SERIES_VIEW_ALL' | translate }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </ion-list>
+
+    <ion-infinite-scroll (ionInfinite)="loadMoreSubmissions($event)">
+      <ion-infinite-scroll-content></ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+  </ng-container>
 
   <story-list-normal
     *ngIf="openSegment=='favs'"

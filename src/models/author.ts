@@ -10,6 +10,15 @@ export class Author {
   }
 }
 
+export interface AuthorList {
+  id: number;
+  urlname: string;
+  title: string;
+  description: string;
+  submissionType: string;
+  storiesCount: number;
+}
+
 export interface Author {
   [prop: string]: any;
 
@@ -23,4 +32,14 @@ export interface Author {
   following: boolean;
   stories: Story[];
   favs: Story[];
+
+  // Extended profile fields (3/authors/{id} response)
+  usertitle: string;
+  location: string;
+  followersCount: number;
+  followingsCount: number;
+  commentsCount: number;
+  favoriteStoriesCount: number;
+  editorStatus: string;
+  lists: AuthorList[];
 }

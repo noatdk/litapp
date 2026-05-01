@@ -1,0 +1,32 @@
+<ion-header>
+  <ion-navbar>
+    <ion-title>
+      {{ titleKey | translate }}
+      <small *ngIf="total"> ({{ total | number }})</small>
+    </ion-title>
+  </ion-navbar>
+</ion-header>
+
+<ion-content padding>
+  <p *ngIf="!loading && !users.length" class="empty-placeholder">
+    {{ 'USERLIST_EMPTY' | translate }}
+  </p>
+
+  <ion-list>
+    <button ion-item *ngFor="let u of users" (click)="openUser(u)">
+      <ion-avatar item-start>
+        <img [src]="u?.picture" />
+      </ion-avatar>
+      <h3>{{ u?.name }}</h3>
+      <p *ngIf="u?.usertitle" class="title">{{ u.usertitle }}</p>
+      <p class="meta">
+        <span *ngIf="u?.storycount != null"><ion-icon name="paper"></ion-icon> {{ u.storycount | number }}</span>
+        <span *ngIf="u?.followersCount != null"><ion-icon name="people"></ion-icon> {{ u.followersCount | number }}</span>
+      </p>
+    </button>
+  </ion-list>
+
+  <ion-infinite-scroll (ionInfinite)="loadMore($event)">
+    <ion-infinite-scroll-content></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+</ion-content>

@@ -1,19 +1,111 @@
 page-author {
-  ion-img {
-    float: left;
-    width: 75px;
-    height: 75px;
-    margin: 20px 10px 20px 0;
+  // Kill the [padding] top inset so the sticky tab bar can clamp flush with
+  // the toolbar; the profile header gets its own top margin instead.
+  .scroll-content {
+    padding-top: 0 !important;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 16px 0;
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      overflow: hidden;
+      img { object-fit: cover; }
+    }
+
+    .ident {
+      flex: 1;
+      min-width: 0;
+
+      h1 {
+        margin: 0;
+        font-size: 1.4em;
+        font-weight: 600;
+      }
+      .title {
+        margin: 2px 0 4px;
+        opacity: 0.75;
+        font-style: italic;
+      }
+      .meta {
+        margin: 0;
+        font-size: 0.85em;
+        opacity: 0.6;
+        ion-icon {
+          font-size: 0.95em;
+          vertical-align: -2px;
+        }
+      }
+    }
+  }
+
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    margin: 0 0 14px;
+    padding: 10px 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    .stat {
+      flex: 1;
+      strong {
+        display: block;
+        font-size: 1.1em;
+      }
+      small {
+        opacity: 0.6;
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+    }
+
+    // Tappable variants are <button>s — strip the default ion-button chrome
+    // so they look identical to the non-tappable <div>s, but show a subtle
+    // hover/active hint to telegraph the tap target.
+    // Tappable stats use the same .stat layout as the static cells — they
+    // are plain <div>s with [tappable], so the parent flex sizing and
+    // alignment apply directly without ion-button's chrome interfering.
+    .stat--tappable {
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 80ms ease-out;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+    .stat--disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
   }
 
   .bio {
     clear: both;
+    margin-bottom: 14px;
   }
 
   .bio p {
     max-height: 115px;
     overflow-y: hidden;
     text-align: left;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    a {
+      color: color($colors, primary);
+      text-decoration: underline;
+    }
   }
 
   .bio .arrow {
@@ -27,8 +119,22 @@ page-author {
     text-align: center;
   }
 
-  h1 {
-    clear: both;
+  .author-lists {
+    margin-bottom: 12px;
+    h3 {
+      margin: 0;
+      font-size: 0.95em;
+      font-weight: 500;
+    }
+    p {
+      margin: 2px 0 0;
+      font-size: 0.82em;
+      opacity: 0.65;
+    }
+  }
+
+  h3 {
+    margin: 12px 0 6px;
   }
 
   .scroll-content {
@@ -39,5 +145,127 @@ page-author {
     margin: 10px 0;
     font-size: 0.8em;
     font-style: italic;
+  }
+
+  // Sticky bar: SUBMISSIONS / FAVORITES segment + sort funnel. Spans
+  // edge-to-edge by negating the [padding] horizontal inset on the parent.
+  .tab-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    margin: 0 -16px 8px;
+    padding: 0 4px 0 0;
+    background: $background-color;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  }
+  .tab-bar__segment {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  .tab-bar__sort {
+    flex: 0 0 auto;
+    margin: 0 4px;
+  }
+  .submissions-sort-hint {
+    margin: 4px 4px 8px;
+    font-size: 0.8em;
+    font-style: italic;
+    opacity: 0.65;
+  }
+
+  .submissions-list {
+    margin: 0;
+  }
+
+  .series-card {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+
+    &--expanded {
+      background: rgba(128, 128, 128, 0.04);
+    }
+
+    &__item .item-inner {
+      width: 100%;
+      border-color: #666 !important;
+      font-size: 0.9em;
+    }
+
+    &__item h2 {
+      font-size: 1em;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    &__icon {
+      margin-right: 6px;
+      font-size: 1.05em;
+      opacity: 0.85;
+    }
+
+    &__item h2 .badge {
+      margin-top: 3px;
+      margin-left: 5px;
+      font-size: 0.7em;
+      vertical-align: bottom;
+    }
+
+    &__item p {
+      font-size: 0.9em;
+    }
+
+    &__item p ion-icon {
+      font-size: 0.95em;
+      vertical-align: -2px;
+    }
+
+    &__item .tags {
+      overflow-x: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      opacity: 0.85;
+    }
+
+    &__stats {
+      opacity: 0.75;
+
+      span {
+        display: inline-block;
+        margin-right: 12px;
+      }
+
+      ion-icon {
+        margin-right: 3px;
+      }
+    }
+
+    &__note {
+      display: flex;
+      align-items: center;
+    }
+
+    &__chevron {
+      font-size: 1.4em;
+      margin-left: 4px;
+      opacity: 0.7;
+    }
+
+    &__chapters {
+      padding: 4px 14px 10px;
+    }
+
+    &__more {
+      font-size: 0.9em;
+      opacity: 0.85;
+      color: color($colors, primary);
+
+      ion-icon {
+        margin-right: 6px;
+      }
+    }
   }
 }
