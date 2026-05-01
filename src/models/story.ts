@@ -47,6 +47,7 @@ export interface Story {
   lists: List[];
   comments: {
     user: string;
+    userId: string;
     text: string;
     timestamp: string;
   }[];

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 
-import { Globals, Categories } from '../../providers/providers';
+import { Globals, Categories, Filters } from '../../providers/providers';
 import { TranslateService } from '@ngx-translate/core';
 import { Category } from '../../models/category';
 
@@ -22,15 +22,19 @@ export class ExplorePage {
     public navParams: NavParams,
     public g: Globals,
     public c: Categories,
+    public filters: Filters,
   ) {
     this.c.getAllSortedGrouped().subscribe((cats: Category[][]) => {
-      this.groupedCats = cats;
+      // Drop blocked categories so they disappear from Explore entirely.
+      this.groupedCats = cats.map(group =>
+        group.filter(cat => !this.filters.isCategoryBlocked(cat.id)),
+      );
     });
 
     this.g.onReady().then(() => {
-      this.g.getPopularTags().subscribe(tags => {
+      this.g.getPopularTags().subscribe((tags: any) => {
         if (tags) {
-          this.popularTags = tags;
+          this.popularTags = (tags as any[]).filter(t => !this.filters.isTagBlocked(t && t.tag));
         }
       });
     });

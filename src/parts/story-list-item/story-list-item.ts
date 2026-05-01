@@ -1,7 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { NavController, PopoverController, LoadingController } from 'ionic-angular';
+import { NavController, PopoverController, LoadingController, ActionSheetController } from 'ionic-angular';
+import { TranslateService } from '@ngx-translate/core';
 
-import { Lists, Memos, User } from '../../providers/providers';
+import { Lists, Memos, User, Filters, UX, Categories } from '../../providers/providers';
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
 
@@ -24,6 +25,11 @@ export class StoryListItem {
     public user: User,
     public lists: Lists,
     public memos: Memos,
+    public filters: Filters,
+    public ux: UX,
+    public categories: Categories,
+    public actionSheetCtrl: ActionSheetController,
+    public translate: TranslateService,
   ) {}
 
   pressPosition = null;
@@ -108,6 +114,98 @@ export class StoryListItem {
     popover.present({
       ev,
     });
+  }
+
+  openActionsMenu(story: Story, ev: UIEvent) {
+    ev.stopPropagation();
+    if (!story) return;
+
+    const hasAuthor = !!(story.author && story.author.id != null);
+    const hasSeries = !!(story.series && Number(story.series) > 0);
+    const hasCategory = story.categoryID != null;
+    const isAuthorBlocked = hasAuthor && this.filters.isAuthorBlocked(story.author.id);
+    const isSeriesBlocked = hasSeries && this.filters.isSeriesBlocked(story.series);
+    const isCategoryBlocked = hasCategory && this.filters.isCategoryBlocked(story.categoryID);
+
+    this.translate
+      .get([
+        'STORYACTION_BLOCK_AUTHOR',
+        'STORYACTION_UNBLOCK_AUTHOR',
+        'STORYACTION_BLOCK_SERIES',
+        'STORYACTION_UNBLOCK_SERIES',
+        'STORYACTION_BLOCK_CATEGORY',
+        'STORYACTION_UNBLOCK_CATEGORY',
+        'AUTHOR_BLOCKED',
+        'AUTHOR_UNBLOCKED',
+        'SERIES_BLOCKED',
+        'SERIES_UNBLOCKED',
+        'CATEGORY_BLOCKED',
+        'CATEGORY_UNBLOCKED',
+        'CANCEL_BUTTON',
+      ])
+      .subscribe(t => {
+        const buttons: any[] = [];
+
+        if (hasAuthor) {
+          buttons.push({
+            text: isAuthorBlocked ? t.STORYACTION_UNBLOCK_AUTHOR : t.STORYACTION_BLOCK_AUTHOR,
+            icon: isAuthorBlocked ? 'eye' : 'eye-off',
+            role: isAuthorBlocked ? undefined : 'destructive',
+            handler: () => {
+              if (isAuthorBlocked) {
+                this.filters.removeBlockedAuthor(story.author.id);
+                this.ux.showToast('INFO', 'AUTHOR_UNBLOCKED');
+              } else {
+                this.filters.addBlockedAuthor(story.author.id, story.author.name || '');
+                this.ux.showToast('INFO', 'AUTHOR_BLOCKED');
+              }
+            },
+          });
+        }
+
+        if (hasSeries) {
+          buttons.push({
+            text: isSeriesBlocked ? t.STORYACTION_UNBLOCK_SERIES : t.STORYACTION_BLOCK_SERIES,
+            icon: 'albums',
+            role: isSeriesBlocked ? undefined : 'destructive',
+            handler: () => {
+              if (isSeriesBlocked) {
+                this.filters.removeBlockedSeries(story.series);
+                this.ux.showToast('INFO', 'SERIES_UNBLOCKED');
+              } else {
+                this.filters.addBlockedSeries(story.series, '');
+                this.ux.showToast('INFO', 'SERIES_BLOCKED');
+              }
+            },
+          });
+        }
+
+        if (hasCategory) {
+          buttons.push({
+            text: isCategoryBlocked ? t.STORYACTION_UNBLOCK_CATEGORY : t.STORYACTION_BLOCK_CATEGORY,
+            icon: isCategoryBlocked ? 'folder' : 'folder-open',
+            role: isCategoryBlocked ? undefined : 'destructive',
+            handler: () => {
+              if (isCategoryBlocked) {
+                this.filters.removeBlockedCategory(story.categoryID);
+                this.ux.showToast('INFO', 'CATEGORY_UNBLOCKED');
+              } else {
+                this.filters.addBlockedCategory(
+                  story.categoryID,
+                  this.categories.nameSync(story.categoryID),
+                );
+                this.ux.showToast('INFO', 'CATEGORY_BLOCKED');
+              }
+            },
+          });
+        }
+
+        buttons.push({ text: t.CANCEL_BUTTON, role: 'cancel' });
+
+        this.actionSheetCtrl
+          .create({ title: story.title || '', buttons })
+          .present();
+      });
   }
 
   delete(story: Story, slidingItem: any) {

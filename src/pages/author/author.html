@@ -19,6 +19,18 @@
       <button
         ion-button
         icon-only
+        *ngIf="author"
+        (click)="toggleBlock()"
+        [tooltip]="(isBlocked() ? 'AUTHOR_TOOLTIP_UNBLOCK' : 'AUTHOR_TOOLTIP_BLOCK') | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="isBlocked() ? 'eye' : 'eye-off'"></ion-icon>
+      </button>
+
+      <button
+        ion-button
+        icon-only
         (click)="openLink()"
         *ngIf="!settings.allSettings.offlineMode"
         [tooltip]="'OPENLINK_BUTTON' | translate"

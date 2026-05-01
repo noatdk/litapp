@@ -4,7 +4,7 @@ import { SocialSharing } from '@ionic-native/social-sharing';
 import { TranslateService } from '@ngx-translate/core';
 import { BrowserTab } from '@ionic-native/browser-tab';
 
-import { Authors, Stories, User, Settings } from '../../providers/providers';
+import { Authors, Stories, User, Settings, Filters, UX } from '../../providers/providers';
 import { Author } from '../../models/author';
 import { handleNoCordovaError, getAuthorPageUrl } from '../../app/utils';
 
@@ -35,6 +35,8 @@ export class AuthorPage {
     public user: User,
     private browser: BrowserTab,
     public settings: Settings,
+    public filters: Filters,
+    public ux: UX,
   ) {
     const author = navParams.get('author');
 
@@ -101,6 +103,21 @@ export class AuthorPage {
       data[0].forEach(s => this.author.favs.push(s));
       event.complete();
     });
+  }
+
+  isBlocked(): boolean {
+    return !!this.author && this.filters.isAuthorBlocked(this.author.id);
+  }
+
+  toggleBlock() {
+    if (!this.author) return;
+    if (this.isBlocked()) {
+      this.filters.removeBlockedAuthor(this.author.id);
+      this.ux.showToast('INFO', 'AUTHOR_UNBLOCKED');
+    } else {
+      this.filters.addBlockedAuthor(this.author.id, this.author.name || '');
+      this.ux.showToast('INFO', 'AUTHOR_BLOCKED');
+    }
   }
 
   followToggle() {

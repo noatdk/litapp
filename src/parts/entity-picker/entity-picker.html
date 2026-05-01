@@ -1,0 +1,42 @@
+<div class="entity-picker">
+  <ion-list-header class="picker-title">{{ titleKey | translate }}</ion-list-header>
+
+  <ion-item class="picker-search">
+    <ion-input
+      type="text"
+      [(ngModel)]="query"
+      (ngModelChange)="onInput($event)"
+      placeholder="{{ placeholderKey | translate }}"
+      autofocus
+    ></ion-input>
+  </ion-item>
+
+  <ion-list class="picker-results">
+    <ion-item *ngIf="loading" class="placeholder">
+      <ion-spinner name="crescent"></ion-spinner>
+    </ion-item>
+
+    <ion-item
+      *ngIf="!loading && kind !== 'category' && query.trim().length < 2"
+      class="placeholder"
+    >
+      {{ 'PICKER_HINT_TYPE' | translate }}
+    </ion-item>
+
+    <ion-item
+      *ngIf="!loading && results.length === 0 && (kind === 'category' || query.trim().length >= 2)"
+      class="placeholder"
+    >
+      {{ 'PICKER_NO_RESULTS' | translate }}
+    </ion-item>
+
+    <button ion-item *ngFor="let row of results" (click)="pick(row)">
+      <h3>{{ row.name || ('PICKER_UNNAMED' | translate) }}</h3>
+      <p>#{{ row.id }}</p>
+    </button>
+  </ion-list>
+
+  <div class="picker-actions">
+    <button ion-button clear small (click)="cancel()">{{ 'CANCEL_BUTTON' | translate }}</button>
+  </div>
+</div>
