@@ -20,6 +20,7 @@ import {
   FILTERS_KEY,
   MEMOS_KEY,
   SERIES_FOLLOW_KEY,
+  MYRATINGS_KEY,
 } from '../../providers/db';
 import { handleNoCordovaError } from '../../app/utils';
 
@@ -167,44 +168,52 @@ export class SettingsPage {
   }
 
   exportData() {
-    const data = {
+    const data: any = {
       type: exportDataIdentifier,
       version: this.g.getVersion(),
       timestamp: new Date().toISOString(),
     };
 
-    this.storage
-      .forEach((value, key, i) => {
-        if (
-          [
-            STARREDQUERIES_KEY,
-            RECENTQUERIES_KEY,
-            STORYSTYLEOPTIONS_KEY,
-            FEED_KEY,
-            SETTINGS_KEY,
-            HISTORY_KEY,
-            FILTERS_KEY,
-            MEMOS_KEY,
-            SERIES_FOLLOW_KEY,
-          ].indexOf(key) > -1
-        ) {
-          data[key] = value;
-        } else if (key.indexOf(STORY_KEY) > -1 && (value.downloaded || data[HISTORY_KEY].indexOf(value.id) > -1)) {
-          // add stories that are either downloaded or in history
-          data[key] = value;
-        }
-      })
-      .then(() => {
-        try {
-          const filename = `litapp-${Math.round(new Date().getTime() / 1000)}.json`;
-          const textData = JSON.stringify(data);
-          this.files.save(filename, textData, 'application/json');
-          // in case json stringify crashes
-        } catch (error) {
-          this.ux.showToast('ERROR', 'FILE_EXPORT_FAIL');
-          console.error('settings.exportData', [data], error);
-        }
-      });
+    // Top-level keys we want to round-trip. Anything user-authored or
+    // user-curated; skip auto-fetched caches (GLOBALS), server-fetched lists
+    // (LIST), auth state (USER), and app meta (VERSION).
+    const exportKeys = [
+      STARREDQUERIES_KEY,
+      RECENTQUERIES_KEY,
+      STORYSTYLEOPTIONS_KEY,
+      FEED_KEY,
+      SETTINGS_KEY,
+      HISTORY_KEY,
+      FILTERS_KEY,
+      MEMOS_KEY,
+      SERIES_FOLLOW_KEY,
+      MYRATINGS_KEY,
+    ];
+
+    // Resolve HISTORY_KEY first so the per-story filter below can rely on it
+    // regardless of forEach iteration order.
+    this.storage.get(HISTORY_KEY).then((historyIds: any[] = []) => {
+      this.storage
+        .forEach((value, key, i) => {
+          if (exportKeys.indexOf(key) > -1) {
+            data[key] = value;
+          } else if (key.indexOf(STORY_KEY) > -1 && value && (value.downloaded || (historyIds && historyIds.indexOf(value.id) > -1))) {
+            // include only stories the user has explicitly downloaded or read
+            data[key] = value;
+          }
+        })
+        .then(() => {
+          try {
+            const filename = `litapp-${Math.round(new Date().getTime() / 1000)}.json`;
+            const textData = JSON.stringify(data);
+            this.files.save(filename, textData, 'application/json');
+            // in case json stringify crashes
+          } catch (error) {
+            this.ux.showToast('ERROR', 'FILE_EXPORT_FAIL');
+            console.error('settings.exportData', [data], error);
+          }
+        });
+    });
   }
 
   importData() {

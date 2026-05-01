@@ -116,12 +116,24 @@
   <p><strong>{{'LANGUAGE' | translate}}: </strong> {{story.lang}}</p>
   <p><strong>{{'TIMESTAMP' | translate}}: </strong> {{(story.timestamp*1000) | date:'yyyy-MM-dd HH:mm' }}</p>
 
-  <ng-container *ngIf="user.isLoggedIn() && story.ratingenabled && !story.myrating">
-    <h3>{{'STORYDETAIL_RATETITLE' | translate }}</h3>
-    <form (submit)="rate($event)" class="rate">
-      <ion-range [(ngModel)]="myrating" name="myrating" snaps="true" step="1" min="0" max="5" pin="true"></ion-range>
-      <button ion-button outline>{{'STORYDETAIL_RATE' | translate }}</button>
-    </form>
+  <ng-container *ngIf="user.isLoggedIn() && story.ratingenabled">
+    <h3>
+      {{ (story.myrating ? 'STORYDETAIL_RATED' : 'STORYDETAIL_RATETITLE') | translate }}
+      <small *ngIf="story.myrating">— {{ story.myrating }}/5</small>
+    </h3>
+    <div class="rate-stars" [class.disabled]="rating">
+      <button
+        type="button"
+        *ngFor="let n of [1,2,3,4,5]"
+        ion-button
+        clear
+        icon-only
+        [disabled]="rating"
+        (click)="rate(n)"
+      >
+        <ion-icon [name]="n <= (story.myrating || 0) ? 'star' : 'star-outline'"></ion-icon>
+      </button>
+    </div>
   </ng-container>
 
   <ng-container *ngIf="story.comments && story.comments.length > 0 && story.commentsenabled">

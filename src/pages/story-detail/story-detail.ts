@@ -18,6 +18,7 @@ import { Category } from '../../models/category';
 export class StoryDetailPage {
   story: Story;
   myrating: number;
+  rating: boolean = false;
   commentsTotal: number = 0;
   commentsCursor: number = 0;
   commentsLoading: boolean = false;
@@ -40,6 +41,8 @@ export class StoryDetailPage {
     public actionSheetCtrl: ActionSheetController,
   ) {
     this.story = navParams.get('story');
+    this.stories.hydrateMyRating(this.story);
+    this.myrating = this.story && this.story.myrating;
 
     // load data when directly view details
     if (!this.story.cached) {
@@ -49,6 +52,7 @@ export class StoryDetailPage {
           return;
         }
 
+        this.stories.hydrateMyRating(story);
         this.myrating = story.myrating;
 
         // add details & content to db
@@ -149,9 +153,14 @@ export class StoryDetailPage {
     });
   }
 
-  rate(event) {
-    event.preventDefault();
-    this.stories.rate(this.story, this.myrating);
+  rate(n: number) {
+    if (!this.story || this.rating || !n || n < 1 || n > 5) return;
+    if (this.story.myrating === n) return;
+    this.rating = true;
+    this.stories.rate(this.story, n).subscribe(ok => {
+      this.rating = false;
+      if (ok) this.myrating = this.story.myrating;
+    });
   }
 
   search(query: string | number) {

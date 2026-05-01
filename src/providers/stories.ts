@@ -5,7 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { AlertController } from 'ionic-angular';
 
 import { Story } from '../models/story';
-import { STORY_KEY } from './db';
+import { STORY_KEY, MYRATINGS_KEY } from './db';
 import { Authors } from './authors';
 import { Filters } from './filters';
 import { User } from './user';
@@ -23,6 +23,7 @@ export type SearchResultType = [Story[], number];
 @Injectable()
 export class Stories {
   private stories: Map<number, Story> = new Map<number, Story>();
+  private myRatings: { [id: string]: number } = {};
   private ready;
 
   constructor(
@@ -53,6 +54,13 @@ export class Stories {
           }
         });
       });
+    });
+
+    // Load locally-tracked ratings — the API doesn't return per-user vote
+    // state, so we cache what the user did themselves to keep stars filled
+    // across sessions.
+    this.storage.get(MYRATINGS_KEY).then((d: any) => {
+      if (d && typeof d === 'object') this.myRatings = d;
     });
 
     // Use this to see all of the in memory stories
@@ -467,29 +475,59 @@ export class Stories {
       });
   }
 
-  rate(story: Story, rating: number): void {
+  // Mirrors the official mobile app's vote call:
+  // POST /api/2/submissions/vote?apikey&appid (form-data: filter,
+  // submission_id, lang, user_id, session_id, vote). session_id is captured
+  // at login from the v2 auth/login response. Returns Observable<boolean>.
+  // On success we also persist the rating locally so the UI keeps the stars
+  // filled across sessions (the API doesn't echo per-user vote state).
+  rate(story: Story, rating: number): Observable<boolean> {
+    if (!story || !story.id) return Observable.of(false);
+
+    const sessionId = this.user.getSession();
+    if (!sessionId) {
+      this.ux.showToast('INFO', 'SESSIONTIMEOUT_MSG');
+      console.error('stories.rate: no session_id — log out and log back in');
+      return Observable.of(false);
+    }
+
     const filter = [{ property: 'submission_id', value: parseInt(story.id) }];
     const data = new FormData();
-    data.append('user_id', this.user.getId());
-    // Authentication is now via the auth_token cookie set during login;
-    // session_id is no longer issued by the auth flow.
-    data.append('vote', String(rating));
     data.append('filter', JSON.stringify(filter));
+    data.append('lang', ((typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2));
+    data.append('user_id', String(this.user.getId()));
+    data.append('session_id', sessionId);
+    data.append('vote', String(rating));
 
-    this.api
+    return this.api
       .post('2/submissions/vote', data, undefined, true)
-      .catch(error => {
-        console.error('stories.rate', [story, rating], error);
-        return Observable.throw(error);
-      })
-      .subscribe(data => {
-        if (data.success) {
-          story.myrating = rating;
-        } else {
+      .map((res: any) => {
+        if (!res || !res.success) {
           this.ux.showToast();
-          console.error('stories.rate', [story, rating], data.error);
+          console.error('stories.rate', [story.id, rating], res && res.error);
+          return false;
         }
+        story.myrating = rating;
+        this.myRatings[String(story.id)] = rating;
+        this.storage.set(MYRATINGS_KEY, this.myRatings);
+        return true;
+      })
+      .catch(error => {
+        this.ux.showToast();
+        console.error('stories.rate', [story.id, rating], error);
+        return Observable.of(false);
       });
+  }
+
+  getMyRating(id: any): number {
+    if (id == null) return 0;
+    return this.myRatings[String(id)] || 0;
+  }
+
+  hydrateMyRating(story: Story): void {
+    if (!story || story.id == null) return;
+    const r = this.getMyRating(story.id);
+    if (r && !story.myrating) story.myrating = r;
   }
 
   downloadSeries(series: Story[]): void {
