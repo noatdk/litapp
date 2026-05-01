@@ -39,10 +39,35 @@
       </button>
     </ion-buttons>
   </ion-navbar>
+  <ion-toolbar *ngIf="!onlyDownloaded">
+    <ion-segment [(ngModel)]="openSegment" (ionChange)="segmentChanged()">
+      <ion-segment-button value="history">{{ 'HISTORY_TITLE' | translate }}</ion-segment-button>
+      <ion-segment-button value="series">
+        {{ 'HISTORY_TAB_SERIES' | translate }}
+        <ion-badge *ngIf="newChapters.length" color="secondary">{{ newChapters.length }}</ion-badge>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content padding>
-  <ng-container *ngIf="!onlyDownloaded">
+  <ng-container *ngIf="onlyDownloaded || openSegment === 'history'">
+    <p *ngIf="!filteredStories.length" class="empty-placeholder">
+      {{ 'HISTORY_EMPTY' | translate:{HISTORY_LIMIT: HISTORY_LIMIT} }}
+    </p>
+    <ng-container *ngIf="filteredStories.length">
+      <story-list
+        [stories]="filteredStories | orderBy: sortMethod"
+        (onDeleteBySwiping)="delete($event)"
+        (onDownloadBySwiping)="download($event)"
+        ishistory="true"
+        [forceNormal]="true"
+      >
+      </story-list>
+    </ng-container>
+  </ng-container>
+
+  <ng-container *ngIf="!onlyDownloaded && openSegment === 'series'">
     <ng-container *ngIf="newChapters.length">
       <h2>
         <ion-icon name="notifications" color="secondary"></ion-icon>
@@ -59,19 +84,8 @@
       <story-list-normal [stories]="inProgress" ishistory="true"></story-list-normal>
     </ng-container>
 
-    <h2 *ngIf="newChapters.length || inProgress.length">{{ 'HISTORY_TITLE' | translate }}</h2>
-  </ng-container>
-
-  <p *ngIf="!filteredStories.length" class="empty-placeholder">
-    {{ 'HISTORY_EMPTY' | translate:{HISTORY_LIMIT: HISTORY_LIMIT} }}
-  </p>
-  <ng-container *ngIf="filteredStories.length">
-    <story-list
-      [stories]="filteredStories | orderBy: sortMethod"
-      (onDeleteBySwiping)="delete($event)"
-      (onDownloadBySwiping)="download($event)"
-      ishistory="true"
-    >
-    </story-list>
+    <p *ngIf="!newChapters.length && !inProgress.length" class="empty-placeholder">
+      {{ 'HISTORY_SERIES_EMPTY' | translate }}
+    </p>
   </ng-container>
 </ion-content>

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { IonicPage, NavController, AlertController, PopoverController } from 'ionic-angular';
+import { Component, ViewChild } from '@angular/core';
+import { IonicPage, NavController, AlertController, PopoverController, Content } from 'ionic-angular';
 import { TranslateService } from '@ngx-translate/core';
 import { Storage } from '@ionic/storage';
 
@@ -16,6 +16,9 @@ export class HistoryPage {
   inProgress: Story[] = [];
   newChapters: Story[] = [];
   sortMethod: string;
+  openSegment: 'history' | 'series' = 'history';
+
+  @ViewChild(Content) content: Content;
 
   HISTORY_LIMIT = History.HISTORY_LIMIT;
 
@@ -50,14 +53,34 @@ export class HistoryPage {
     });
   }
 
+  ionViewDidEnter() {
+    if (this.content) {
+      this.content.resize();
+    }
+  }
+
+  segmentChanged() {
+    if (this.content) {
+      this.content.resize();
+    }
+  }
+
   private refreshShelves() {
-    // In-progress: stories the user has started but not finished. Most-
-    // recent first. Excludes stories not actually paginated yet (length 0).
+    // In-progress: stories the user has started but not finished, restricted
+    // to chapters that belong to a followed (bookmarked) series. Most-recent
+    // first. Excludes stories not actually paginated yet (length 0).
     this.inProgress = this.history
       .getStories()
       .slice()
       .reverse()
-      .filter(s => s && s.length && s.currentpage > 0 && s.currentpage < s.length - 1);
+      .filter(
+        s =>
+          s &&
+          s.length &&
+          s.currentpage > 0 &&
+          s.currentpage < s.length - 1 &&
+          this.seriesFollow.isFollowed(s.series),
+      );
 
     this.newChapters = this.seriesFollow.getAllNewChapters();
   }

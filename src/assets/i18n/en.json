@@ -91,6 +91,8 @@
   "HISTORY_TOOLTIP_CLEAR": "Clear history",
   "HISTORY_CONTINUE_READING": "Continue reading",
   "HISTORY_NEW_CHAPTERS": "New chapters in followed series",
+  "HISTORY_TAB_SERIES": "Series",
+  "HISTORY_SERIES_EMPTY": "Follow a series to see new chapters and bookmarked reading progress here.",
   "STORYDETAIL_TOOLTIP_FOLLOW_SERIES": "Toggle following series",
 
   "SEARCH_TITLE": "Search",
