@@ -248,14 +248,6 @@ export class AuthorPage {
     this.navCtrl.push('StorySeriesPage', { seriesId: row.id });
   }
 
-  formatCount(n: any): string {
-    const v = Number(n);
-    if (!v || isNaN(v)) return '0';
-    if (v >= 1000000) return `${Math.round(v / 100000) / 10}m`;
-    if (v >= 1000) return `${Math.round(v / 1000)}k`;
-    return String(v);
-  }
-
   toggleBio() {
     this.showBio = !this.showBio;
   }

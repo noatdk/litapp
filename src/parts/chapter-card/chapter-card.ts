@@ -31,11 +31,4 @@ export class ChapterCard {
     if (!this.user.isLoggedIn()) return;
     this.popoverCtrl.create('BookmarkPopover', { story: this.story }).present({ ev });
   }
-
-  formatCount(n: any): string {
-    const v = Number(n);
-    if (!v || isNaN(v)) return '0';
-    if (v >= 1000) return `${Math.round(v / 1000)}k`;
-    return String(v);
-  }
 }

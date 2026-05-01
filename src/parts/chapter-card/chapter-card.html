@@ -26,10 +26,10 @@
 
     <p class="chapter-card__stats">
       <span><ion-icon name="star"></ion-icon> {{ story?.rating }}</span>
-      <span><ion-icon name="eye"></ion-icon> {{ formatCount(story?.viewcount) }}</span>
-      <span *ngIf="story?.favoritescount"><ion-icon name="heart"></ion-icon> {{ formatCount(story?.favoritescount) }}</span>
-      <span *ngIf="story?.commentscount"><ion-icon name="text"></ion-icon> {{ formatCount(story?.commentscount) }}</span>
-      <span *ngIf="story?.listscount"><ion-icon name="bookmark"></ion-icon> {{ formatCount(story?.listscount) }}</span>
+      <span><ion-icon name="eye"></ion-icon> {{ story?.viewcount | compactNumber }}</span>
+      <span *ngIf="story?.favoritescount"><ion-icon name="heart"></ion-icon> {{ story?.favoritescount | compactNumber }}</span>
+      <span *ngIf="story?.commentscount"><ion-icon name="text"></ion-icon> {{ story?.commentscount | compactNumber }}</span>
+      <span *ngIf="story?.listscount"><ion-icon name="bookmark"></ion-icon> {{ story?.listscount | compactNumber }}</span>
     </p>
   </div>
 

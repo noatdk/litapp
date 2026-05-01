@@ -88,10 +88,10 @@
             <span *ngIf="card.chaptersCount"> · {{ card.chaptersCount }} {{ 'HISTORY_PARTS_LABEL' | translate }}</span>
           </p>
           <p class="series-card__stats">
-            <span *ngIf="card.totalViews"><ion-icon name="eye"></ion-icon> {{ formatCount(card.totalViews) }}</span>
-            <span *ngIf="card.totalFavorites"><ion-icon name="heart"></ion-icon> {{ formatCount(card.totalFavorites) }}</span>
-            <span *ngIf="card.totalComments"><ion-icon name="text"></ion-icon> {{ formatCount(card.totalComments) }}</span>
-            <span *ngIf="card.totalLists"><ion-icon name="bookmark"></ion-icon> {{ formatCount(card.totalLists) }}</span>
+            <span *ngIf="card.totalViews"><ion-icon name="eye"></ion-icon> {{ card.totalViews | compactNumber }}</span>
+            <span *ngIf="card.totalFavorites"><ion-icon name="heart"></ion-icon> {{ card.totalFavorites | compactNumber }}</span>
+            <span *ngIf="card.totalComments"><ion-icon name="text"></ion-icon> {{ card.totalComments | compactNumber }}</span>
+            <span *ngIf="card.totalLists"><ion-icon name="bookmark"></ion-icon> {{ card.totalLists | compactNumber }}</span>
           </p>
           <p class="tags" *ngIf="card.categoryID">
             <strong>{{ card.categoryID | categoryName | async }}</strong>

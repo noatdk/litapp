@@ -187,10 +187,10 @@
               <ion-badge color="medium">{{ row.series.chaptersCount }} {{ 'HISTORY_PARTS_LABEL' | translate }}</ion-badge>
             </h2>
             <p class="series-card__stats">
-              <span *ngIf="row.series.totalViews"><ion-icon name="eye"></ion-icon> {{ formatCount(row.series.totalViews) }}</span>
-              <span *ngIf="row.series.totalFavorites"><ion-icon name="heart"></ion-icon> {{ formatCount(row.series.totalFavorites) }}</span>
-              <span *ngIf="row.series.totalComments"><ion-icon name="text"></ion-icon> {{ formatCount(row.series.totalComments) }}</span>
-              <span *ngIf="row.series.totalLists"><ion-icon name="bookmark"></ion-icon> {{ formatCount(row.series.totalLists) }}</span>
+              <span *ngIf="row.series.totalViews"><ion-icon name="eye"></ion-icon> {{ row.series.totalViews | compactNumber }}</span>
+              <span *ngIf="row.series.totalFavorites"><ion-icon name="heart"></ion-icon> {{ row.series.totalFavorites | compactNumber }}</span>
+              <span *ngIf="row.series.totalComments"><ion-icon name="text"></ion-icon> {{ row.series.totalComments | compactNumber }}</span>
+              <span *ngIf="row.series.totalLists"><ion-icon name="bookmark"></ion-icon> {{ row.series.totalLists | compactNumber }}</span>
             </p>
             <p class="tags" *ngIf="row.series.categoryID">
               <strong>{{ row.series.categoryID | categoryName | async }}</strong>
