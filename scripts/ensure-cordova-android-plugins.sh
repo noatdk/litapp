@@ -46,6 +46,7 @@ fi
 
 echo "Re-installing missing plugins: ${missing[*]}"
 for p in "${missing[@]}"; do
+  rm -rf "plugins/$p" "node_modules/$p"
   "$CORDOVA_BIN" plugin add "$p" --no-save --force --no-interactive || true
 done
 
