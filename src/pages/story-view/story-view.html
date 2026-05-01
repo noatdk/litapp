@@ -8,6 +8,17 @@
         <button
           ion-button
           icon-only
+          (click)="toggleSearch()"
+          [tooltip]="'STORYVIEW_SEARCH' | translate"
+          event="press"
+          navTooltip
+        >
+          <ion-icon name="search" [style.color]="settings.color"></ion-icon>
+        </button>
+
+        <button
+          ion-button
+          icon-only
           *ngIf="user.isLoggedIn()"
           (click)="openListPicker($event)"
           [tooltip]="'BOOKMARK_BUTTON' | translate"
@@ -35,6 +46,36 @@
       </ion-buttons>
     </ion-navbar>
   </ion-header>
+
+  <div
+    *ngIf="searchOpen"
+    class="search-bar {{enableImmersive ? 'immersive' : ''}}"
+    [style.background]="settings.background"
+    [style.color]="settings.color"
+    [style.borderColor]="settings.color"
+  >
+    <input
+      type="search"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchInput()"
+      (keyup.enter)="nextMatch()"
+      [placeholder]="'STORYVIEW_SEARCH_PLACEHOLDER' | translate"
+      [style.color]="settings.color"
+    />
+    <span class="search-count">
+      <ng-container *ngIf="searchMatches.length > 0">{{ currentMatchIdx + 1 }} / {{ searchMatches.length }}</ng-container>
+      <ng-container *ngIf="searchMatches.length === 0 && searchQuery.length >= 2">0</ng-container>
+    </span>
+    <button ion-button icon-only clear (click)="prevMatch()" [disabled]="searchMatches.length === 0">
+      <ion-icon name="arrow-up" [style.color]="settings.color"></ion-icon>
+    </button>
+    <button ion-button icon-only clear (click)="nextMatch()" [disabled]="searchMatches.length === 0">
+      <ion-icon name="arrow-down" [style.color]="settings.color"></ion-icon>
+    </button>
+    <button ion-button icon-only clear (click)="closeSearch()">
+      <ion-icon name="close" [style.color]="settings.color"></ion-icon>
+    </button>
+  </div>
 
   <ion-content
     *ngIf="!settings.continuousMode"

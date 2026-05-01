@@ -49,6 +49,18 @@ export class StoryViewPage {
   private suppressRangeChange = false;
   private lastActivePage = 0;
 
+  // In-story text search
+  searchOpen = false;
+  searchQuery = '';
+  searchMatches: { page: number; occurrence: number }[] = [];
+  currentMatchIdx = -1;
+  private searchPageTexts: string[] = [];
+  // Map from match index → wrapped spans on the page (sparse: only entries for
+  // currently-rendered pages exist). Lets us toggle the "current" class on
+  // navigation and re-wrap as pages materialize in continuous mode.
+  private searchHighlightSpans: { [idx: number]: HTMLElement[] } = {};
+  private searchInputDebounce: any;
+
   settings = {
     fontsize: 15,
     lineheight: 21.5,
@@ -183,6 +195,7 @@ export class StoryViewPage {
     this.persistScroll();
     this.unbindScroll();
     this.teardownContinuous();
+    this.clearHighlights();
     if (this.pauseSub) this.pauseSub.unsubscribe();
     if (this.resumeSub) this.resumeSub.unsubscribe();
     if (this.enableImmersive) {
@@ -297,7 +310,14 @@ export class StoryViewPage {
 
     setTimeout(() => {
       this.bindScroll();
-      this.restoreScroll();
+      if (this.searchOpen) {
+        // restoreScroll has a late re-apply pass that would override the
+        // search jump's scroll target. Let the search drive the position.
+        this.rehighlight();
+        this.scrollCurrentIntoView();
+      } else {
+        this.restoreScroll();
+      }
     }, 50);
   }
 
@@ -395,6 +415,250 @@ export class StoryViewPage {
     popover.present({
       ev,
     });
+  }
+
+  // ----------------------------------------------------------------------
+  // In-story search
+  // ----------------------------------------------------------------------
+
+  toggleSearch() {
+    if (this.searchOpen) {
+      this.closeSearch();
+    } else {
+      // Drop out of fullscreen so the search bar (and the on-screen keyboard)
+      // aren't fighting the immersive header offset.
+      if (this.inFullscreen) this.toggleImmersive();
+      this.searchOpen = true;
+      setTimeout(() => {
+        const el = this.rootElement && this.rootElement.nativeElement.querySelector('.search-bar input');
+        if (el) (el as HTMLInputElement).focus();
+      }, 50);
+    }
+  }
+
+  closeSearch() {
+    this.searchOpen = false;
+    this.clearHighlights();
+    this.searchMatches = [];
+    this.currentMatchIdx = -1;
+  }
+
+  onSearchInput() {
+    if (this.searchInputDebounce) clearTimeout(this.searchInputDebounce);
+    this.searchInputDebounce = setTimeout(() => this.runSearch(), 200);
+  }
+
+  nextMatch() {
+    if (this.searchMatches.length === 0) return;
+    this.currentMatchIdx = (this.currentMatchIdx + 1) % this.searchMatches.length;
+    this.jumpToMatch(this.currentMatchIdx);
+  }
+
+  prevMatch() {
+    if (this.searchMatches.length === 0) return;
+    this.currentMatchIdx = (this.currentMatchIdx - 1 + this.searchMatches.length) % this.searchMatches.length;
+    this.jumpToMatch(this.currentMatchIdx);
+  }
+
+  // Build normalized text per page off-DOM using the same walker we use on the
+  // live DOM, so match counts are consistent regardless of whether a page is
+  // currently materialized. Cached because pages are immutable once cached.
+  private getNormalizedPageText(page: number): string {
+    if (this.searchPageTexts[page] != null) return this.searchPageTexts[page];
+    const html = (this.story.content && this.story.content[page]) || '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const { normalized } = this.buildNormalizedIndex(tmp);
+    this.searchPageTexts[page] = normalized;
+    return normalized;
+  }
+
+  private runSearch() {
+    this.clearHighlights();
+    const q = this.searchQuery.replace(/\s+/g, ' ').trim();
+    this.searchMatches = [];
+    this.currentMatchIdx = -1;
+    if (q.length < 2) return;
+
+    const qLower = q.toLowerCase();
+    for (let p = 0; p < this.slides.length; p += 1) {
+      const text = this.getNormalizedPageText(p).toLowerCase();
+      let from = 0;
+      let occ = 0;
+      while (true) {
+        const idx = text.indexOf(qLower, from);
+        if (idx < 0) break;
+        this.searchMatches.push({ page: p, occurrence: occ });
+        occ += 1;
+        from = idx + qLower.length;
+      }
+    }
+    if (this.searchMatches.length > 0) {
+      this.currentMatchIdx = 0;
+      this.jumpToMatch(0);
+    }
+  }
+
+  private jumpToMatch(idx: number) {
+    const m = this.searchMatches[idx];
+    if (!m) return;
+    const active = this.getActivePageIndex();
+
+    // Immediate class swap so the orange "current" follows the user's tap
+    // without waiting for the materialize/layout delay below. No-op for
+    // matches whose page isn't wrapped yet — those will get the correct
+    // class when rehighlight runs.
+    this.updateCurrentHighlight();
+
+    const after = (delay: number) =>
+      setTimeout(() => {
+        this.rehighlight();
+        this.scrollCurrentIntoView();
+      }, delay);
+
+    if (active !== m.page) {
+      if (this.settings.continuousMode) {
+        this.scrollToPage(m.page, 0);
+        after(300);
+      } else {
+        this.slideTo(m.page, 0);
+        // slideChanged rebinds scroll ~50ms later; give the new active slide
+        // time to render its content before the DOM walk.
+        after(250);
+      }
+    } else {
+      this.rehighlight();
+      this.scrollCurrentIntoView();
+    }
+  }
+
+  private updateCurrentHighlight() {
+    Object.keys(this.searchHighlightSpans).forEach(k => {
+      const idx = parseInt(k, 10);
+      const isCurrent = idx === this.currentMatchIdx;
+      this.searchHighlightSpans[idx].forEach(span => {
+        if (isCurrent) span.classList.add('current');
+        else span.classList.remove('current');
+      });
+    });
+  }
+
+  // Wrap every match on every currently-rendered page, marking the active
+  // match with `.current`. Idempotent — safe to call after page changes,
+  // materialization, or current-index updates.
+  private rehighlight() {
+    this.clearHighlights();
+    if (!this.searchOpen || this.searchMatches.length === 0) return;
+    const qLower = this.searchQuery.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!qLower) return;
+
+    // In slides mode only the active slide's DOM is queryable by
+    // getContentRootForPage; other rendered slides share the #slide-content id
+    // but can't be reliably scoped. Limit to the active page so we don't
+    // re-walk the wrong content and double-wrap.
+    const activePage = this.getActivePageIndex();
+    const byPage: { [page: number]: number[] } = {};
+    this.searchMatches.forEach((m, i) => {
+      if (!this.settings.continuousMode && m.page !== activePage) return;
+      if (!byPage[m.page]) byPage[m.page] = [];
+      byPage[m.page].push(i);
+    });
+
+    Object.keys(byPage).forEach(pageStr => {
+      const page = parseInt(pageStr, 10);
+      const root = this.getContentRootForPage(page);
+      if (!root) return;
+      const { normalized, map } = this.buildNormalizedIndex(root);
+      const lower = normalized.toLowerCase();
+
+      // Wrap in descending occurrence order — surroundContents splits the
+      // boundary text nodes, so wrapping later matches first keeps offsets
+      // for earlier matches valid.
+      const ordered = byPage[page]
+        .slice()
+        .sort((a, b) => this.searchMatches[b].occurrence - this.searchMatches[a].occurrence);
+
+      ordered.forEach(i => {
+        const occ = this.searchMatches[i].occurrence;
+        let from = 0;
+        let foundIdx = -1;
+        for (let k = 0; k <= occ; k += 1) {
+          foundIdx = lower.indexOf(qLower, from);
+          if (foundIdx < 0) break;
+          from = foundIdx + qLower.length;
+        }
+        if (foundIdx < 0) return;
+        const endIdx = Math.min(foundIdx + qLower.length, map.length) - 1;
+        const isCurrent = i === this.currentMatchIdx;
+        const className = isCurrent ? 'reader-search-hit current' : 'reader-search-hit';
+        this.searchHighlightSpans[i] = this.wrapRange(map, foundIdx, endIdx, className);
+      });
+    });
+  }
+
+  private scrollCurrentIntoView() {
+    const spans = this.searchHighlightSpans[this.currentMatchIdx];
+    if (!spans || spans.length === 0) return;
+    const scrollEl = this.scrollElement || this.getScrollElement();
+    if (!scrollEl) return;
+    const r = spans[0].getBoundingClientRect();
+    const cr = scrollEl.getBoundingClientRect();
+
+    // If the match already sits inside the visible area (with a small margin
+    // so it isn't jammed against the edges), leave the scroll alone — jumping
+    // a match the user can already see is just disorienting.
+    const margin = 40;
+    if (r.top >= cr.top + margin && r.bottom <= cr.bottom - margin) return;
+
+    this.suppressScrollSave = true;
+    scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop + (r.top - cr.top) - 100);
+    setTimeout(() => (this.suppressScrollSave = false), 150);
+  }
+
+  private wrapRange(
+    map: { node: Text; offset: number }[],
+    startIdx: number,
+    endIdx: number,
+    className: string,
+  ): HTMLElement[] {
+    const wraps: HTMLElement[] = [];
+    let i = startIdx;
+    while (i <= endIdx) {
+      const node = map[i].node;
+      let j = i;
+      let lastOffset = map[i].offset;
+      while (j + 1 <= endIdx && map[j + 1].node === node) {
+        j += 1;
+        lastOffset = map[j].offset;
+      }
+      try {
+        const r = document.createRange();
+        r.setStart(node, map[i].offset);
+        const len = (node.textContent || '').length;
+        r.setEnd(node, Math.min(lastOffset + 1, len));
+        const span = document.createElement('span');
+        span.className = className;
+        r.surroundContents(span);
+        wraps.push(span);
+      } catch (e) {
+        // ignore — partial wrap is acceptable
+      }
+      i = j + 1;
+    }
+    return wraps;
+  }
+
+  private clearHighlights() {
+    Object.keys(this.searchHighlightSpans).forEach(k => {
+      this.searchHighlightSpans[k].forEach(span => {
+        const p = span.parentNode;
+        if (!p) return;
+        while (span.firstChild) p.insertBefore(span.firstChild, span);
+        p.removeChild(span);
+        if ((p as any).normalize) (p as any).normalize();
+      });
+    });
+    this.searchHighlightSpans = {};
   }
 
   // ----------------------------------------------------------------------
@@ -788,6 +1052,10 @@ export class StoryViewPage {
         this.measured[idx] = true;
       }
     });
+
+    // Newly-materialized pages need their search hits wrapped now that their
+    // DOM exists. Cheap no-op when search is closed.
+    if (changed && this.searchOpen) this.rehighlight();
 
     // Compensate scroll position so the user's view doesn't jump when heights
     // above the active page change (e.g. images loading after first render).

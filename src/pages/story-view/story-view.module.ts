@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { IonicPageModule } from 'ionic-angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { TooltipsModule } from 'ionic-tooltips';
@@ -12,6 +13,7 @@ import { BookmarkPopoverModule } from '../../parts/bookmark-popover/bookmark-pop
   declarations: [StoryViewPage],
   imports: [
     IonicPageModule.forChild(StoryViewPage),
+    FormsModule,
     TranslateModule.forChild(),
     TooltipsModule,
     ScrollbarModule,

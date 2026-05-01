@@ -184,6 +184,8 @@
   "STORYVIEW_NEXT": "Next",
   "STORYVIEW_PREV": "Previous",
   "STORYVIEW_ERROR_IMAGE": "Image could not be found on Literotica servers",
+  "STORYVIEW_SEARCH": "Search in story",
+  "STORYVIEW_SEARCH_PLACEHOLDER": "Search in story…",
 
   "STORYRELATED_TITLE": "Related stories",
 

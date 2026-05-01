@@ -144,3 +144,20 @@ ion-item-options.icons button {
     padding: 4px 8px;
   }
 }
+
+// In-story search highlights — global so they reach DOM injected via
+// [innerHTML] inside the reader (component-scoped ::ng-deep does not).
+// Yellow for all matches, orange for the active one.
+span.reader-search-hit {
+  background-color: #ffeb3b !important;
+  color: #000 !important;
+  border-radius: 2px;
+  padding: 0 1px;
+  box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.9);
+}
+
+span.reader-search-hit.current {
+  background-color: #ff9100 !important;
+  color: #000 !important;
+  box-shadow: 0 0 0 1px #ff6d00;
+}

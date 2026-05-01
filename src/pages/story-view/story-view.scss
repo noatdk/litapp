@@ -319,6 +319,60 @@ page-story-view {
     100% { background: transparent; }
   }
 
+  // In-story search bar — sits below the header, above ion-content. Stays
+  // visible in immersive/fullscreen so the user can keep searching mid-read.
+  .search-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    // Sits above the header (z-index 9999) so it isn't occluded when the
+    // toolbar is visible. Its own opaque background covers the navbar; the
+    // close button in the bar replaces the back button while searching.
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    padding: 4px 4px 4px 12px;
+    border-bottom: 1px solid currentColor;
+    min-height: 44px;
+
+    &.immersive {
+      padding-top: calc(4px + var(--statusbar-height, 30px));
+    }
+
+    input {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      outline: 0;
+      padding: 6px 4px;
+      color: inherit;
+      font-size: 14px;
+      caret-color: currentColor;
+
+      &::placeholder {
+        color: currentColor;
+        opacity: 0.5;
+      }
+    }
+
+    .search-count {
+      font-size: 12px;
+      opacity: 0.7;
+      padding: 0 6px;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    button {
+      margin: 0;
+    }
+  }
+
+  // Highlight rules for .reader-search-hit live in app.scss as global styles.
+  // Component-scoped ::ng-deep doesn't reach innerHTML-injected DOM reliably
+  // here (browsers ignore the ::ng-deep pseudo, killing the selector match).
+
   .alternate-buttons {
     display: flex;
     justify-content: space-evenly;
