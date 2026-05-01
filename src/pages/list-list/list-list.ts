@@ -64,7 +64,7 @@ export class ListListPage {
         callback(data);
       });
     } else {
-      this.l.query().subscribe((data: any) => {
+      this.l.query(true).subscribe((data: any) => {
         callback(data);
       });
     }

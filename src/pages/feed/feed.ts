@@ -22,7 +22,7 @@ export class FeedPage {
     this.showLoader = true;
     Promise.all([this.f.onReady(), this.storage.get(FEED_KEY)]).then(values => {
       this.lastviewedid = values[1];
-      this.refresh(null, true);
+      this.refresh(null, false);
     });
   }
 
