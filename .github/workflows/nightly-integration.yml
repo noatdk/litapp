@@ -142,10 +142,18 @@ jobs:
       - name: Cordova Android platform and prepare
         if: steps.android.outputs.sign == 'true'
         run: |
-          set -euo pipefail
+          set -uo pipefail
           if [[ ! -d platforms/android ]]; then
-            ./node_modules/.bin/cordova platform add android --no-interactive
+            # cordova-lib v8 exits 1 after a clean save when cordova-plugin-device
+            # advertises a cordova-electron engine it can't resolve. The platform
+            # is actually created; verify on disk and continue.
+            ./node_modules/.bin/cordova platform add android --no-interactive || true
+            if [[ ! -d platforms/android ]]; then
+              echo "::error::cordova platform add failed (platforms/android missing)"
+              exit 1
+            fi
           fi
+          set -e
           ./node_modules/.bin/cordova prepare android --no-interactive
 
       - name: Build Android release APK
