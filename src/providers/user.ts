@@ -27,11 +27,24 @@ export class User {
               this.ux.showToast('INFO', 'SESSIONTIMEOUT_MSG', 15000);
               this.removeStoredUser();
             }, 2000);
+          } else {
+            this.refreshAuthToken();
           }
         }
         resolve();
       });
     });
+  }
+
+  private refreshAuthToken() {
+    this.api.http
+      .get(`https://auth.literotica.com/check?timestamp=${Math.floor(Date.now() / 1000)}&redirect=https://www.literotica.com/`, {
+        withCredentials: true,
+        observe: 'response',
+        responseType: 'text',
+      })
+      .toPromise()
+      .catch(() => null);
   }
 
   onReady() {
