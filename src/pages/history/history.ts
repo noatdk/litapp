@@ -4,21 +4,11 @@ import { TranslateService } from '@ngx-translate/core';
 import { Storage } from '@ionic/storage';
 
 import { Stories, Settings, History, Series } from '../../providers/providers';
-import { summarizeSeries } from '../../providers/series';
+import { summarizeSeries, SeriesSummary } from '../../providers/series';
 import { Story } from '../../models/story';
 
-interface SeriesCard {
+interface SeriesCard extends SeriesSummary {
   seriesId: string;
-  title: string;
-  representative?: Story;
-  authorName?: string;
-  chaptersCount: number;
-  totalViews: number;
-  totalComments: number;
-  totalFavorites: number;
-  totalLists: number;
-  categoryID?: number;
-  isHot: boolean;
   newChapters: Story[];
   expanded: boolean;
 }
@@ -100,18 +90,9 @@ export class HistoryPage {
       const summary = summarizeSeries(seriesId, chapters);
       const newChapters = this.seriesFollow.getUnreadChapters(seriesId);
       cards.push({
+        ...summary,
         seriesId,
         newChapters,
-        title: summary.title,
-        representative: summary.representative,
-        authorName: summary.authorName,
-        chaptersCount: summary.chaptersCount,
-        totalViews: summary.totalViews,
-        totalComments: summary.totalComments,
-        totalFavorites: summary.totalFavorites,
-        totalLists: summary.totalLists,
-        categoryID: summary.categoryID,
-        isHot: summary.isHot,
         expanded: prevExpanded.has(seriesId) || newChapters.length > 0,
       });
     });
