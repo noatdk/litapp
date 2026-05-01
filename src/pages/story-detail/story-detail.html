@@ -52,17 +52,11 @@
       <memo-button kind="story" [id]="story.id"></memo-button>
       <memo-button *ngIf="story.series > 0" kind="series" [id]="story.series"></memo-button>
 
-      <button
-        ion-button
-        icon-only
+      <series-follow-button
         *ngIf="story.series > 0"
-        (click)="toggleFollowSeries()"
-        [tooltip]="'STORYDETAIL_TOOLTIP_FOLLOW_SERIES' | translate"
-        event="press"
-        navTooltip
-      >
-        <ion-icon [name]="seriesFollow.isFollowed(story.series) ? 'notifications' : 'notifications-outline'"></ion-icon>
-      </button>
+        [seriesId]="story.series"
+        [story]="story"
+      ></series-follow-button>
 
       <button
         ion-button

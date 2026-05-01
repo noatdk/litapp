@@ -1,7 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { IonicPage, Platform, Tabs, App, NavController } from 'ionic-angular';
-import { User, UX, Feed, Settings } from '../../providers/providers';
+import { User, UX, Feed, Settings, Series } from '../../providers/providers';
 
 @IonicPage({ priority: 'high' })
 @Component({
@@ -32,6 +32,7 @@ export class TabsPage {
     public user: User,
     public settings: Settings,
     public f: Feed,
+    public seriesFollow: Series,
   ) {
     this.platform.registerBackButtonAction(() => {
       this.ux.hideLoader();
@@ -56,5 +57,13 @@ export class TabsPage {
       this.tab4Title = values['TAB4_TITLE'];
       this.tab5Title = values['TAB5_TITLE'];
     });
+  }
+
+  // Drives the red tab badge — count of unread chapters added since the user
+  // followed each series, derived from history at read-time. No acknowledge
+  // step: reading the chapter via the normal flow drops it from the count.
+  get newChaptersBadge(): string {
+    const n = this.seriesFollow.getAllUnreadCount();
+    return n ? String(n) : '';
   }
 }

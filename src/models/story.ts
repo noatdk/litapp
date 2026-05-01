@@ -25,12 +25,16 @@ export interface Story {
   lang: string;
   tags: string[];
   series: number;
+  seriesTitle: string;
   timestamp: string;
   author: Author;
   url: string;
   length: number;
   currentpage: number;
   viewcount: number;
+  commentscount: number;
+  favoritescount: number;
+  listscount: number;
   ishot: boolean;
   isnew: boolean;
   iswriterspick: boolean;
