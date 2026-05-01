@@ -48,7 +48,7 @@
         <ion-icon name="notifications" color="secondary"></ion-icon>
         {{ 'HISTORY_NEW_CHAPTERS' | translate }} ({{ newChapters.length }})
       </h2>
-      <story-list [stories]="newChapters" ishistory="false"></story-list>
+      <story-list-normal [stories]="newChapters" ishistory="false"></story-list-normal>
     </ng-container>
 
     <ng-container *ngIf="inProgress.length">
@@ -56,7 +56,7 @@
         <ion-icon name="bookmarks"></ion-icon>
         {{ 'HISTORY_CONTINUE_READING' | translate }} ({{ inProgress.length }})
       </h2>
-      <story-list [stories]="inProgress" ishistory="true"></story-list>
+      <story-list-normal [stories]="inProgress" ishistory="true"></story-list-normal>
     </ng-container>
 
     <h2 *ngIf="newChapters.length || inProgress.length">{{ 'HISTORY_TITLE' | translate }}</h2>
