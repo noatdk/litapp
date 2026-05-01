@@ -113,6 +113,18 @@ jobs:
           distribution: temurin
           java-version: '8'
 
+      - name: Install Gradle 4.10.3 (cordova-android 7 compatible)
+        if: steps.android.outputs.sign == 'true'
+        run: |
+          set -euo pipefail
+          GRADLE_VER=4.10.3
+          GRADLE_DIR="${RUNNER_TEMP}/gradle-${GRADLE_VER}"
+          if [[ ! -x "${GRADLE_DIR}/bin/gradle" ]]; then
+            curl -sSL "https://services.gradle.org/distributions/gradle-${GRADLE_VER}-bin.zip" -o "${RUNNER_TEMP}/gradle.zip"
+            unzip -q "${RUNNER_TEMP}/gradle.zip" -d "${RUNNER_TEMP}"
+          fi
+          echo "${GRADLE_DIR}/bin" >> "$GITHUB_PATH"
+
       - name: Decode Android keystore
         if: steps.android.outputs.sign == 'true'
         env:
