@@ -825,39 +825,16 @@ export class StoryViewPage {
     this.flashAnchor(map, idx, endIdx, root);
   }
 
-  // Wrap each per-text-node slice of the matched range in a <span> that fades
-  // out via CSS. surroundContents only works within a single text node, so we
-  // group consecutive map entries by node and wrap each group.
+  // Briefly highlight the restored anchor by wrapping it in fading spans, then
+  // unwrap them after the CSS animation completes. Falls back to flashing the
+  // page root when the range can't be wrapped at all (e.g. structural reflow).
   private flashAnchor(
     map: Array<{ node: Text; offset: number }>,
     startIdx: number,
     endIdx: number,
     fallback: HTMLElement,
   ): void {
-    const wraps: HTMLElement[] = [];
-    let i = startIdx;
-    while (i <= endIdx) {
-      const node = map[i].node;
-      let j = i;
-      let lastOffset = map[i].offset;
-      while (j + 1 <= endIdx && map[j + 1].node === node) {
-        j += 1;
-        lastOffset = map[j].offset;
-      }
-      try {
-        const r = document.createRange();
-        r.setStart(node, map[i].offset);
-        const len = (node.textContent || '').length;
-        r.setEnd(node, Math.min(lastOffset + 1, len));
-        const span = document.createElement('span');
-        span.className = 'reader-anchor-flash';
-        r.surroundContents(span);
-        wraps.push(span);
-      } catch (_e) {
-        // Non-fatal; we'll just have a partial flash.
-      }
-      i = j + 1;
-    }
+    const wraps = this.wrapRange(map, startIdx, endIdx, 'reader-anchor-flash');
 
     if (wraps.length === 0) {
       fallback.classList.add('reader-anchor-flash');
