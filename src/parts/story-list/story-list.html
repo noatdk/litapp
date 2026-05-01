@@ -3,7 +3,7 @@
     {{'STORYLIST_EMPTY' | translate}}
   </p>
 
-  <ng-container *ngIf="!settings.allSettings.forceNormalList">
+  <ng-container *ngIf="!settings.allSettings.forceNormalList && !forceNormal">
     <ion-list [virtualScroll]="stories" [headerFn]="showHeaders" [sliding]="ishistory" approxItemHeight="97px">
       <ion-item-divider *virtualHeader="let pageindicator">
         {{'LIST_PAGECOUNTDIVIDER' | translate}} {{ pageindicator }}
@@ -19,7 +19,7 @@
     </ion-list>
   </ng-container>
 
-  <ng-container *ngIf="settings.allSettings.forceNormalList">
+  <ng-container *ngIf="settings.allSettings.forceNormalList || forceNormal">
     <ion-list [sliding]="ishistory">
       <ng-container *ngFor="let story of stories; let i=index">
         <ion-item-divider *ngIf="!!showHeaders(story, i, stories)">
