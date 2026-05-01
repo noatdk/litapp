@@ -70,6 +70,10 @@ export class Api {
       ...error,
     });
 
+    // Always dismiss any active spinner — callers using showLoader() rely on a
+    // success callback to hide it, which never fires when the request errors.
+    this.ux.hideLoader();
+
     if (error.status === 404) {
       this.ux.showToast('ERROR', 'LITEROTICA_NOTFOUND', 5000);
     } else if (error.status === 429) {
