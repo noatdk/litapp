@@ -62,11 +62,11 @@ export class SearchPage {
   }
 
   ionViewDidEnter() {
-    this.keyboard.disableScroll(true);
+    if (this.keyboard && (this.keyboard as any).disableScroll) (this.keyboard as any).disableScroll(true);
   }
 
   ionViewWillLeave() {
-    this.keyboard.disableScroll(false);
+    if (this.keyboard && (this.keyboard as any).disableScroll) (this.keyboard as any).disableScroll(false);
   }
 
   ionViewWillEnter() {
