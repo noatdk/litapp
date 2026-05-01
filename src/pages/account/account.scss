@@ -1,0 +1,53 @@
+page-account {
+  h2 {
+    margin: 8px 0 0;
+  }
+
+  .signed-out {
+    text-align: center;
+    padding: 32px 8px 0;
+
+    .hero {
+      font-size: 96px;
+      opacity: 0.25;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0 0 6px;
+    }
+
+    p {
+      margin: 0 0 24px;
+      font-size: 0.95em;
+    }
+
+    button {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+  }
+  .muted {
+    opacity: 0.6;
+    margin: 2px 0 0;
+  }
+  .warn {
+    color: #f5a623;
+  }
+  .error {
+    color: #d0021b;
+  }
+
+  .auth-status {
+    margin-bottom: 16px;
+
+    ion-item h3 {
+      margin: 0 0 2px;
+      font-weight: 600;
+    }
+    ion-item p {
+      margin: 0;
+      font-size: 0.92em;
+    }
+  }
+}
