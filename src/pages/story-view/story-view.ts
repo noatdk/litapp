@@ -1119,16 +1119,52 @@ export class StoryViewPage {
           this.measureAllRendered();
           el.scrollTop = this.getPageStart(page) + off;
         };
-        // Apply repeatedly to absorb async layout shifts (fonts swap, images
-        // resolve their dimensions). Each pass remeasures and re-anchors using
-        // the latest pageHeights so the user lands on the exact saved offset.
-        setTimeout(apply, 0);
-        setTimeout(apply, 100);
-        setTimeout(apply, 300);
-        setTimeout(() => {
-          apply();
+
+        // Apply once immediately, then keep re-applying as layout shifts (image
+        // dimensions arriving, font swap) change cumulative page heights. We
+        // observe the scroll container with a ResizeObserver and resolve once
+        // its height has been stable across two consecutive frames, with a
+        // 1500ms hard cap so a never-settling layout can't hang us.
+        apply();
+
+        if (typeof (window as any).ResizeObserver !== 'function') {
+          // Older WebViews: fall back to a short fixed schedule.
+          setTimeout(apply, 100);
+          setTimeout(apply, 300);
+          setTimeout(() => { apply(); resolve(); }, 600);
+          return;
+        }
+
+        let stableFrames = 0;
+        let lastHeight = el.scrollHeight;
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          ro.disconnect();
+          if (timer) clearTimeout(timer);
           resolve();
-        }, 600);
+        };
+        const ro = new (window as any).ResizeObserver(() => {
+          stableFrames = 0;
+          lastHeight = el.scrollHeight;
+          apply();
+        });
+        ro.observe(el);
+
+        const tick = () => {
+          if (done) return;
+          if (el.scrollHeight === lastHeight) {
+            stableFrames += 1;
+            if (stableFrames >= 2) { apply(); finish(); return; }
+          } else {
+            stableFrames = 0;
+            lastHeight = el.scrollHeight;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        const timer = setTimeout(() => { apply(); finish(); }, 1500);
       });
     });
   }
