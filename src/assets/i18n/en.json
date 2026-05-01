@@ -16,6 +16,8 @@
   "ACCOUNT_JWT_REFRESH_IN": "Auto-refresh in",
   "ACCOUNT_JWT_AGE": "Age",
   "ACCOUNT_JWT_EXPIRED": "Expired — next API call will trigger a refresh.",
+  "ACCOUNT_JWT_RELOGIN_REQUIRED": "Session expired upstream (401). Please log in again.",
+  "ACCOUNT_RELOGIN": "Log in again",
   "ACCOUNT_JWT_REFRESH_NOW": "Refresh JWT now",
   "ACCOUNT_JWT_REFRESHING": "Refreshing…",
   "ACCOUNT_JWT_REFRESHED": "JWT refreshed.",

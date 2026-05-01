@@ -46,6 +46,12 @@ export class AccountPage {
     this.navCtrl.push('TabsPage');
   }
 
+  relogin() {
+    this.user.removeStoredUser().then(() => {
+      this.navCtrl.push('LoginPage');
+    });
+  }
+
   refreshJwt() {
     if (this.refreshing) return;
     this.refreshing = true;
@@ -68,11 +74,16 @@ export class AccountPage {
   }
 
   jwtState(): 'fresh' | 'stale' | 'expired' | 'unknown' {
+    if (this.user.jwtNeedsRelogin()) return 'expired';
     const ms = this.user.jwtRemainingMs();
-    if (ms == null) return 'unknown';
+    if (ms == null) return this.user.jwtLastError() ? 'expired' : 'unknown';
     if (ms <= 0) return 'expired';
     if (ms < 5 * 60 * 1000) return 'stale';
     return 'fresh';
+  }
+
+  needsRelogin(): boolean {
+    return this.user.jwtNeedsRelogin();
   }
 
   hasSession(): boolean {

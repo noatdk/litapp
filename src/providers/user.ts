@@ -44,6 +44,10 @@ export class User {
     });
   }
 
+  // Last /check failure status code (e.g. 401) — drives the account page's
+  // "expired / re-login" state. 0 means "no failure since last success".
+  private jwtLastErrorStatus = 0;
+
   private refreshAuthToken(): Promise<boolean> {
     return this.api
       .get(
@@ -55,9 +59,18 @@ export class User {
       .toPromise()
       .then(() => {
         this.jwtRefreshedAt = Date.now();
+        this.jwtLastErrorStatus = 0;
         return true;
       })
-      .catch(() => false);
+      .catch((err: any) => {
+        const status = (err && typeof err.status === 'number') ? err.status : 0;
+        this.jwtLastErrorStatus = status || -1;
+        // 401 means the underlying sessionid cookie is dead — the JWT is
+        // unrecoverable without a re-login. Invalidate the cached timestamp
+        // so the UI stops claiming the session is fresh.
+        if (status === 401) this.jwtRefreshedAt = 0;
+        return false;
+      });
   }
 
   // Public: kick off a manual JWT refresh. Resolves with true on success.
@@ -76,6 +89,16 @@ export class User {
   jwtRemainingMs(): number | null {
     if (!this.jwtRefreshedAt) return null;
     return this.jwtRefreshedAt + JWT_TTL_MS - Date.now();
+  }
+
+  // True when the most recent /check returned 401 — the sessionid cookie
+  // upstream is dead and the user needs to re-login.
+  jwtNeedsRelogin(): boolean {
+    return this.jwtLastErrorStatus === 401;
+  }
+
+  jwtLastError(): number {
+    return this.jwtLastErrorStatus;
   }
 
   onReady() {
@@ -125,7 +148,7 @@ export class User {
         headers: { 'Content-Type': 'application/json' },
       }, false, AUTH_URL_INDEX)
       .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
-      .do(() => { this.jwtRefreshedAt = Date.now(); })
+      .do(() => { this.jwtRefreshedAt = Date.now(); this.jwtLastErrorStatus = 0; })
       .switchMap(() => this.api.get('3/users/session'))
       .switchMap((res: any) => v2Login$.map(sessionId => ({ res, sessionId })))
       .map(({ res, sessionId }: any) => {

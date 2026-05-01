@@ -35,7 +35,7 @@
             {{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} <strong>{{ jwtRemaining() }}</strong>
           </p>
           <p *ngIf="jwtState() === 'expired'" class="error">
-            {{ 'ACCOUNT_JWT_EXPIRED' | translate }}
+            {{ (needsRelogin() ? 'ACCOUNT_JWT_RELOGIN_REQUIRED' : 'ACCOUNT_JWT_EXPIRED') | translate }}
           </p>
         </ion-label>
         <ion-icon
@@ -59,9 +59,13 @@
       </ion-item>
     </ion-list>
 
-    <button ion-button block outline (click)="refreshJwt()" [disabled]="refreshing">
+    <button *ngIf="!needsRelogin()" ion-button block outline (click)="refreshJwt()" [disabled]="refreshing">
       <ion-icon name="refresh"></ion-icon>&nbsp;
       {{ (refreshing ? 'ACCOUNT_JWT_REFRESHING' : 'ACCOUNT_JWT_REFRESH_NOW') | translate }}
+    </button>
+
+    <button *ngIf="needsRelogin()" ion-button block (click)="relogin()">
+      <ion-icon name="log-in"></ion-icon>&nbsp; {{ 'ACCOUNT_RELOGIN' | translate }}
     </button>
 
     <button ion-button block color="danger" (click)="logout()">
