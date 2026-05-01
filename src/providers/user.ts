@@ -9,6 +9,9 @@ import { Api } from './shared/api';
 import { Settings } from './settings';
 import { UX } from './shared/ux';
 
+// urls[6] in api.ts — auth.literotica.com.
+const AUTH_URL_INDEX = 6;
+
 @Injectable()
 export class User {
   private user: any;
@@ -34,12 +37,13 @@ export class User {
   }
 
   private refreshAuthToken() {
-    this.api.http
-      .get(`https://auth.literotica.com/check?timestamp=${Math.floor(Date.now() / 1000)}&redirect=https://www.literotica.com/`, {
-        withCredentials: true,
-        observe: 'response',
-        responseType: 'text',
-      })
+    this.api
+      .get(
+        `check?timestamp=${Math.floor(Date.now() / 1000)}`,
+        null,
+        { withCredentials: true, responseType: 'text' },
+        AUTH_URL_INDEX,
+      )
       .toPromise()
       .catch(() => null);
   }
@@ -48,50 +52,36 @@ export class User {
     return this.ready;
   }
 
+  // Three-step JWT login flow that matches the website's own XHR sequence:
+  //   1. POST auth.literotica.com/login {login,password}  → sets sessionid cookie
+  //   2. GET  auth.literotica.com/check?timestamp=<unix>  → sets auth_token (JWT) cookie
+  //   3. GET  /api/3/users/session                        → returns user profile
+  // After step 2 the auth_token cookie is sent automatically with every
+  // subsequent literotica.com request (withCredentials: true is already on by
+  // default for /api/* calls), so authenticated v3 endpoints just work.
   login(info: any) {
     const loader = this.ux.showLoader();
+    const authOpts = { withCredentials: true, responseType: 'text' as 'text' };
 
-    const body = new URLSearchParams();
-    body.set('login', info.username);
-    body.set('password', info.password);
-
-    return Observable.fromPromise(
-      this.api.http
-        .post('https://auth.literotica.com/login?redirect=www.literotica.com', body.toString(), {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          withCredentials: true,
-          observe: 'response',
-          responseType: 'text',
-        })
-        .toPromise()
-        .then(() =>
-          this.api.http
-            .get(`https://auth.literotica.com/check?timestamp=${Math.floor(Date.now() / 1000)}&redirect=https://www.literotica.com/`, {
-              withCredentials: true,
-              observe: 'response',
-              responseType: 'text',
-            })
-            .toPromise()
-            .catch(() => null),
-        )
-        .then(() => this.api.get(`3/users/${info.username}`).toPromise())
-        .then((res: any) => {
-          if (loader) loader.dismiss();
-          if (!res || !res.user || !res.user.userid) throw { error: { error: 'invalid response' } };
-          this.user = {
-            id: res.user.userid,
-            username: res.user.username,
-            session: '',
-            date: new Date().getTime(),
-          };
-          this.storage.set(USER_KEY, this.user);
-          return { success: true };
-        })
-        .catch((err: any) => {
-          if (loader) loader.dismiss();
-          throw err.error ? err : { error: { error: err.message || 'login failed' } };
-        }),
-    );
+    return this.api
+      .post('login', JSON.stringify({ login: info.username, password: info.password }), {
+        ...authOpts,
+        headers: { 'Content-Type': 'application/json' },
+      }, false, AUTH_URL_INDEX)
+      .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
+      .switchMap(() => this.api.get('3/users/session'))
+      .map((res: any) => {
+        if (loader) loader.dismiss();
+        if (!res || !res.userid) {
+          throw Observable.throw(res);
+        }
+        this.user = {
+          id: res.userid,
+          username: res.username,
+          date: new Date().getTime(),
+        };
+        this.storage.set(USER_KEY, this.user);
+      });
   }
 
   isLoggedIn(): boolean {
@@ -104,10 +94,6 @@ export class User {
 
   getName() {
     return this.user.username;
-  }
-
-  getSession() {
-    return this.user.session;
   }
 
   getDetails() {

@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files, Memos, Series } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
@@ -18,6 +18,9 @@ import { Category } from '../../models/category';
 export class StoryDetailPage {
   story: Story;
   myrating: number;
+  commentsTotal: number = 0;
+  commentsCursor: number = 0;
+  commentsLoading: boolean = false;
 
   constructor(
     public navCtrl: NavController,
@@ -32,8 +35,6 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
-    public memos: Memos,
-    public seriesFollow: Series,
   ) {
     this.story = navParams.get('story');
 
@@ -51,8 +52,31 @@ export class StoryDetailPage {
         this.story.series = story.series;
         this.story.length = story.length;
         this.story.lang = story.lang;
+
+        this.loadComments();
       });
+    } else {
+      this.loadComments();
     }
+  }
+
+  // Pulls comments via 3/stories/{slug}/comments/after. With after=0 we replace
+  // the list (initial load); otherwise we append for "load more". The cursor
+  // is the id of the last comment we've seen.
+  loadComments(append: boolean = false) {
+    if (!this.story || !this.story.commentsenabled || this.commentsLoading) return;
+    this.commentsLoading = true;
+    const after = append ? this.commentsCursor : 0;
+    this.stories.getComments(this.story, after).subscribe(res => {
+      this.story.comments = append ? (this.story.comments || []).concat(res.comments) : res.comments;
+      this.commentsTotal = res.total;
+      this.commentsCursor = res.lastId;
+      this.commentsLoading = false;
+    });
+  }
+
+  hasMoreComments(): boolean {
+    return !!this.story && !!this.story.comments && this.story.comments.length < this.commentsTotal;
   }
 
   showAuthor(author: Author) {
@@ -129,32 +153,6 @@ export class StoryDetailPage {
     });
   }
 
-  openMemo(ev: UIEvent) {
-    const popover = this.popoverCtrl.create('MemoPopover', {
-      kind: 'story',
-      id: this.story.id,
-    });
-    popover.present({ ev });
-  }
-
-  openSeriesMemo(ev: UIEvent) {
-    if (!this.story || !this.story.series) return;
-    const popover = this.popoverCtrl.create('MemoPopover', {
-      kind: 'series',
-      id: this.story.series,
-    });
-    popover.present({ ev });
-  }
-
-  toggleFollowSeries() {
-    if (!this.story || !this.story.series) return;
-    if (this.seriesFollow.isFollowed(this.story.series)) {
-      this.seriesFollow.unfollow(this.story.series);
-    } else {
-      this.seriesFollow.follow(this.story.series, parseInt(this.story.id, 10));
-    }
-  }
-
   share() {
     this.socialSharing.share(null, null, null, this.story.url).catch(err =>
       handleNoCordovaError(err, () => {
@@ -204,11 +202,16 @@ export class StoryDetailPage {
 
   // updates part of story
   refreshStory() {
-    // This only refreshes basic things like seriesId, title, content, tags... no fancy data found during searches
+    // getById refreshes structure (content / pages / series id), getMetadata
+    // refreshes the live badges + counts (is_new, is_hot, rate, view_count, ...)
+    // that the pages endpoint doesn't return.
     this.stories.getById(this.story.id, true).subscribe(story => {
       this.updateValues(story);
-      this.myrating = this.story.myrating;
-      this.stories.cache(this.story);
+      this.stories.getMetadata(this.story.id).subscribe(meta => {
+        if (meta) this.updateValues(meta);
+        this.myrating = this.story.myrating;
+        this.stories.cache(this.story);
+      });
     });
   }
 

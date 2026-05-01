@@ -2,16 +2,8 @@
   <ion-navbar>
     <ion-title>{{'SERIES_TITLE' | translate}}</ion-title>
     <ion-buttons end>
-      <button
-        ion-button
-        icon-only
-        (click)="openSeriesMemo($event)"
-        [tooltip]="'MEMO_SERIES_BUTTON' | translate"
-        event="press"
-        navTooltip
-      >
-        <ion-icon [name]="memos.hasSeriesMemo(seriesId) ? 'albums' : 'albums-outline'"></ion-icon>
-      </button>
+      <memo-button kind="series" [id]="seriesId"></memo-button>
+      <series-follow-button [seriesId]="seriesId" [chapters]="series"></series-follow-button>
       <button ion-button icon-only (click)="download()" [tooltip]="'DOWNLOAD_ALL_BUTTON' | translate" event="press" navTooltip>
         <ion-icon name="download"></ion-icon>
       </button>
@@ -20,9 +12,6 @@
 </ion-header>
 
 <ion-content padding>
-  <p class="memo" *ngIf="memos.hasSeriesMemo(seriesId)" (click)="openSeriesMemo($event)">
-    <strong><ion-icon name="albums" color="secondary"></ion-icon> {{ 'MEMO_SERIES_TITLE' | translate }}: </strong>
-    {{ memos.getSeriesMemo(seriesId) }}
-  </p>
+  <memo-preview kind="series" [id]="seriesId"></memo-preview>
   <story-list [stories]="series"></story-list>
 </ion-content>

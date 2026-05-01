@@ -57,6 +57,7 @@ export class Api {
       this.corsProxy + ENV.APP_JSON_RAW_BASE,
       this.corsProxy + 'https://literotica.com',
       this.corsProxy + 'https://api.github.com',
+      this.corsProxy + 'https://auth.literotica.com',
     ];
   }
 
@@ -97,8 +98,8 @@ export class Api {
       }
     }
 
-    // disable api keys for github requests
-    if (urlIndex !== 3 && urlIndex !== 5) {
+    // disable api keys for github requests and the auth service
+    if (urlIndex !== 3 && urlIndex !== 5 && urlIndex !== 6) {
       newReqOpts.withCredentials = true;
       newReqOpts.params = newReqOpts.params.set('apikey', this.apikey);
       newReqOpts.params = newReqOpts.params.set('appid', this.appid);

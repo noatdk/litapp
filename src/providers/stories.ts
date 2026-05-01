@@ -112,7 +112,14 @@ export class Stories {
     return this.search(filter, page, null, null, '1/user-favorites') as Observable<SearchResultType>;
   }
 
-  getTop(id?: any, page?: number) {
+  getTop(id?: any, page?: number, period?: 'week' | 'month' | 'year' | 'all', language?: number) {
+    // The v3 popular endpoint exposes the website's period filter (week / month /
+    // year / all-time). Fall back to the legacy v1/top for the unfiltered case so
+    // existing callers keep their behavior.
+    if (period) {
+      return this.getPopular(id, page, period, language);
+    }
+
     const filter: any[] = [{ property: 'type', value: 'story' }];
 
     if (id) {
@@ -120,6 +127,16 @@ export class Stories {
     }
 
     return this.search(filter, page, null, null, '1/top') as Observable<SearchResultType>;
+  }
+
+  // 3/stories/popular/{categoryId} — top stories within a period.
+  // categoryId of 0 (or omitted) means all categories.
+  getPopular(id?: any, page?: number, period?: string, language?: number) {
+    const filter: any = {};
+    if (period) filter.period = period;
+    if (language != null) filter.language = language;
+
+    return this.newsearch(filter, page, 0, `3/stories/popular/${id || 0}`, true) as Observable<SearchResultType>;
   }
 
   getNew(id?: any, page?: number) {
@@ -272,6 +289,70 @@ export class Stories {
   // Specific Story/series endpoints
   // ----------------------------------------------------------------------
 
+  // 3/stories/{id} — cheap metadata refresh (badges, counts, tags, series block).
+  // Does NOT update full content — use getById for that. Mutates and returns the
+  // cached Story instance when one exists so subscribers update in place.
+  getMetadata(id: any): Observable<Story | null> {
+    return this.api
+      .get(`3/stories/${id}`)
+      .map((data: any) => {
+        const sub = data && data.submission;
+        if (!sub || !sub.id) {
+          console.error('stories.getMetadata', [id]);
+          return null;
+        }
+
+        const cached = this.stories.get(sub.id) || new Story({ id: sub.id.toString() });
+        cached.title = sub.title;
+        cached.description = sub.description;
+        cached.categoryID = sub.category;
+        cached.lang = this.g.getLanguage(sub.language);
+        cached.rating = sub.rate_all;
+        cached.viewcount = sub.view_count;
+        cached.ishot = sub.is_hot;
+        cached.isnew = sub.is_new;
+        cached.iswriterspick = sub.writers_pick;
+        cached.iscontestwinner = sub.contest_winner > 0;
+        cached.commentsenabled = sub.enable_comments > 0;
+        cached.ratingenabled = sub.allow_vote > 0;
+        cached.tags = !sub.tags ? [] : sub.tags.map(t => t.tag);
+        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        if (data.meta && data.meta.pages_count) cached.length = data.meta.pages_count;
+
+        this.stories.set(cached.id, cached);
+        return cached;
+      })
+      .catch(error => {
+        console.error('stories.getMetadata', [id], error);
+        return Observable.of(null);
+      });
+  }
+
+  // 3/stories/{slug}/comments/after — public, oldest-first, cursor by comment id.
+  // Pass after=0 for the first page; for subsequent pages pass the lastId
+  // returned in the previous response.
+  getComments(story: Story, after: number = 0) {
+    const slug = (story && story.url ? story.url : '').replace(/^.*\/s\//, '').split('?')[0];
+    if (!slug) return Observable.of({ comments: [], total: 0, perPage: 0, lastId: 0 });
+
+    const params = { params: JSON.stringify({ after }) };
+    return this.api
+      .get(`3/stories/${slug}/comments/after`, params)
+      .map((data: any) => {
+        const items = (data && data.data) || [];
+        return {
+          comments: items.map(c => this.extractComment(c)),
+          total: (data && data.meta && data.meta.total) || 0,
+          perPage: (data && data.meta && data.meta.per_page) || items.length,
+          lastId: items.length ? items[items.length - 1].id : after,
+        };
+      })
+      .catch(error => {
+        console.error('stories.getComments', [story && story.id, after], error);
+        return Observable.of({ comments: [], total: 0, perPage: 0, lastId: after });
+      });
+  }
+
   // Get a story by ID
   getById(id: any, force: boolean = false, noLoaderDismiss = false): Observable<Story | null> {
     const cached = this.stories.get(id);
@@ -329,7 +410,8 @@ export class Stories {
     const filter = [{ property: 'submission_id', value: parseInt(story.id) }];
     const data = new FormData();
     data.append('user_id', this.user.getId());
-    data.append('session_id', this.user.getSession());
+    // Authentication is now via the auth_token cookie set during login;
+    // session_id is no longer issued by the auth flow.
     data.append('vote', String(rating));
     data.append('filter', JSON.stringify(filter));
 
@@ -547,6 +629,11 @@ export class Stories {
       iscontestwinner: item.contest_winner === 'no' ? false : true,
       commentsenabled: item.enable_comments > 0 ? true : false,
       ratingenabled: item.allow_vote > 0 ? true : false,
+      series: item.series_id ? parseInt(item.series_id, 10) : undefined,
+      seriesTitle: item.series_data && item.series_data.title,
+      commentscount: Number(item.comment_count) || 0,
+      favoritescount: Number(item.favorite_count) || 0,
+      listscount: Number(item.reading_lists_count) || 0,
     });
 
     this.stories.set(story.id, story);
@@ -579,9 +666,21 @@ export class Stories {
       iscontestwinner: item.contest_winner > 0 ? true : false,
       commentsenabled: item.enable_comments > 0 ? true : false,
       ratingenabled: item.allow_vote > 0 ? true : false,
+      commentscount: Number(item.comment_count) || 0,
+      favoritescount: Number(item.favorite_count) || 0,
+      listscount: Number(item.reading_lists_count) || 0,
     });
 
     this.stories.set(story.id, story);
     return story;
+  }
+
+  extractComment(item): { user: string; text: string; timestamp: string } {
+    return {
+      user: item.author && item.author.username,
+      text: item.text,
+      // unix seconds → ISO string so the template's date pipe can format it
+      timestamp: item.date ? new Date(item.date * 1000).toISOString() : '',
+    };
   }
 }
