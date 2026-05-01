@@ -159,6 +159,67 @@ export class Stories {
     return this.search(filter, page, null, null, '1/submissions') as Observable<SearchResultType>;
   }
 
+  // ----------------------------------------------------------------------
+  // Author / Series search (no public endpoint — extracted from story search)
+  // ----------------------------------------------------------------------
+  // The v3 API exposes story search at `3/search/stories`; each result includes
+  // user (author) + series_data. We piggyback on that to surface authors/series
+  // by name. Imperfect but works without docs.
+
+  searchAuthors(query: string): Observable<{ id: string; name: string; userpic?: string }[]> {
+    const q = (query || '').trim();
+    if (q.length < 2) return Observable.of([]);
+    const params = { params: JSON.stringify({ page: 1, q, sort: '', astags: false }) };
+    return this.api
+      .get('3/search/stories', params)
+      .map((data: any) => {
+        const items = (data && data.data) || [];
+        const seen = new Set<string>();
+        const out: { id: string; name: string; userpic?: string }[] = [];
+        for (const it of items) {
+          const u = it && it.author;
+          const id = u && (u.userid != null ? u.userid : u.id);
+          if (id == null) continue;
+          const sid = String(id);
+          if (seen.has(sid)) continue;
+          seen.add(sid);
+          out.push({ id: sid, name: (u && u.username) || '', userpic: u && u.userpic });
+        }
+        return out;
+      })
+      .catch(error => {
+        console.error('stories.searchAuthors', [query], error);
+        return Observable.of([]);
+      });
+  }
+
+  searchSeries(query: string): Observable<{ id: string; name: string }[]> {
+    const q = (query || '').trim();
+    if (q.length < 2) return Observable.of([]);
+    const params = { params: JSON.stringify({ page: 1, q, sort: '', astags: false }) };
+    return this.api
+      .get('3/search/stories', params)
+      .map((data: any) => {
+        const items = (data && data.data) || [];
+        const seen = new Set<string>();
+        const out: { id: string; name: string }[] = [];
+        for (const it of items) {
+          const sd = it && it.series_data;
+          const sid = sd && sd.id;
+          if (sid == null) continue;
+          const id = String(sid);
+          if (id === '0' || seen.has(id)) continue;
+          seen.add(id);
+          out.push({ id, name: (sd && sd.title) || '' });
+        }
+        return out;
+      })
+      .catch(error => {
+        console.error('stories.searchSeries', [query], error);
+        return Observable.of([]);
+      });
+  }
+
   // helper for similar requests
   private search(filter: any, page?: number, sort?: string, urlIndex?: number, path?: string): ObservableSearchResult {
     const params = {
@@ -675,9 +736,11 @@ export class Stories {
     return story;
   }
 
-  extractComment(item): { user: string; text: string; timestamp: string } {
+  extractComment(item): { user: string; userId: string; text: string; timestamp: string } {
+    const userId = item.author && (item.author.userid != null ? item.author.userid : item.author.id);
     return {
       user: item.author && item.author.username,
+      userId: userId != null ? String(userId) : '',
       text: item.text,
       // unix seconds → ISO string so the template's date pipe can format it
       timestamp: item.date ? new Date(item.date * 1000).toISOString() : '',

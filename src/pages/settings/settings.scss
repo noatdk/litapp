@@ -21,4 +21,32 @@ page-settings {
   .item-select .label-md {
     color: inherit;
   }
+
+  .filter-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 0 !important;
+    min-height: 32px;
+
+    button {
+      margin: 0;
+      height: 28px;
+    }
+  }
+
+  .filter-heading + ion-list {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .filter-empty {
+    margin: 4px 0 0;
+    padding-left: 16px;
+    opacity: 0.55;
+    font-size: 0.9em;
+  }
+  .entity-id {
+    margin-left: 6px;
+    opacity: 0.5;
+  }
 }

@@ -1,0 +1,13 @@
+.entity-picker {
+  margin: 0;
+  min-width: 280px;
+
+  .placeholder {
+    opacity: 0.6;
+    text-align: center;
+  }
+
+  .picker-actions {
+    text-align: right;
+  }
+}

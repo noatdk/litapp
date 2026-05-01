@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
-import { IonicPage, NavController, NavParams, PopoverController, AlertController } from 'ionic-angular';
+import { IonicPage, NavController, NavParams, PopoverController, AlertController, ActionSheetController } from 'ionic-angular';
 import { SocialSharing } from '@ionic-native/social-sharing';
 import { BrowserTab } from '@ionic-native/browser-tab';
 import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files, Filters, UX } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
@@ -35,6 +35,9 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
+    public filters: Filters,
+    public ux: UX,
+    public actionSheetCtrl: ActionSheetController,
   ) {
     this.story = navParams.get('story');
 
@@ -68,11 +71,59 @@ export class StoryDetailPage {
     this.commentsLoading = true;
     const after = append ? this.commentsCursor : 0;
     this.stories.getComments(this.story, after).subscribe(res => {
-      this.story.comments = append ? (this.story.comments || []).concat(res.comments) : res.comments;
+      // Hide comments by blocked authors. Total stays as the API total so the
+      // user can still pull the next page; the visible count just goes down.
+      const visible = (res.comments || []).filter(c => !this.filters.isAuthorBlocked(c.userId));
+      this.story.comments = append ? (this.story.comments || []).concat(visible) : visible;
       this.commentsTotal = res.total;
       this.commentsCursor = res.lastId;
       this.commentsLoading = false;
     });
+  }
+
+  openCommenterMenu(comment: { user: string; userId: string }, ev: UIEvent) {
+    if (ev) ev.stopPropagation();
+    if (!comment || !comment.userId) return;
+
+    this.translate
+      .get(['COMMENTACTION_VIEW_PROFILE', 'STORYACTION_BLOCK_AUTHOR', 'CANCEL_BUTTON'])
+      .subscribe(t => {
+        this.actionSheetCtrl
+          .create({
+            title: comment.user || '',
+            buttons: [
+              {
+                text: t.COMMENTACTION_VIEW_PROFILE,
+                icon: 'person',
+                handler: () => this.viewCommenter(comment),
+              },
+              {
+                text: t.STORYACTION_BLOCK_AUTHOR,
+                role: 'destructive',
+                icon: 'eye-off',
+                handler: () => this.blockCommenter(comment),
+              },
+              { text: t.CANCEL_BUTTON, role: 'cancel' },
+            ],
+          })
+          .present();
+      });
+  }
+
+  private viewCommenter(comment: { user: string; userId: string }) {
+    if (this.settings.allSettings.offlineMode) return;
+    const author = new Author({ id: comment.userId, name: comment.user || '' });
+    this.navCtrl.push('AuthorPage', { author });
+  }
+
+  private blockCommenter(comment: { user: string; userId: string }) {
+    this.filters.addBlockedAuthor(comment.userId, comment.user || '');
+    this.ux.showToast('INFO', 'AUTHOR_BLOCKED');
+    if (this.story && this.story.comments) {
+      this.story.comments = this.story.comments.filter(
+        c => !this.filters.isAuthorBlocked(c.userId),
+      );
+    }
   }
 
   hasMoreComments(): boolean {

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { IonicPage, NavController, NavParams, Platform } from 'ionic-angular';
+import { IonicPage, NavController, NavParams, Platform, PopoverController } from 'ionic-angular';
 import { Storage } from '@ionic/storage';
 import { File } from '@ionic-native/file';
 import { FileChooser } from '@ionic-native/file-chooser';
@@ -37,9 +37,6 @@ export class SettingsPage {
   settingsReady = false;
   form: FormGroup;
   newBlockedTag: string = '';
-  newBlockedAuthorId: string = '';
-  newBlockedSeriesId: string = '';
-  newBlockedCategoryId: string = '';
 
   translations;
   languages;
@@ -65,6 +62,7 @@ export class SettingsPage {
     public fileChooser: FileChooser,
     public filePath: FilePath,
     public filters: Filters,
+    public popoverCtrl: PopoverController,
   ) {}
 
   addBlockedTag() {
@@ -73,38 +71,51 @@ export class SettingsPage {
     }
   }
 
-  addBlockedAuthorId() {
-    if (this.filters.addBlockedAuthorId(this.newBlockedAuthorId)) {
-      this.newBlockedAuthorId = '';
-    }
-  }
-
-  addBlockedSeriesId() {
-    if (this.filters.addBlockedSeriesId(this.newBlockedSeriesId)) {
-      this.newBlockedSeriesId = '';
-    }
-  }
-
-  addBlockedCategoryId() {
-    if (this.filters.addBlockedCategoryId(this.newBlockedCategoryId)) {
-      this.newBlockedCategoryId = '';
-    }
-  }
-
   removeBlockedTag(tag: string) {
     this.filters.removeBlockedTag(tag);
   }
 
-  removeBlockedAuthorId(id: string) {
-    this.filters.removeBlockedAuthorId(id);
+  pickAuthor(ev: UIEvent) {
+    this.openPicker(ev, 'author');
+  }
+  pickSeries(ev: UIEvent) {
+    this.openPicker(ev, 'series');
+  }
+  pickCategory(ev: UIEvent) {
+    this.openPicker(ev, 'category');
   }
 
-  removeBlockedSeriesId(id: string) {
-    this.filters.removeBlockedSeriesId(id);
+  private openPicker(ev: UIEvent, kind: 'author' | 'series' | 'category') {
+    const exclude =
+      kind === 'author'
+        ? this.filters.getBlockedAuthors().map(e => e.id)
+        : kind === 'series'
+        ? this.filters.getBlockedSeries().map(e => e.id)
+        : this.filters.getBlockedCategories().map(e => e.id);
+
+    const popover = this.popoverCtrl.create(
+      'EntityPicker',
+      { kind, exclude },
+      { cssClass: 'entity-picker-popover' },
+    );
+    popover.present();
+    popover.onDidDismiss((data: any) => {
+      if (!data || !data.picked) return;
+      const { id, name } = data.picked;
+      if (kind === 'author') this.filters.addBlockedAuthor(id, name);
+      else if (kind === 'series') this.filters.addBlockedSeries(id, name);
+      else this.filters.addBlockedCategory(id, name);
+    });
   }
 
-  removeBlockedCategoryId(id: string) {
-    this.filters.removeBlockedCategoryId(id);
+  removeBlockedAuthor(id: string) {
+    this.filters.removeBlockedAuthor(id);
+  }
+  removeBlockedSeries(id: string) {
+    this.filters.removeBlockedSeries(id);
+  }
+  removeBlockedCategory(id: string) {
+    this.filters.removeBlockedCategory(id);
   }
 
   ionViewWillEnter() {

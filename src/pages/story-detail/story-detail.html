@@ -131,6 +131,19 @@
         <h3>{{comment.user}}</h3>
         <h6>{{comment.timestamp | date:'medium'}}</h6>
         <p>{{comment.text}}</p>
+        <button
+          *ngIf="comment.userId"
+          ion-button
+          item-end
+          icon-only
+          clear
+          (click)="openCommenterMenu(comment, $event)"
+          [tooltip]="'STORYACTION_TOOLTIP' | translate"
+          event="press"
+          navTooltip
+        >
+          <ion-icon name="more"></ion-icon>
+        </button>
       </ion-item>
     </ion-list>
     <button ion-button block clear *ngIf="hasMoreComments()" [disabled]="commentsLoading" (click)="loadComments(true)">

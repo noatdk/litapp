@@ -79,3 +79,47 @@ ion-item-options.icons button {
   margin: 0;
   padding-top: 10px;
 }
+
+// Reusable entity picker — popover styled to act like a near-fullscreen sheet
+// with a fixed header (title + search input) and a scrollable results list.
+.entity-picker-popover .popover-content {
+  width: 94vw;
+  max-width: 94vw;
+  height: 85vh;
+  max-height: 85vh;
+  top: 7.5vh !important;
+  left: 3vw !important;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.entity-picker-popover .popover-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.entity-picker-popover .entity-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  .picker-title,
+  .picker-search {
+    flex: 0 0 auto;
+  }
+
+  .picker-results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+  }
+
+  .picker-actions {
+    flex: 0 0 auto;
+    text-align: right;
+    padding: 4px 8px;
+  }
+}

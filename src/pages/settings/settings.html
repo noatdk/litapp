@@ -83,7 +83,7 @@
   <h3>{{ 'SETTINGS_CAT_FILTERS' | translate }}</h3>
   <p>{{ 'SETTINGS_FILTERS_HINT' | translate }}</p>
 
-  <h4>{{ 'SETTINGS_FILTERS_TAGS' | translate }}</h4>
+  <h4 class="filter-heading">{{ 'SETTINGS_FILTERS_TAGS' | translate }}</h4>
   <ion-list>
     <ion-item>
       <ion-input
@@ -102,81 +102,63 @@
         <ion-icon name="close"></ion-icon>
       </button>
     </ion-item>
-    <ion-item *ngIf="filters.getBlockedTags().length === 0" class="placeholder">
+    <p *ngIf="filters.getBlockedTags().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_TAGS_EMPTY' | translate }}
-    </ion-item>
+    </p>
   </ion-list>
 
-  <h4>{{ 'SETTINGS_FILTERS_AUTHORS' | translate }}</h4>
+  <h4 class="filter-heading">
+    {{ 'SETTINGS_FILTERS_AUTHORS' | translate }}
+    <button ion-button clear icon-only (click)="pickAuthor($event)">
+      <ion-icon name="add"></ion-icon>
+    </button>
+  </h4>
   <ion-list>
-    <ion-item>
-      <ion-input
-        type="number"
-        [(ngModel)]="newBlockedAuthorId"
-        placeholder="{{ 'SETTINGS_FILTERS_AUTHOR_PLACEHOLDER' | translate }}"
-        (keyup.enter)="addBlockedAuthorId()"
-      ></ion-input>
-      <button ion-button item-end clear icon-only (click)="addBlockedAuthorId()" [disabled]="!newBlockedAuthorId">
-        <ion-icon name="add"></ion-icon>
-      </button>
-    </ion-item>
-    <ion-item *ngFor="let id of filters.getBlockedAuthorIds()">
-      <ion-label>{{ 'SETTINGS_FILTERS_AUTHOR_LABEL' | translate }} {{ id }}</ion-label>
-      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedAuthorId(id)">
+    <ion-item *ngFor="let e of filters.getBlockedAuthors()">
+      <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
+      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedAuthor(e.id)">
         <ion-icon name="close"></ion-icon>
       </button>
     </ion-item>
-    <ion-item *ngIf="filters.getBlockedAuthorIds().length === 0" class="placeholder">
+    <p *ngIf="filters.getBlockedAuthors().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_AUTHORS_EMPTY' | translate }}
-    </ion-item>
+    </p>
   </ion-list>
 
-  <h4>{{ 'SETTINGS_FILTERS_SERIES' | translate }}</h4>
+  <h4 class="filter-heading">
+    {{ 'SETTINGS_FILTERS_SERIES' | translate }}
+    <button ion-button clear icon-only (click)="pickSeries($event)">
+      <ion-icon name="add"></ion-icon>
+    </button>
+  </h4>
   <ion-list>
-    <ion-item>
-      <ion-input
-        type="number"
-        [(ngModel)]="newBlockedSeriesId"
-        placeholder="{{ 'SETTINGS_FILTERS_SERIES_PLACEHOLDER' | translate }}"
-        (keyup.enter)="addBlockedSeriesId()"
-      ></ion-input>
-      <button ion-button item-end clear icon-only (click)="addBlockedSeriesId()" [disabled]="!newBlockedSeriesId">
-        <ion-icon name="add"></ion-icon>
-      </button>
-    </ion-item>
-    <ion-item *ngFor="let id of filters.getBlockedSeriesIds()">
-      <ion-label>{{ 'SETTINGS_FILTERS_SERIES_LABEL' | translate }} {{ id }}</ion-label>
-      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedSeriesId(id)">
+    <ion-item *ngFor="let e of filters.getBlockedSeries()">
+      <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
+      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedSeries(e.id)">
         <ion-icon name="close"></ion-icon>
       </button>
     </ion-item>
-    <ion-item *ngIf="filters.getBlockedSeriesIds().length === 0" class="placeholder">
+    <p *ngIf="filters.getBlockedSeries().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_SERIES_EMPTY' | translate }}
-    </ion-item>
+    </p>
   </ion-list>
 
-  <h4>{{ 'SETTINGS_FILTERS_CATEGORIES' | translate }}</h4>
+  <h4 class="filter-heading">
+    {{ 'SETTINGS_FILTERS_CATEGORIES' | translate }}
+    <button ion-button clear icon-only (click)="pickCategory($event)">
+      <ion-icon name="add"></ion-icon>
+    </button>
+  </h4>
   <ion-list>
-    <ion-item>
-      <ion-input
-        type="number"
-        [(ngModel)]="newBlockedCategoryId"
-        placeholder="{{ 'SETTINGS_FILTERS_CATEGORY_PLACEHOLDER' | translate }}"
-        (keyup.enter)="addBlockedCategoryId()"
-      ></ion-input>
-      <button ion-button item-end clear icon-only (click)="addBlockedCategoryId()" [disabled]="!newBlockedCategoryId">
-        <ion-icon name="add"></ion-icon>
-      </button>
-    </ion-item>
-    <ion-item *ngFor="let id of filters.getBlockedCategoryIds()">
-      <ion-label>{{ 'SETTINGS_FILTERS_CATEGORY_LABEL' | translate }} {{ id }}</ion-label>
-      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedCategoryId(id)">
+    <ion-item *ngFor="let e of filters.getBlockedCategories()">
+      <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
+      <button ion-button item-end clear icon-only color="danger" (click)="removeBlockedCategory(e.id)">
         <ion-icon name="close"></ion-icon>
       </button>
     </ion-item>
-    <ion-item *ngIf="filters.getBlockedCategoryIds().length === 0" class="placeholder">
+    <p *ngIf="filters.getBlockedCategories().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_CATEGORIES_EMPTY' | translate }}
-    </ion-item>
+    </p>
   </ion-list>
 
   <!-- About -->
