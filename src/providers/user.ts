@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import 'rxjs/add/operator/toPromise';
-import { Md5 } from 'ts-md5/dist/md5';
 import { Storage } from '@ionic/storage';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -39,39 +38,37 @@ export class User {
   login(info: any) {
     const loader = this.ux.showLoader();
 
-    const data = new FormData();
-    data.append('username', info.username);
-    data.append('password', String(Md5.hashStr(info.password)));
+    const body = new URLSearchParams();
+    body.set('login', info.username);
+    body.set('password', info.password);
 
-    return this.api.post('2/auth/login', data, undefined, true).map((res: any) => {
-      if (res.success) {
-        this.processAndGetMoreInfo(res, info);
-        if (loader) loader.dismiss();
-      } else {
-        if (loader) loader.dismiss();
-        throw Observable.throw(res);
-      }
-    });
-  }
-
-  processAndGetMoreInfo(resp: any, info: any) {
-    this.user = {
-      id: resp.login.user.user_id,
-      username: resp.login.user.username,
-      session: resp.login.session_id,
-      date: new Date().getTime(),
-    };
-    this.storage.set(USER_KEY, this.user);
-
-    // second api to get lists
-    const data = new FormData();
-    data.append('command', 'Login');
-    data.append('uname', info.username);
-    data.append('pwd', info.password);
-
-    // getting cookie from second api
-    // TODO: check if cookie set correctly? -> message on fail
-    this.api.post('members/login.php', data, { withCredentials: true }, undefined, 2).subscribe();
+    return Observable.fromPromise(
+      this.api.http
+        .post('https://auth.literotica.com/login?redirect=www.literotica.com', body.toString(), {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          withCredentials: true,
+          observe: 'response',
+          responseType: 'text',
+        })
+        .toPromise()
+        .then(() => this.api.get(`3/users/${info.username}`).toPromise())
+        .then((res: any) => {
+          if (loader) loader.dismiss();
+          if (!res || !res.user || !res.user.userid) throw { error: { error: 'invalid response' } };
+          this.user = {
+            id: res.user.userid,
+            username: res.user.username,
+            session: '',
+            date: new Date().getTime(),
+          };
+          this.storage.set(USER_KEY, this.user);
+          return { success: true };
+        })
+        .catch((err: any) => {
+          if (loader) loader.dismiss();
+          throw err.error ? err : { error: { error: err.message || 'login failed' } };
+        }),
+    );
   }
 
   isLoggedIn(): boolean {
