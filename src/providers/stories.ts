@@ -20,6 +20,87 @@ import { UX } from './shared/ux';
 type ObservableSearchResult = Observable<(Story[] | number)[]>; // array, first param story, second number
 export type SearchResultType = [Story[], number];
 
+// Allowlist for story HTML coming back from `2/submissions/pages?raw=yes`.
+// raw=yes returns whatever the author submitted, so we narrow it to basic
+// formatting tags before it ever hits [innerHTML] downstream — Angular's
+// sanitizer would catch <script>/<iframe>/on*-handlers, but it still passes
+// through plenty we don't want in a reader (forms, embeds, inline styles,
+// arbitrary classes that could clash with our scss).
+const STORY_ALLOWED_TAGS = new Set([
+  'p', 'br', 'hr',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'em', 'i', 'strong', 'b', 'u', 'sub', 'sup', 's', 'small',
+  'ul', 'ol', 'li',
+  'blockquote', 'code', 'pre',
+  'a', 'img',
+  'span', 'div',
+]);
+
+const STORY_ALLOWED_ATTRS: { [tag: string]: Set<string> } = {
+  a: new Set(['href', 'title']),
+  img: new Set(['src', 'alt', 'title']),
+};
+
+// Tags that wrap inline content where a hard line break (<br>) is meaningful.
+// Outside these, a <br> between blocks is just an artifact of the API's raw
+// HTML output (each block is followed by `<br /><br />`) and stacks on top of
+// the block's own margins — we strip those to keep spacing tight.
+const STORY_INLINE_PARENTS = new Set([
+  'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'li', 'blockquote', 'em', 'i', 'strong', 'b', 'u',
+  'sub', 'sup', 's', 'small', 'span', 'a', 'code', 'pre',
+]);
+
+function sanitizeStoryHtml(html: string): string {
+  if (!html) return html;
+  // DOMParser keeps malformed HTML resilient — far safer than regex stripping.
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return '';
+
+  const walk = (node: Element) => {
+    const parentTag = node.tagName.toLowerCase();
+    // Snapshot children — we'll be mutating during the walk.
+    const children = Array.from(node.children);
+    for (const child of children) {
+      const tag = child.tagName.toLowerCase();
+      if (!STORY_ALLOWED_TAGS.has(tag)) {
+        // Replace the disallowed element with its text content so we don't
+        // silently drop story prose stuck inside an unexpected wrapper.
+        const text = doc.createTextNode(child.textContent || '');
+        if (child.parentNode) child.parentNode.replaceChild(text, child);
+        continue;
+      }
+
+      // Drop <br> tags that aren't inside an inline-bearing parent — those
+      // are the API's between-block spacers and double-up with block margins.
+      if (tag === 'br' && !STORY_INLINE_PARENTS.has(parentTag)) {
+        if (child.parentNode) child.parentNode.removeChild(child);
+        continue;
+      }
+
+      const allowed = STORY_ALLOWED_ATTRS[tag] || new Set<string>();
+      for (const attr of Array.from(child.attributes)) {
+        if (!allowed.has(attr.name.toLowerCase())) {
+          child.removeAttribute(attr.name);
+          continue;
+        }
+        // Block javascript:/data: URLs on links and images.
+        if (attr.name === 'href' || attr.name === 'src') {
+          const v = (attr.value || '').trim().toLowerCase();
+          if (v.startsWith('javascript:') || v.startsWith('vbscript:') || v.startsWith('data:')) {
+            child.removeAttribute(attr.name);
+          }
+        }
+      }
+      walk(child);
+    }
+  };
+
+  walk(root);
+  return root.innerHTML;
+}
+
 @Injectable()
 export class Stories {
   private stories: Map<number, Story> = new Map<number, Story>();
@@ -431,7 +512,14 @@ export class Stories {
       }
     }
 
-    const filter = [{ property: 'submission_id', value: parseInt(id) }];
+    // raw=yes preserves the author's original HTML (h1-h6, p, ul, blockquote,
+    // code, …); without it the API flattens everything to <br />-separated
+    // text, losing all heading + list structure. It also restores the story's
+    // original page breaks (the default mode silently concatenates pages).
+    const filter = [
+      { property: 'submission_id', value: parseInt(id) },
+      { property: 'raw', value: 'yes' },
+    ];
     const params = { filter: JSON.stringify(filter).trim() };
 
     const loader = this.ux.showLoader();
@@ -462,7 +550,7 @@ export class Stories {
         story.lang = data.pages[0].lang;
         story.length = data.total;
         story.tags = tags;
-        story.content = data.pages.map(p => p.content);
+        story.content = data.pages.map(p => sanitizeStoryHtml(p.content));
 
         this.stories.set(story.id, story);
         return story;

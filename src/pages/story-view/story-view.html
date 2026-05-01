@@ -57,7 +57,7 @@
       <ion-slide *ngFor="let slide of slides; let i=index">
         <ng-container *ngIf="Math.abs(slidesElement.getActiveIndex() - i) < 5">
           <ng-scrollbar autoHide="true" [thumbClass]="settings.theme">
-            <p id="slide-content" [innerHTML]="slide.content"></p>
+            <div id="slide-content" [innerHTML]="slide.content"></div>
 
             <div *ngIf="alternatePagination" class="alternate-buttons">
               <button ion-button (click)="prevSlide($event)" [color]="settings.buttonStyle">

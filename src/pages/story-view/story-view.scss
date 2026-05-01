@@ -99,6 +99,94 @@ page-story-view {
     background: rgba(255, 255, 255, 0.15);
   }
 
+  // Restore typographic hierarchy for HTML content rendered via [innerHTML].
+  // Ionic v3's reset flattens h1-h6, and Angular ViewEncapsulation strips
+  // component-scoped attrs from innerHTML — so we ::ng-deep past it to reach
+  // the dynamically-inserted nodes.
+  ::ng-deep #slide-content {
+    p {
+      margin: 0 0 1em 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      line-height: 1.25;
+      margin: 1.4em 0 0.6em 0;
+    }
+
+    h1 {
+      font-size: 1.6em;
+    }
+    h2 {
+      font-size: 1.4em;
+    }
+    h3 {
+      font-size: 1.2em;
+    }
+    h4 {
+      font-size: 1.1em;
+    }
+    h5,
+    h6 {
+      font-size: 1em;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    strong,
+    b {
+      font-weight: 700;
+    }
+
+    blockquote {
+      margin: 1em 0;
+      padding: 0.25em 1em;
+      border-left: 3px solid currentColor;
+      opacity: 0.85;
+      font-style: italic;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 1em 0;
+      padding-left: 1.5em;
+    }
+
+    li {
+      margin: 0.25em 0;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid currentColor;
+      opacity: 0.4;
+      margin: 1.5em 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    code,
+    pre {
+      font-family: monospace, monospace;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      margin: 1em 0;
+    }
+  }
+
   .pagination {
     position: absolute;
     right: 0;
