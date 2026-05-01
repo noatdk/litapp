@@ -57,6 +57,8 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node11-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node11-modules-
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
@@ -78,7 +80,15 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: bash .github/scripts/bump-android-nightly.sh
 
+      - name: Cache www/ build output
+        id: cache-www
+        uses: actions/cache@v4
+        with:
+          path: www
+          key: www-${{ hashFiles('src/**', 'package-lock.json', 'setup.js', 'package.json') }}
+
       - name: Production build (creates www/ for Cordova project detection)
+        if: steps.cache-www.outputs.cache-hit != 'true'
         run: npm run build
 
       - name: Setup Java 17 (cmdline-tools sdkmanager needs JDK 17+ on ubuntu-latest)
@@ -95,6 +105,10 @@ jobs:
           ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ROOT" >> "$GITHUB_ENV"
+          if [[ -d "$ROOT/platforms/android-27" && -d "$ROOT/build-tools/27.0.3" ]]; then
+            echo "SDK components already present, skipping sdkmanager."
+            exit 0
+          fi
           SM="$ROOT/cmdline-tools/latest/bin/sdkmanager"
           if [[ ! -x "$SM" ]]; then
             SM="$(find "$ROOT/cmdline-tools" -maxdepth 5 -name sdkmanager -type f -executable 2>/dev/null | head -1)"
@@ -113,15 +127,23 @@ jobs:
           distribution: temurin
           java-version: '8'
 
+      - name: Cache Gradle 4.10.3 distribution
+        if: steps.android.outputs.sign == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/gradle-dist/gradle-4.10.3
+          key: gradle-dist-4.10.3
+
       - name: Install Gradle 4.10.3 (cordova-android 7 compatible)
         if: steps.android.outputs.sign == 'true'
         run: |
           set -euo pipefail
           GRADLE_VER=4.10.3
-          GRADLE_DIR="${RUNNER_TEMP}/gradle-${GRADLE_VER}"
+          GRADLE_DIR="${HOME}/gradle-dist/gradle-${GRADLE_VER}"
           if [[ ! -x "${GRADLE_DIR}/bin/gradle" ]]; then
+            mkdir -p "${HOME}/gradle-dist"
             curl -sSL "https://services.gradle.org/distributions/gradle-${GRADLE_VER}-bin.zip" -o "${RUNNER_TEMP}/gradle.zip"
-            unzip -q "${RUNNER_TEMP}/gradle.zip" -d "${RUNNER_TEMP}"
+            unzip -q "${RUNNER_TEMP}/gradle.zip" -d "${HOME}/gradle-dist"
           fi
           echo "${GRADLE_DIR}/bin" >> "$GITHUB_PATH"
 
@@ -161,7 +183,9 @@ jobs:
           path: |
             platforms
             plugins
-          key: ${{ runner.os }}-cordova-${{ hashFiles('config.xml', 'package-lock.json') }}
+          key: ${{ runner.os }}-cordova-${{ hashFiles('config.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-cordova-
 
       - name: Cache Gradle
         if: steps.android.outputs.sign == 'true'
@@ -170,7 +194,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('config.xml', 'package-lock.json') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('config.xml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
