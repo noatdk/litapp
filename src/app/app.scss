@@ -24,7 +24,10 @@
   margin-right: 10px !important;
 }
 
-ion-app.md [padding] .scroll-content {
+// Story reader needs flush-against-the-toolbar layout for the immersive
+// reading mode. Everywhere else `[padding]` on ion-content should keep its
+// default top/bottom padding so the navbar doesn't overlay the first lines.
+ion-app.md page-story-view [padding] .scroll-content {
   padding-top: 0;
   padding-bottom: 0;
 }
