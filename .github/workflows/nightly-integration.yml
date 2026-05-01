@@ -213,6 +213,7 @@ jobs:
             fi
           fi
           set -e
+          bash scripts/ensure-cordova-android-plugins.sh
           ./node_modules/.bin/cordova prepare android --no-interactive
 
       - name: Build Android release APK
