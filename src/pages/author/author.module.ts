@@ -5,7 +5,7 @@ import { TooltipsModule } from 'ionic-tooltips';
 
 import { AuthorPage } from './author';
 import { StoryListNormalPageModule } from '../../parts/story-list-normal/story-list-normal.module';
-import { MemoPopoverModule } from '../../parts/memo-popover/memo-popover.module';
+import { MemoButtonModule } from '../../parts/memo-button/memo-button.module';
 
 @NgModule({
   declarations: [AuthorPage],
@@ -14,7 +14,7 @@ import { MemoPopoverModule } from '../../parts/memo-popover/memo-popover.module'
     TranslateModule.forChild(),
     TooltipsModule,
     StoryListNormalPageModule,
-    MemoPopoverModule,
+    MemoButtonModule,
   ],
 })
 export class AuthorPageModule {}

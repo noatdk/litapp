@@ -1,10 +1,10 @@
 import { Component, ViewChild } from '@angular/core';
-import { IonicPage, NavController, NavParams, PopoverController } from 'ionic-angular';
+import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { SocialSharing } from '@ionic-native/social-sharing';
 import { TranslateService } from '@ngx-translate/core';
 import { BrowserTab } from '@ionic-native/browser-tab';
 
-import { Authors, Stories, User, Settings, Memos } from '../../providers/providers';
+import { Authors, Stories, User, Settings } from '../../providers/providers';
 import { Author } from '../../models/author';
 import { handleNoCordovaError, getAuthorPageUrl } from '../../app/utils';
 
@@ -35,8 +35,6 @@ export class AuthorPage {
     public user: User,
     private browser: BrowserTab,
     public settings: Settings,
-    public memos: Memos,
-    private popoverCtrl: PopoverController,
   ) {
     const author = navParams.get('author');
 
@@ -120,15 +118,6 @@ export class AuthorPage {
         prompt(this.translations.COPYPROMPT_MSG, url);
       }),
     );
-  }
-
-  openMemo(ev: UIEvent) {
-    if (!this.author) return;
-    const popover = this.popoverCtrl.create('MemoPopover', {
-      kind: 'author',
-      id: this.author.id,
-    });
-    popover.present({ ev });
   }
 
   openLink() {
