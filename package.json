@@ -55,7 +55,7 @@
     "cordova-android-support-gradle-release": "^1.4.7",
     "cordova-plugin-browsertab": "^0.2.0",
     "cordova-plugin-compat": "^1.2.0",
-    "cordova-plugin-device": "^2.0.3",
+    "cordova-plugin-device": "2.0.3",
     "cordova-plugin-file": "^6.0.2",
     "cordova-plugin-file-opener2": "^3.0.5",
     "cordova-plugin-filechooser": "^1.2.0",
