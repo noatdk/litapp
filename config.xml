@@ -26,9 +26,6 @@
     <preference name="HeaderColor" value="#1565C0" />
     <platform name="android">
         <allow-intent href="market:*" />
-        <config-file parent="/manifest/application" target="AndroidManifest.xml">
-            <meta-data android:name="android.max_aspect" android:value="2.1" />
-        </config-file>
         <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
             <application android:allowBackup="true" />
         </edit-config>
