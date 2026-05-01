@@ -47,6 +47,10 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
         <ion-label>Low contrast: </ion-label>
         <ion-toggle [checked]="settings.lowcontrast" (ionChange)="toggleLowContrast($event)"></ion-toggle>
       </ion-item>
+      <ion-item class="popover-contrast-toggle">
+        <ion-label>Continuous: </ion-label>
+        <ion-toggle [checked]="settings.continuousMode" (ionChange)="toggleContinuousMode($event)"></ion-toggle>
+      </ion-item>
       <ion-item class="popover-text-sans-serif">
         <ion-label>Sans-serif</ion-label>
         <ion-radio value="sans-serif"></ion-radio>
@@ -283,6 +287,10 @@ export class StoryPopover {
       }
     }
     this.settings.textalign = newDir;
+  }
+
+  toggleContinuousMode(event) {
+    this.settings.continuousMode = event.checked;
   }
 
   toggleLowContrast(event) {

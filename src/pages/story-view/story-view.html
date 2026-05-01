@@ -37,6 +37,7 @@
   </ion-header>
 
   <ion-content
+    *ngIf="!settings.continuousMode"
     [fullscreen]="enableImmersive ? true : undefined"
     class="{{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}"
   >
@@ -73,6 +74,39 @@
     </ion-slides>
   </ion-content>
 
+  <ion-content
+    *ngIf="settings.continuousMode"
+    [fullscreen]="enableImmersive ? true : undefined"
+    class="continuous-content {{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}"
+    (click)="clickSlides($event)"
+    [style.background]="settings.background"
+    [style.color]="settings.color"
+  >
+    <div
+      class="continuous-stack"
+      [style.fontSize]="settings.fontsize + 'px'"
+      [style.lineHeight]="settings.lineheight + 'px'"
+      [style.fontFamily]="settings.font + ', sans-serif'"
+      [style.textAlign]="settings.textalign"
+    >
+      <div
+        #continuousPage
+        *ngFor="let slide of slides; let i=index"
+        class="continuous-page"
+        [attr.data-page]="i"
+        [style.minHeight.px]="pageHeights[i] || estimatedPageHeight"
+      >
+        <div
+          *ngIf="materialized[i]"
+          class="continuous-page-content"
+          [class.first]="i === 0"
+          [class.last]="i === slides.length - 1"
+          [innerHTML]="slide.content"
+        ></div>
+      </div>
+    </div>
+  </ion-content>
+
   <div
     class="pagination {{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}"
     [style.background]="settings.background"
@@ -93,6 +127,6 @@
       [max]="slides.length"
     ></ion-range>
 
-    <span class="count">{{Math.min(slides.length,slidesElement.getActiveIndex()+1)}} / {{slides.length}}</span>
+    <span class="count">{{Math.min(slides.length, (settings.continuousMode ? lastActivePage : (slidesElement?.getActiveIndex() || 0)) + 1)}} / {{slides.length}}</span>
   </div>
 </div>

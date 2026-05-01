@@ -187,6 +187,86 @@ page-story-view {
     }
   }
 
+  // Continuous mode
+  .continuous-stack {
+    width: 100%;
+  }
+
+  // Horizontal padding lives on the outer .continuous-page (component-scoped)
+  // — putting it on .continuous-page-content via ::ng-deep didn't reliably
+  // apply, leaving content butting against the screen edge.
+  .continuous-page {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 20px;
+  }
+
+  ::ng-deep .continuous-page-content {
+    p {
+      margin: 0 0 1em 0;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 600;
+      line-height: 1.25;
+      margin: 1.4em 0 0.6em 0;
+    }
+
+    h1 { font-size: 1.6em; }
+    h2 { font-size: 1.4em; }
+    h3 { font-size: 1.2em; }
+    h4 { font-size: 1.1em; }
+    h5, h6 { font-size: 1em; }
+
+    em, i { font-style: italic; }
+    strong, b { font-weight: 700; }
+
+    blockquote {
+      margin: 1em 0;
+      padding: 0.25em 1em;
+      border-left: 3px solid currentColor;
+      opacity: 0.85;
+      font-style: italic;
+    }
+
+    ul, ol { margin: 0 0 1em 0; padding-left: 1.5em; }
+    li { margin: 0.25em 0; }
+
+    hr {
+      border: 0;
+      border-top: 1px solid currentColor;
+      opacity: 0.4;
+      margin: 1.5em 0;
+    }
+
+    a { color: inherit; text-decoration: underline; }
+
+    code, pre { font-family: monospace, monospace; }
+    pre { white-space: pre-wrap; margin: 1em 0; }
+
+    img {
+      min-width: 100%;
+      padding: 5px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  ::ng-deep .continuous-page-content.first {
+    padding-top: 75px;
+  }
+
+  ::ng-deep .continuous-page-content.last {
+    padding-bottom: 60px;
+  }
+
+  .immersive ::ng-deep .continuous-page-content.first {
+    padding-top: calc(45px + var(--statusbar-height, 30px));
+  }
+
+  .immersive ::ng-deep .continuous-page-content.last {
+    padding-bottom: 110px;
+  }
+
   .pagination {
     position: absolute;
     right: 0;
@@ -222,6 +302,21 @@ page-story-view {
 
   .pagination.fullscreen {
     bottom: -100px;
+  }
+
+  // Anchor flash — briefly highlights the sentence we re-anchored on after a
+  // mode switch so the user can spot their place. Fades to transparent and is
+  // unwrapped by code shortly after the animation ends.
+  ::ng-deep .reader-anchor-flash {
+    background: rgba(255, 220, 100, 0.45);
+    border-radius: 2px;
+    animation: reader-anchor-flash-fade 2.5s ease-out forwards;
+  }
+
+  @keyframes reader-anchor-flash-fade {
+    0% { background: rgba(255, 220, 100, 0.55); }
+    60% { background: rgba(255, 220, 100, 0.35); }
+    100% { background: transparent; }
   }
 
   .alternate-buttons {
