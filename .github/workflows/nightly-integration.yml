@@ -125,6 +125,29 @@ jobs:
           fi
           echo "${GRADLE_DIR}/bin" >> "$GITHUB_PATH"
 
+      - name: Inject JCenter mirror init script (jcenter sunset 2021)
+        if: steps.android.outputs.sign == 'true'
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle <<'EOF'
+          allprojects {
+              buildscript {
+                  repositories {
+                      mavenCentral()
+                      google()
+                      maven { url 'https://maven.aliyun.com/repository/jcenter' }
+                      maven { url 'https://maven.aliyun.com/repository/public' }
+                  }
+              }
+              repositories {
+                  mavenCentral()
+                  google()
+                  maven { url 'https://maven.aliyun.com/repository/jcenter' }
+                  maven { url 'https://maven.aliyun.com/repository/public' }
+              }
+          }
+          EOF
+
       - name: Decode Android keystore
         if: steps.android.outputs.sign == 'true'
         env:
