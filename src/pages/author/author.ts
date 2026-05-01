@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, SecurityContext, ViewChild } from '@angular/core';
 import { IonicPage, NavController, NavParams, PopoverController } from 'ionic-angular';
 import { SocialSharing } from '@ionic-native/social-sharing';
 import { TranslateService } from '@ngx-translate/core';
@@ -269,8 +269,9 @@ export class AuthorPage {
   // The API returns biography as plain text with bare URLs and `\n` line
   // breaks (no HTML, no markdown). Mirror what the website does server-side:
   // escape HTML, auto-link http(s) URLs, and let CSS preserve newlines via
-  // white-space: pre-wrap. The sanitized HTML is wrapped in SafeHtml so
-  // [innerHTML] keeps the anchors instead of stripping them.
+  // white-space: pre-wrap. We run the result through Angular's HTML sanitizer
+  // (rather than bypassing it) so any vector smuggled into a URL — vbscript:,
+  // data:text/html, etc. — gets stripped before [innerHTML] receives it.
   bioHtml(): SafeHtml {
     const raw = (this.author && this.author.bio) || '';
     if (!raw) return '';
@@ -285,7 +286,7 @@ export class AuthorPage {
       /(https?:\/\/[^\s<>"]+[^\s<>"\.,;:!\?\)\]])/g,
       url => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`,
     );
-    return this.sanitizer.bypassSecurityTrustHtml(linked);
+    return this.sanitizer.sanitize(SecurityContext.HTML, linked) || '';
   }
 
   loadMoreFavs(event) {
