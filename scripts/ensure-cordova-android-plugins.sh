@@ -11,8 +11,9 @@ declared=$(python3 - <<'PY'
 import re, sys
 with open('config.xml') as f:
     src = f.read()
-for m in re.finditer(r'<plugin\s+name="([^"]+)"', src):
-    print(m.group(1))
+for m in re.finditer(r'<plugin\s+name="([^"]+)"\s*(?:spec="([^"]*)")?', src):
+    name, spec = m.group(1), m.group(2) or ""
+    print(f"{name}\t{spec}")
 PY
 )
 
@@ -32,22 +33,34 @@ PY
   )
 fi
 
-missing=()
-for p in $declared; do
-  if ! grep -qx "$p" <<<"$installed"; then
-    missing+=("$p")
+missing_names=()
+missing_specs=()
+while IFS=$'\t' read -r name spec; do
+  [[ -z "$name" ]] && continue
+  if ! grep -qx "$name" <<<"$installed"; then
+    missing_names+=("$name")
+    missing_specs+=("$spec")
   fi
-done
+done <<<"$declared"
 
-if [[ ${#missing[@]} -eq 0 ]]; then
+if [[ ${#missing_names[@]} -eq 0 ]]; then
   echo "All cordova plugins installed for android."
   exit 0
 fi
 
-echo "Re-installing missing plugins: ${missing[*]}"
-for p in "${missing[@]}"; do
-  rm -rf "plugins/$p" "node_modules/$p"
-  "$CORDOVA_BIN" plugin add "$p" --no-save --force --no-interactive || true
+echo "Re-installing missing plugins: ${missing_names[*]}"
+for i in "${!missing_names[@]}"; do
+  name="${missing_names[$i]}"
+  spec="${missing_specs[$i]}"
+  rm -rf "plugins/$name" "node_modules/$name"
+  if [[ -n "$spec" && "$spec" != *://* ]]; then
+    target="$name@$spec"
+  elif [[ -n "$spec" ]]; then
+    target="$spec"
+  else
+    target="$name"
+  fi
+  "$CORDOVA_BIN" plugin add "$target" --no-save --force --no-interactive || true
 done
 
 still_missing=()
@@ -63,7 +76,7 @@ for line in m.group(1).splitlines():
         print(n.group(1))
 PY
 )
-for p in "${missing[@]}"; do
+for p in "${missing_names[@]}"; do
   grep -qx "$p" <<<"$installed" || still_missing+=("$p")
 done
 
