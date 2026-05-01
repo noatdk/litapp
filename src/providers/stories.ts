@@ -41,15 +41,41 @@ const STORY_ALLOWED_ATTRS: { [tag: string]: Set<string> } = {
   img: new Set(['src', 'alt', 'title']),
 };
 
-// Tags that wrap inline content where a hard line break (<br>) is meaningful.
-// Outside these, a <br> between blocks is just an artifact of the API's raw
-// HTML output (each block is followed by `<br /><br />`) and stacks on top of
-// the block's own margins — we strip those to keep spacing tight.
-const STORY_INLINE_PARENTS = new Set([
+// Block-level tags. A <br> directly adjacent to one of these (with only
+// whitespace text in between) is the API's between-block spacer artifact —
+// each block in raw=yes mode is followed by `<br /><br />` which stacks on
+// top of the block's own margins. We only strip those; <br>s between inline
+// content (or in stories that use plain-text + <br> separators with no block
+// wrappers, like /s/threads-the-island) are preserved.
+const STORY_BLOCK_TAGS = new Set([
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'li', 'blockquote', 'em', 'i', 'strong', 'b', 'u',
-  'sub', 'sup', 's', 'small', 'span', 'a', 'code', 'pre',
+  'ul', 'ol', 'li', 'blockquote', 'pre', 'hr', 'div', 'table',
 ]);
+
+function isBlockSibling(node: Node | null): boolean {
+  if (!node) return false;
+  if (node.nodeType === 1) {
+    const tag = (node as Element).tagName.toLowerCase();
+    if (tag === 'br') return false;
+    return STORY_BLOCK_TAGS.has(tag);
+  }
+  return false;
+}
+
+// Walk past whitespace-only text nodes and <br> tags to find the nearest
+// "real" sibling — used to decide whether a <br> sits between blocks.
+function nextMeaningfulSibling(node: Node, dir: 'prev' | 'next'): Node | null {
+  let cur = dir === 'prev' ? node.previousSibling : node.nextSibling;
+  while (cur) {
+    if (cur.nodeType === 3) {
+      if ((cur.textContent || '').trim().length > 0) return cur;
+    } else if (cur.nodeType === 1) {
+      return cur;
+    }
+    cur = dir === 'prev' ? cur.previousSibling : cur.nextSibling;
+  }
+  return null;
+}
 
 function sanitizeStoryHtml(html: string): string {
   if (!html) return html;
@@ -59,7 +85,6 @@ function sanitizeStoryHtml(html: string): string {
   if (!root) return '';
 
   const walk = (node: Element) => {
-    const parentTag = node.tagName.toLowerCase();
     // Snapshot children — we'll be mutating during the walk.
     const children = Array.from(node.children);
     for (const child of children) {
@@ -72,11 +97,17 @@ function sanitizeStoryHtml(html: string): string {
         continue;
       }
 
-      // Drop <br> tags that aren't inside an inline-bearing parent — those
-      // are the API's between-block spacers and double-up with block margins.
-      if (tag === 'br' && !STORY_INLINE_PARENTS.has(parentTag)) {
-        if (child.parentNode) child.parentNode.removeChild(child);
-        continue;
+      // Strip <br> only when it's a between-block spacer — i.e. the nearest
+      // non-whitespace neighbor on either side is a block element. Anywhere
+      // else (between inline runs, or in stories that use only text + <br>)
+      // it's a real line break the author intended.
+      if (tag === 'br') {
+        const prev = nextMeaningfulSibling(child, 'prev');
+        const next = nextMeaningfulSibling(child, 'next');
+        if (isBlockSibling(prev) || isBlockSibling(next)) {
+          if (child.parentNode) child.parentNode.removeChild(child);
+          continue;
+        }
       }
 
       const allowed = STORY_ALLOWED_ATTRS[tag] || new Set<string>();
