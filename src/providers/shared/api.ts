@@ -7,6 +7,11 @@ import { Settings } from '../settings';
 import { UX } from './ux';
 import { Observable } from 'rxjs/Observable';
 
+// Index of auth.literotica.com in Api.urls — exported so callers (User,
+// JwtRefreshInterceptor) don't hardcode the position. Keep in sync with
+// Api.getUrls() below; inserting/reordering entries means updating this.
+export const AUTH_URL_INDEX = 6;
+
 // Source: https://github.com/angular/angular/issues/11058#issuecomment-351864976
 export class WebHttpUrlEncodingCodec implements HttpParameterCodec {
   encodeKey(k: string): string {
@@ -103,7 +108,7 @@ export class Api {
     }
 
     // disable api keys for github requests and the auth service
-    if (urlIndex !== 3 && urlIndex !== 5 && urlIndex !== 6) {
+    if (urlIndex !== 3 && urlIndex !== 5 && urlIndex !== AUTH_URL_INDEX) {
       newReqOpts.withCredentials = true;
       newReqOpts.params = newReqOpts.params.set('apikey', this.apikey);
       newReqOpts.params = newReqOpts.params.set('appid', this.appid);

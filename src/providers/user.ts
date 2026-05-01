@@ -6,12 +6,10 @@ import { TranslateService } from '@ngx-translate/core';
 import { Md5 } from 'ts-md5/dist/cjs/md5';
 
 import { USER_KEY, FEED_KEY, LIST_KEY } from './db';
-import { Api } from './shared/api';
+import { Api, AUTH_URL_INDEX } from './shared/api';
 import { Settings } from './settings';
 import { UX } from './shared/ux';
 
-// urls[6] in api.ts — auth.literotica.com.
-const AUTH_URL_INDEX = 6;
 // JWT (auth_token cookie) issued by auth.literotica.com lasts ~1 hour. We
 // don't decode the cookie; we just remember when it was last minted/refreshed
 // and surface a countdown from there.

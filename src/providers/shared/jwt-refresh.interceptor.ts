@@ -12,7 +12,7 @@ import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/catch';
 import 'rxjs/add/operator/mergeMap';
 
-import { Api } from './api';
+import { Api, AUTH_URL_INDEX } from './api';
 
 @Injectable()
 export class JwtRefreshInterceptor implements HttpInterceptor {
@@ -37,7 +37,7 @@ export class JwtRefreshInterceptor implements HttpInterceptor {
   private refresh(): Promise<any> {
     if (this.refreshPromise) return this.refreshPromise;
     const api = this.injector.get(Api);
-    const url = `${api.urls[6]}/check?timestamp=${Math.floor(Date.now() / 1000)}`;
+    const url = `${api.urls[AUTH_URL_INDEX]}/check?timestamp=${Math.floor(Date.now() / 1000)}`;
     this.refreshPromise = api.http
       .get(url, { withCredentials: true, responseType: 'text' })
       .toPromise()
