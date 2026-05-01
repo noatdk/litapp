@@ -8,6 +8,24 @@
     url('../assets/fonts/opendyslexic-0.9.10/OpenDyslexic-Regular.otf') format('opentype');
 }
 
+// Mulish — free Proxima Nova-like humanist sans (SIL OFL). Variable axis covers
+// 200-900 weight, so a single file is enough for any weight we render.
+@font-face {
+  font-family: 'Mulish';
+  font-weight: 200 900;
+  font-style: normal;
+  src: url('../assets/fonts/mulish/Mulish-Regular.ttf') format('truetype-variations'),
+    url('../assets/fonts/mulish/Mulish-Regular.ttf') format('truetype');
+}
+
+// DejaVu Sans — free Verdana-like screen sans (DejaVu/Bitstream Vera license).
+@font-face {
+  font-family: 'DejaVu Sans';
+  font-weight: normal;
+  font-style: normal;
+  src: url('../assets/fonts/dejavu-sans/DejaVuSans.ttf') format('truetype');
+}
+
 .bar-buttons button {
   margin: 0 5px;
 }

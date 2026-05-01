@@ -55,6 +55,14 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
         <ion-label>Serif</ion-label>
         <ion-radio value="'Times New Roman', serif"></ion-radio>
       </ion-item>
+      <ion-item class="popover-text-Mulish">
+        <ion-label>Mulish</ion-label>
+        <ion-radio value="'Mulish', sans-serif"></ion-radio>
+      </ion-item>
+      <ion-item class="popover-text-DejaVuSans">
+        <ion-label>DejaVu Sans</ion-label>
+        <ion-radio value="'DejaVu Sans', sans-serif"></ion-radio>
+      </ion-item>
       <ion-item class="popover-text-OpenDyslexic">
         <ion-label>OpenDyslexic</ion-label>
         <ion-radio value="'OpenDyslexic', serif"></ion-radio>
@@ -136,6 +144,14 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
 
       .popover-text-serif {
         font-family: 'Times New Roman', serif;
+      }
+
+      .popover-text-Mulish {
+        font-family: 'Mulish', sans-serif;
+      }
+
+      .popover-text-DejaVuSans {
+        font-family: 'DejaVu Sans', sans-serif;
       }
 
       .popover-text-OpenDyslexic {
