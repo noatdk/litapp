@@ -78,8 +78,7 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: bash .github/scripts/bump-android-nightly.sh
 
-      - name: Production build (sanity, unsigned only)
-        if: steps.android.outputs.sign != 'true'
+      - name: Production build (creates www/ for Cordova project detection)
         run: npm run build
 
       - name: Setup Java 17 (cmdline-tools sdkmanager needs JDK 17+ on ubuntu-latest)
