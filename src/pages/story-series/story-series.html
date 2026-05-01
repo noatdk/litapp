@@ -3,6 +3,7 @@
     <ion-title>{{'SERIES_TITLE' | translate}}</ion-title>
     <ion-buttons end>
       <memo-button kind="series" [id]="seriesId"></memo-button>
+      <series-follow-button [seriesId]="seriesId" [chapters]="series"></series-follow-button>
       <button ion-button icon-only (click)="download()" [tooltip]="'DOWNLOAD_ALL_BUTTON' | translate" event="press" navTooltip>
         <ion-icon name="download"></ion-icon>
       </button>

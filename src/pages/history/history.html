@@ -3,10 +3,7 @@
     <button ion-button icon-only menuToggle>
       <ion-icon name="menu"></ion-icon>
     </button>
-    <ion-title
-      >{{ (onlyDownloaded?'HISTORY_TITLE_DOWNLOADED':'HISTORY_TITLE') | translate }}
-      ({{filteredStories.length}}<small>/{{HISTORY_LIMIT}}</small>)</ion-title
-    >
+    <ion-title>{{ (onlyDownloaded?'HISTORY_TITLE_DOWNLOADED':'HISTORY_TITLE') | translate }}</ion-title>
     <ion-buttons end>
       <button end ion-button icon-only (click)="openSortPopover($event)" [tooltip]="'SORT_TITLE' | translate" event="press" navTooltip>
         <ion-icon name="funnel"></ion-icon>
@@ -41,10 +38,14 @@
   </ion-navbar>
   <ion-toolbar *ngIf="!onlyDownloaded">
     <ion-segment [(ngModel)]="openSegment" (ionChange)="segmentChanged()">
-      <ion-segment-button value="history">{{ 'HISTORY_TITLE' | translate }}</ion-segment-button>
+      <ion-segment-button value="history">
+        {{ 'HISTORY_TITLE' | translate }}
+        <small>({{ filteredStories.length }}/{{ HISTORY_LIMIT }})</small>
+      </ion-segment-button>
       <ion-segment-button value="series">
         {{ 'HISTORY_TAB_SERIES' | translate }}
-        <ion-badge *ngIf="newChapters.length" color="secondary">{{ newChapters.length }}</ion-badge>
+        <small *ngIf="followedSeriesView.length">({{ followedSeriesView.length }})</small>
+        <ion-badge *ngIf="totalNewChapters" color="secondary">{{ totalNewChapters }}</ion-badge>
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
@@ -68,24 +69,64 @@
   </ng-container>
 
   <ng-container *ngIf="!onlyDownloaded && openSegment === 'series'">
-    <ng-container *ngIf="newChapters.length">
-      <h2>
-        <ion-icon name="notifications" color="secondary"></ion-icon>
-        {{ 'HISTORY_NEW_CHAPTERS' | translate }} ({{ newChapters.length }})
-      </h2>
-      <story-list-normal [stories]="newChapters" ishistory="false"></story-list-normal>
-    </ng-container>
-
-    <ng-container *ngIf="inProgress.length">
-      <h2>
-        <ion-icon name="bookmarks"></ion-icon>
-        {{ 'HISTORY_CONTINUE_READING' | translate }} ({{ inProgress.length }})
-      </h2>
-      <story-list-normal [stories]="inProgress" ishistory="true"></story-list-normal>
-    </ng-container>
-
-    <p *ngIf="!newChapters.length && !inProgress.length" class="empty-placeholder">
+    <p *ngIf="!followedSeriesView.length" class="empty-placeholder">
       {{ 'HISTORY_SERIES_EMPTY' | translate }}
     </p>
+
+    <ion-list class="series-list">
+      <div class="series-card" *ngFor="let card of followedSeriesView" [class.series-card--expanded]="card.expanded">
+        <button ion-item detail-none class="series-card__item" (click)="toggleCard(card)">
+          <h2>
+            {{ card.title }}
+            <ion-badge *ngIf="card.isHot" color="red">{{ 'HOT_TAG' | translate }}</ion-badge>
+            <ion-badge *ngIf="card.newChapters.length" color="secondary">
+              {{ card.newChapters.length }} {{ 'HISTORY_NEW_LABEL' | translate }}
+            </ion-badge>
+          </h2>
+          <p>
+            <em *ngIf="card.authorName">{{ 'BYAUTHOR' | translate }} {{ card.authorName }}</em>
+            <span *ngIf="card.chaptersCount"> · {{ card.chaptersCount }} {{ 'HISTORY_PARTS_LABEL' | translate }}</span>
+          </p>
+          <p class="series-card__stats">
+            <span *ngIf="card.totalViews"><ion-icon name="eye"></ion-icon> {{ formatCount(card.totalViews) }}</span>
+            <span *ngIf="card.totalFavorites"><ion-icon name="heart"></ion-icon> {{ formatCount(card.totalFavorites) }}</span>
+            <span *ngIf="card.totalComments"><ion-icon name="text"></ion-icon> {{ formatCount(card.totalComments) }}</span>
+            <span *ngIf="card.totalLists"><ion-icon name="bookmark"></ion-icon> {{ formatCount(card.totalLists) }}</span>
+          </p>
+          <p class="tags" *ngIf="card.categoryID">
+            <strong>{{ card.categoryID | categoryName | async }}</strong>
+          </p>
+
+          <ion-note item-end class="series-card__note">
+            <button
+              ion-button
+              icon-only
+              clear
+              (click)="unfollowCard(card, $event)"
+              [tooltip]="'STORYDETAIL_TOOLTIP_FOLLOW_SERIES' | translate"
+              event="press"
+              navTooltip
+            >
+              <ion-icon name="notifications" color="secondary"></ion-icon>
+            </button>
+            <ion-icon class="series-card__chevron" [name]="card.expanded ? 'arrow-dropup' : 'arrow-dropdown'"></ion-icon>
+          </ion-note>
+        </button>
+
+        <div class="series-card__chapters" *ngIf="card.expanded">
+          <chapter-card
+            *ngFor="let chapter of card.newChapters; let i = index"
+            [story]="chapter"
+            [index]="i + 1"
+          ></chapter-card>
+          <p *ngIf="!card.newChapters.length" class="series-card__empty">
+            {{ 'HISTORY_SERIES_NO_NEW' | translate }}
+          </p>
+          <button ion-button block clear small (click)="openCardSeries(card)">
+            {{ 'HISTORY_SERIES_VIEW_ALL' | translate }}
+          </button>
+        </div>
+      </div>
+    </ion-list>
   </ng-container>
 </ion-content>

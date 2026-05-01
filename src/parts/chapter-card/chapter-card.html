@@ -1,0 +1,49 @@
+<div class="chapter-card" tappable (click)="open()">
+  <span class="chapter-card__index" *ngIf="index != null">{{ index }}</span>
+
+  <div class="chapter-card__body">
+    <h3 class="chapter-card__title">
+      {{ story?.title }}
+      <ion-badge *ngIf="story?.ishot" color="red">{{ 'HOT_TAG' | translate }}</ion-badge>
+      <ion-badge *ngIf="story?.iswriterspick" color="green">{{ 'WRITER_TAG' | translate }}</ion-badge>
+      <ion-badge *ngIf="story?.iscontestwinner" color="blue">{{ 'WINNER_TAG' | translate }}</ion-badge>
+    </h3>
+
+    <p class="chapter-card__desc" *ngIf="story?.description">
+      {{ story?.description }}<ng-container *ngIf="story?.lang"> ({{ story?.lang }})</ng-container>
+    </p>
+
+    <p class="chapter-card__byline">
+      <em>{{ 'BYAUTHOR' | translate }} {{ story?.author?.name }}</em>
+      <span *ngIf="story?.categoryID" class="chapter-card__cat">
+        <ion-icon name="albums"></ion-icon>
+        {{ story?.categoryID | categoryName | async }}
+      </span>
+      <span *ngIf="story?.timestamp" class="chapter-card__date">
+        {{ (story?.timestamp * 1000) | date:'yyyy-MM-dd' }}
+      </span>
+    </p>
+
+    <p class="chapter-card__stats">
+      <span><ion-icon name="star"></ion-icon> {{ story?.rating }}</span>
+      <span><ion-icon name="eye"></ion-icon> {{ formatCount(story?.viewcount) }}</span>
+      <span *ngIf="story?.favoritescount"><ion-icon name="heart"></ion-icon> {{ formatCount(story?.favoritescount) }}</span>
+      <span *ngIf="story?.commentscount"><ion-icon name="text"></ion-icon> {{ formatCount(story?.commentscount) }}</span>
+      <span *ngIf="story?.listscount"><ion-icon name="bookmark"></ion-icon> {{ formatCount(story?.listscount) }}</span>
+    </p>
+  </div>
+
+  <button
+    *ngIf="user.isLoggedIn()"
+    class="chapter-card__bookmark"
+    ion-button
+    icon-only
+    clear
+    (click)="bookmark($event)"
+  >
+    <ion-icon
+      [name]="lists.isBookmarked(story) ? 'star' : 'star-outline'"
+      [color]="lists.isBookmarked(story) ? 'secondary' : ''"
+    ></ion-icon>
+  </button>
+</div>

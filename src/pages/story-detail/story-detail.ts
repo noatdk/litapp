@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files, Series } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
@@ -35,7 +35,6 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
-    public seriesFollow: Series,
   ) {
     this.story = navParams.get('story');
 
@@ -152,15 +151,6 @@ export class StoryDetailPage {
     popover.present({
       ev,
     });
-  }
-
-  toggleFollowSeries() {
-    if (!this.story || !this.story.series) return;
-    if (this.seriesFollow.isFollowed(this.story.series)) {
-      this.seriesFollow.unfollow(this.story.series);
-    } else {
-      this.seriesFollow.follow(this.story.series, parseInt(this.story.id, 10));
-    }
   }
 
   share() {

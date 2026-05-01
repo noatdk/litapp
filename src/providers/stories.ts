@@ -629,6 +629,11 @@ export class Stories {
       iscontestwinner: item.contest_winner === 'no' ? false : true,
       commentsenabled: item.enable_comments > 0 ? true : false,
       ratingenabled: item.allow_vote > 0 ? true : false,
+      series: item.series_id ? parseInt(item.series_id, 10) : undefined,
+      seriesTitle: item.series_data && item.series_data.title,
+      commentscount: Number(item.comment_count) || 0,
+      favoritescount: Number(item.favorite_count) || 0,
+      listscount: Number(item.reading_lists_count) || 0,
     });
 
     this.stories.set(story.id, story);
@@ -661,6 +666,9 @@ export class Stories {
       iscontestwinner: item.contest_winner > 0 ? true : false,
       commentsenabled: item.enable_comments > 0 ? true : false,
       ratingenabled: item.allow_vote > 0 ? true : false,
+      commentscount: Number(item.comment_count) || 0,
+      favoritescount: Number(item.favorite_count) || 0,
+      listscount: Number(item.reading_lists_count) || 0,
     });
 
     this.stories.set(story.id, story);

@@ -19,8 +19,9 @@ export class StorySeriesPage {
     public stories: Stories,
   ) {
     const story: Story = navParams.get('story');
-    this.seriesId = story.series;
-    this.stories.getSeries(story.series).subscribe(data => {
+    const sidParam = navParams.get('seriesId');
+    this.seriesId = sidParam != null ? parseInt(String(sidParam), 10) : story && story.series;
+    this.stories.getSeries(this.seriesId).subscribe(data => {
       this.series = data[0];
     });
   }
