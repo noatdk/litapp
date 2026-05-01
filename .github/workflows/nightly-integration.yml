@@ -51,7 +51,15 @@ jobs:
           node-version: '11.x'
           cache: 'npm'
 
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node11-modules-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm install
 
       - name: Environment bootstrap (setup.js)
@@ -70,7 +78,8 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: bash .github/scripts/bump-android-nightly.sh
 
-      - name: Production build (sanity)
+      - name: Production build (sanity, unsigned only)
+        if: steps.android.outputs.sign != 'true'
         run: npm run build
 
       - name: Setup Java 17 (cmdline-tools sdkmanager needs JDK 17+ on ubuntu-latest)
@@ -111,14 +120,34 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${RUNNER_TEMP}/litapp-release.jks"
 
+      - name: Cache Cordova platforms and plugins
+        if: steps.android.outputs.sign == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            platforms
+            plugins
+          key: ${{ runner.os }}-cordova-${{ hashFiles('config.xml', 'package-lock.json') }}
+
+      - name: Cache Gradle
+        if: steps.android.outputs.sign == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('config.xml', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Cordova Android platform and prepare
         if: steps.android.outputs.sign == 'true'
         run: |
           set -euo pipefail
           if [[ ! -d platforms/android ]]; then
-            ./node_modules/.bin/ionic cordova platform add android --no-interactive
+            ./node_modules/.bin/cordova platform add android --no-interactive
           fi
-          ./node_modules/.bin/ionic cordova prepare android --no-interactive
+          ./node_modules/.bin/cordova prepare android --no-interactive
 
       - name: Build Android release APK
         if: steps.android.outputs.sign == 'true'
@@ -127,7 +156,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           alias="${KEY_ALIAS:-litapp}"
-          ./node_modules/.bin/ionic cordova build android --prod --release --no-interactive -- -- \
+          ./node_modules/.bin/cordova build android --release --no-interactive -- \
             --minSdkVersion=19 \
             --keystore="${RUNNER_TEMP}/litapp-release.jks" \
             --storePassword="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
