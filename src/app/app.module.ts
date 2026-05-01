@@ -1,4 +1,6 @@
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+
+import { JwtRefreshInterceptor } from '../providers/shared/jwt-refresh.interceptor';
 import { ErrorHandler, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -130,6 +132,7 @@ export function provideSettings(storage: Storage) {
     Device,
     FingerprintAIO,
     { provide: Settings, useFactory: provideSettings, deps: [Storage] },
+    { provide: HTTP_INTERCEPTORS, useClass: JwtRefreshInterceptor, multi: true },
     // Keep this to enable Ionic's runtime error handling during development
     { provide: ErrorHandler, useClass: IonicErrorHandler },
   ],

@@ -37,12 +37,13 @@ export class User {
   }
 
   private refreshAuthToken() {
-    this.api.http
-      .get(`https://auth.literotica.com/check?timestamp=${Math.floor(Date.now() / 1000)}&redirect=https://www.literotica.com/`, {
-        withCredentials: true,
-        observe: 'response',
-        responseType: 'text',
-      })
+    this.api
+      .get(
+        `check?timestamp=${Math.floor(Date.now() / 1000)}`,
+        null,
+        { withCredentials: true, responseType: 'text' },
+        AUTH_URL_INDEX,
+      )
       .toPromise()
       .catch(() => null);
   }

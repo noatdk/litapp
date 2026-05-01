@@ -54,7 +54,7 @@ export class Api {
       this.corsProxy + 'https://literotica.com/api',
       this.corsProxy + 'https://search.literotica.com/api',
       this.corsProxy + 'https://www.literotica.com',
-      this.corsProxy + 'https://raw.githubusercontent.com/theilluminatus/litapp/master',
+      this.corsProxy + ENV.APP_JSON_RAW_BASE,
       this.corsProxy + 'https://literotica.com',
       this.corsProxy + 'https://api.github.com',
       this.corsProxy + 'https://auth.literotica.com',
