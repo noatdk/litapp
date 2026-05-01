@@ -2,6 +2,20 @@
   <ion-navbar>
     <ion-title>{{author?.name}}</ion-title>
     <ion-buttons end>
+      <memo-button kind="author" [id]="author?.id"></memo-button>
+
+      <button
+        ion-button
+        icon-only
+        *ngIf="user.isLoggedIn()"
+        (click)="followToggle()"
+        [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon [name]="author?.following ? 'remove-circle' : 'person-add'"></ion-icon>
+      </button>
+
       <button
         ion-button
         icon-only
@@ -16,29 +30,6 @@
 
       <button ion-button icon-only (click)="share()" [tooltip]="'SHARE_BUTTON' | translate" event="press" navTooltip>
         <ion-icon name="share"></ion-icon>
-      </button>
-
-      <button
-        ion-button
-        icon-only
-        (click)="openMemo($event)"
-        [tooltip]="'MEMO_BUTTON' | translate"
-        event="press"
-        navTooltip
-      >
-        <ion-icon [name]="memos.hasAuthorMemo(author?.id) ? 'paper' : 'paper-outline'"></ion-icon>
-      </button>
-
-      <button
-        ion-button
-        icon-only
-        *ngIf="user.isLoggedIn()"
-        (click)="followToggle()"
-        [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
-        event="press"
-        navTooltip
-      >
-        <ion-icon [name]="author?.following ? 'remove-circle' : 'person-add'"></ion-icon>
       </button>
     </ion-buttons>
   </ion-navbar>
@@ -56,10 +47,7 @@
     </div>
   </div>
 
-  <p class="memo" *ngIf="memos.hasAuthorMemo(author?.id)" (click)="openMemo($event)">
-    <strong><ion-icon name="paper" color="secondary"></ion-icon> {{ 'MEMO_TITLE' | translate }}: </strong>
-    {{ memos.getAuthorMemo(author?.id) }}
-  </p>
+  <memo-preview kind="author" [id]="author?.id"></memo-preview>
 
   <ion-segment [(ngModel)]="openSegment">
     <ion-segment-button value="stories" (click)="loadSubmissions()">
