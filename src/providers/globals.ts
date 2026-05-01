@@ -14,7 +14,7 @@ import { UX } from './shared/ux';
 export class Globals {
   private globals;
   private ready;
-  private version = 31; // just increase number, unrelated to version number
+  private version = 32; // just increase number, unrelated to version number
 
   constructor(
     public api: Api,
