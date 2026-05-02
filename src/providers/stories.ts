@@ -27,13 +27,34 @@ export type SearchResultType = [Story[], number];
 // through plenty we don't want in a reader (forms, embeds, inline styles,
 // arbitrary classes that could clash with our scss).
 const STORY_ALLOWED_TAGS = new Set([
-  'p', 'br', 'hr',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'em', 'i', 'strong', 'b', 'u', 'sub', 'sup', 's', 'small',
-  'ul', 'ol', 'li',
-  'blockquote', 'code', 'pre',
-  'a', 'img',
-  'span', 'div',
+  'p',
+  'br',
+  'hr',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'em',
+  'i',
+  'strong',
+  'b',
+  'u',
+  'sub',
+  'sup',
+  's',
+  'small',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'code',
+  'pre',
+  'a',
+  'img',
+  'span',
+  'div',
 ]);
 
 const STORY_ALLOWED_ATTRS: { [tag: string]: Set<string> } = {
@@ -47,10 +68,7 @@ const STORY_ALLOWED_ATTRS: { [tag: string]: Set<string> } = {
 // top of the block's own margins. We only strip those; <br>s between inline
 // content (or in stories that use plain-text + <br> separators with no block
 // wrappers, like /s/threads-the-island) are preserved.
-const STORY_BLOCK_TAGS = new Set([
-  'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'ul', 'ol', 'li', 'blockquote', 'pre', 'hr', 'div', 'table',
-]);
+const STORY_BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'pre', 'hr', 'div', 'table']);
 
 function isBlockSibling(node: Node | null): boolean {
   if (!node) return false;
@@ -534,6 +552,53 @@ export class Stories {
       });
   }
 
+  // Fetches a fully-populated Story by id (title + author + category + counts +
+  // tags + …) via the 1/submissions search endpoint. Used for URL deep-link
+  // entry where only the id is known and the regular `getById` content path
+  // doesn't carry author/category metadata. Caches the result so subsequent
+  // `getById(id)` reads see the rich Story instance and merge content into it.
+  getRichById(id: any): Observable<Story | null> {
+    return this.api
+      .get(`3/stories/${id}`)
+      .map((data: any) => {
+        console.info(
+          '[getRichById] /3/stories/%s response keys=%o submission keys=%o',
+          id,
+          data && Object.keys(data),
+          data && data.submission && Object.keys(data.submission),
+        );
+        const sub = data && data.submission;
+        if (!sub || !sub.id) return null;
+        const cached = this.stories.get(sub.id) || new Story({ id: String(sub.id) });
+        cached.title = sub.title || cached.title;
+        cached.description = sub.description || cached.description;
+        if (sub.category != null) cached.categoryID = sub.category;
+        if (sub.language) cached.lang = this.g.getLanguage(sub.language);
+        if (sub.rate_all != null) cached.rating = sub.rate_all;
+        if (sub.view_count != null) cached.viewcount = sub.view_count;
+        cached.ishot = sub.is_hot;
+        cached.isnew = sub.is_new;
+        cached.iswriterspick = sub.writers_pick;
+        cached.iscontestwinner = sub.contest_winner > 0;
+        cached.commentsenabled = sub.enable_comments > 0;
+        cached.ratingenabled = sub.allow_vote > 0;
+        if (sub.tags) cached.tags = sub.tags.map(t => t.tag || t.name || t);
+        if (sub.series && sub.series.meta) cached.seriesTitle = sub.series.meta.title;
+        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        // Try a few common author field shapes — log so we can verify which is present.
+        const userish = sub.user || sub.author || sub.submitter || (sub.series && sub.series.user);
+        if (userish) {
+          cached.author = this.a.extractFromSearch(userish);
+        }
+        this.stories.set(cached.id, cached);
+        return cached;
+      })
+      .catch(error => {
+        console.error('stories.getRichById', [id], error);
+        return Observable.of(null);
+      });
+  }
+
   // Get a story by ID
   getById(id: any, force: boolean = false, noLoaderDismiss = false): Observable<Story | null> {
     const cached = this.stories.get(id);
@@ -547,10 +612,7 @@ export class Stories {
     // code, …); without it the API flattens everything to <br />-separated
     // text, losing all heading + list structure. It also restores the story's
     // original page breaks (the default mode silently concatenates pages).
-    const filter = [
-      { property: 'submission_id', value: parseInt(id) },
-      { property: 'raw', value: 'yes' },
-    ];
+    const filter = [{ property: 'submission_id', value: parseInt(id) }, { property: 'raw', value: 'yes' }];
     const params = { filter: JSON.stringify(filter).trim() };
 
     const loader = this.ux.showLoader();

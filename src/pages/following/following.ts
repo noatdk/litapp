@@ -39,6 +39,7 @@ export class FollowingPage {
   showAuthor(author: Author) {
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
     });
   }
 

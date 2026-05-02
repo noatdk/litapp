@@ -28,7 +28,7 @@ const exportDataIdentifier = 'Exported data for Litapp (com.illuminatus.litapp)'
 
 declare const window: any;
 
-@IonicPage()
+@IonicPage({ segment: 'settings' })
 @Component({
   selector: 'page-settings',
   templateUrl: 'settings.html',

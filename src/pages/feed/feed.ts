@@ -7,7 +7,7 @@ import { Author } from '../../models/author';
 import { Feed } from '../../providers/providers';
 import { FEED_KEY } from '../../providers/db';
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'feed' })
 @Component({
   selector: 'page-feed',
   templateUrl: 'feed.html',
@@ -61,6 +61,7 @@ export class FeedPage {
     }
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
     });
   }
 }

@@ -5,7 +5,7 @@ import { Globals, Categories, Filters, UX } from '../../providers/providers';
 import { TranslateService } from '@ngx-translate/core';
 import { Category } from '../../models/category';
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'explore' })
 @Component({
   selector: 'page-explore',
   templateUrl: 'explore.html',

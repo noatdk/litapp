@@ -83,6 +83,7 @@ export class StoryListItem {
       () => {
         this.navCtrl.push('StoryViewPage', {
           story,
+          id: story && story.id,
           loader,
         });
       },
@@ -93,6 +94,7 @@ export class StoryListItem {
   openStoryDetail(story: Story) {
     this.navCtrl.push('StoryDetailPage', {
       story,
+      id: story && story.id,
     });
   }
 
@@ -100,6 +102,7 @@ export class StoryListItem {
     event.stopPropagation();
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
     });
   }
 
@@ -116,9 +119,7 @@ export class StoryListItem {
 
   openMemo(kind: 'story' | 'series', id: any) {
     if (id == null) return;
-    this.popoverCtrl
-      .create(MemoPopover, { kind, id }, { cssClass: 'memo-popover' })
-      .present();
+    this.popoverCtrl.create(MemoPopover, { kind, id }, { cssClass: 'memo-popover' }).present();
   }
 
   openActionsMenu(story: Story, ev: UIEvent) {
@@ -213,10 +214,7 @@ export class StoryListItem {
                 this.filters.removeBlockedCategory(story.categoryID);
                 this.ux.showToast('INFO', 'CATEGORY_UNBLOCKED');
               } else {
-                this.filters.addBlockedCategory(
-                  story.categoryID,
-                  this.categories.nameSync(story.categoryID),
-                );
+                this.filters.addBlockedCategory(story.categoryID, this.categories.nameSync(story.categoryID));
                 this.ux.showToast('INFO', 'CATEGORY_BLOCKED');
               }
             },
@@ -225,9 +223,7 @@ export class StoryListItem {
 
         buttons.push({ text: t.CANCEL_BUTTON, role: 'cancel' });
 
-        this.actionSheetCtrl
-          .create({ title: story.title || '', buttons })
-          .present();
+        this.actionSheetCtrl.create({ title: story.title || '', buttons }).present();
       });
   }
 

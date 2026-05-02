@@ -23,6 +23,10 @@ console.info('App started', new Date().getTime());
 
 // start app
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+// Runtime monkey-patches to ionic-angular's DeepLinker + Tabs. Imported
+// before AppModule so the prototype patches are in place by the time any
+// DeepLinker / Tabs instance is constructed.
+import './deeplink-patch';
 import { AppModule } from './app.module';
 
 platformBrowserDynamic().bootstrapModule(AppModule);

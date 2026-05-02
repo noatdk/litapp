@@ -14,7 +14,7 @@ interface SeriesCard extends SeriesSummary {
   expanded: boolean;
 }
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'history' })
 @Component({
   selector: 'page-history',
   templateUrl: 'history.html',
@@ -163,7 +163,7 @@ export class HistoryPage {
   }
 
   openAuthor(entry: RecentAuthor) {
-    this.navCtrl.push('AuthorPage', { author: { id: entry.id, name: entry.name, picture: entry.picture } });
+    this.navCtrl.push('AuthorPage', { author: { id: entry.id, name: entry.name, picture: entry.picture }, id: entry.id });
   }
 
   delete(story: Story) {

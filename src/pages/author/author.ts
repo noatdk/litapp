@@ -24,7 +24,7 @@ interface SubmissionRow {
   expanded?: boolean;
 }
 
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'low', segment: 'author/:id' })
 @Component({
   selector: 'page-author',
   templateUrl: 'author.html',
@@ -67,7 +67,14 @@ export class AuthorPage {
     private history: History,
     private alertCtrl: AlertController,
   ) {
-    const author = navParams.get('author');
+    let author = navParams.get('author');
+    if (!author) {
+      // Deep-link entry: only :id is in the URL. Build a minimal author so
+      // the existing fetch path resolves the rich profile (no name hint, so
+      // it falls back to /3/authors/{id}).
+      const idParam = navParams.get('id');
+      if (idParam != null) author = { id: idParam } as Author;
+    }
 
     translate
       .get([
@@ -157,9 +164,7 @@ export class AuthorPage {
       return;
     }
 
-    const prevExpanded = new Set(
-      this.submissionRows.filter(r => r.kind === 'series' && r.expanded).map(r => r.id),
-    );
+    const prevExpanded = new Set(this.submissionRows.filter(r => r.kind === 'series' && r.expanded).map(r => r.id));
     const seriesMap = new Map<string, Story[]>();
     const rows: SubmissionRow[] = [];
 
@@ -220,11 +225,16 @@ export class AuthorPage {
       const sa = score(a);
       const sb = score(b);
       switch (this.submissionsSort) {
-        case 'newest': return sb.ts - sa.ts;
-        case 'oldest': return sa.ts - sb.ts;
-        case 'views':  return sb.views - sa.views;
-        case 'rating': return sb.rate - sa.rate;
-        default:       return 0;
+        case 'newest':
+          return sb.ts - sa.ts;
+        case 'oldest':
+          return sa.ts - sb.ts;
+        case 'views':
+          return sb.views - sa.views;
+        case 'rating':
+          return sb.rate - sa.rate;
+        default:
+          return 0;
       }
     });
   }
@@ -248,11 +258,16 @@ export class AuthorPage {
 
   sortLabelKey(): string {
     switch (this.submissionsSort) {
-      case 'newest': return 'AUTHOR_SORT_NEWEST';
-      case 'oldest': return 'AUTHOR_SORT_OLDEST';
-      case 'views':  return 'AUTHOR_SORT_VIEWS';
-      case 'rating': return 'AUTHOR_SORT_RATING';
-      default:       return 'AUTHOR_SORT_DEFAULT';
+      case 'newest':
+        return 'AUTHOR_SORT_NEWEST';
+      case 'oldest':
+        return 'AUTHOR_SORT_OLDEST';
+      case 'views':
+        return 'AUTHOR_SORT_VIEWS';
+      case 'rating':
+        return 'AUTHOR_SORT_RATING';
+      default:
+        return 'AUTHOR_SORT_DEFAULT';
     }
   }
 
@@ -269,7 +284,7 @@ export class AuthorPage {
   }
 
   openSubmissionStory(story: Story) {
-    this.navCtrl.push('StoryDetailPage', { story });
+    this.navCtrl.push('StoryDetailPage', { story, id: story && story.id });
   }
 
   openSeriesPage(row: SubmissionRow) {
@@ -293,7 +308,9 @@ export class AuthorPage {
         this.refreshing = false;
         if (a) this.author = a;
       },
-      () => { this.refreshing = false; },
+      () => {
+        this.refreshing = false;
+      },
     );
   }
 
@@ -322,21 +339,21 @@ export class AuthorPage {
   // Social-handle base URLs + display labels + ionicon names. Order here is
   // the order chips render in the Links card.
   private static SOCIAL_META: { [k: string]: { base: string; label: string; icon: string } } = {
-    x:          { base: 'https://x.com/',           label: 'X / Twitter',  icon: 'logo-twitter' },
-    facebook:   { base: 'https://facebook.com/',    label: 'Facebook',     icon: 'logo-facebook' },
-    instagram:  { base: 'https://instagram.com/',   label: 'Instagram',    icon: 'logo-instagram' },
-    tiktok:     { base: 'https://tiktok.com/@',     label: 'TikTok',       icon: 'musical-notes' },
-    tumblr:     { base: 'https://',                 label: 'Tumblr',       icon: 'logo-tumblr' },
-    youtube:    { base: 'https://youtube.com/@',    label: 'YouTube',      icon: 'logo-youtube' },
-    kofi:       { base: 'https://ko-fi.com/',       label: 'Ko-fi',        icon: 'cafe' },
-    wattpad:    { base: 'https://wattpad.com/user/', label: 'Wattpad',     icon: 'book' },
-    ao3:        { base: 'https://archiveofourown.org/users/', label: 'AO3', icon: 'bookmarks' },
-    allpoetry:  { base: 'https://allpoetry.com/',   label: 'AllPoetry',    icon: 'paper' },
-    deviantart: { base: 'https://',                 label: 'DeviantArt',   icon: 'brush' },
-    gumroad:    { base: 'https://gumroad.com/',     label: 'Gumroad',      icon: 'pricetag' },
-    goodreads:  { base: 'https://goodreads.com/',   label: 'Goodreads',    icon: 'book' },
-    medium:     { base: 'https://medium.com/@',     label: 'Medium',       icon: 'paper' },
-    substack:   { base: 'https://',                 label: 'Substack',     icon: 'mail' },
+    x: { base: 'https://x.com/', label: 'X / Twitter', icon: 'logo-twitter' },
+    facebook: { base: 'https://facebook.com/', label: 'Facebook', icon: 'logo-facebook' },
+    instagram: { base: 'https://instagram.com/', label: 'Instagram', icon: 'logo-instagram' },
+    tiktok: { base: 'https://tiktok.com/@', label: 'TikTok', icon: 'musical-notes' },
+    tumblr: { base: 'https://', label: 'Tumblr', icon: 'logo-tumblr' },
+    youtube: { base: 'https://youtube.com/@', label: 'YouTube', icon: 'logo-youtube' },
+    kofi: { base: 'https://ko-fi.com/', label: 'Ko-fi', icon: 'cafe' },
+    wattpad: { base: 'https://wattpad.com/user/', label: 'Wattpad', icon: 'book' },
+    ao3: { base: 'https://archiveofourown.org/users/', label: 'AO3', icon: 'bookmarks' },
+    allpoetry: { base: 'https://allpoetry.com/', label: 'AllPoetry', icon: 'paper' },
+    deviantart: { base: 'https://', label: 'DeviantArt', icon: 'brush' },
+    gumroad: { base: 'https://gumroad.com/', label: 'Gumroad', icon: 'pricetag' },
+    goodreads: { base: 'https://goodreads.com/', label: 'Goodreads', icon: 'book' },
+    medium: { base: 'https://medium.com/@', label: 'Medium', icon: 'paper' },
+    substack: { base: 'https://', label: 'Substack', icon: 'mail' },
   };
 
   socialEntries(): Array<{ key: string; handle: string; url: string; label: string; icon: string }> {
@@ -359,20 +376,30 @@ export class AuthorPage {
   // Defaults are used when the service is empty or unknown.
   supportIcon(service: string): string {
     switch ((service || '').toLowerCase()) {
-      case 'patreon':       return 'heart';
-      case 'kofi':          return 'cafe';
-      case 'subscribestar': return 'star';
-      case 'gumroad':       return 'pricetag';
-      default:              return 'cash';
+      case 'patreon':
+        return 'heart';
+      case 'kofi':
+        return 'cafe';
+      case 'subscribestar':
+        return 'star';
+      case 'gumroad':
+        return 'pricetag';
+      default:
+        return 'cash';
     }
   }
   supportLabel(service: string): string {
     switch ((service || '').toLowerCase()) {
-      case 'patreon':       return 'Patreon';
-      case 'kofi':          return 'Ko-fi';
-      case 'subscribestar': return 'SubscribeStar';
-      case 'gumroad':       return 'Gumroad';
-      default:              return service ? service[0].toUpperCase() + service.slice(1) : 'this author';
+      case 'patreon':
+        return 'Patreon';
+      case 'kofi':
+        return 'Ko-fi';
+      case 'subscribestar':
+        return 'SubscribeStar';
+      case 'gumroad':
+        return 'Gumroad';
+      default:
+        return service ? service[0].toUpperCase() + service.slice(1) : 'this author';
     }
   }
 
@@ -390,7 +417,9 @@ export class AuthorPage {
     if (!code) return '';
     const def = FACT_DEFS[field];
     if (!def || !def.values) return code;
-    const trimmed = String(code).trim().toLowerCase();
+    const trimmed = String(code)
+      .trim()
+      .toLowerCase();
     if (def.nosave && trimmed === def.nosave) return '';
 
     if (def.type === 'checkbox') {
@@ -419,7 +448,11 @@ export class AuthorPage {
     if (AuthorPage.reportedMissing.has(key)) return;
     AuthorPage.reportedMissing.add(key);
     if (this.ux && (this.ux as any).showToast) {
-      try { this.ux.showToast('INFO', `Unknown ${field} code “${code}”`, 3500); } catch (e) { /* no-op */ }
+      try {
+        this.ux.showToast('INFO', `Unknown ${field} code “${code}”`, 3500);
+      } catch (e) {
+        /* no-op */
+      }
     }
     console.warn(`[author.facts] unknown code for ${field}: ${JSON.stringify(code)}`);
   }
@@ -430,14 +463,14 @@ export class AuthorPage {
     const a = this.author as any;
     if (!a) return [];
     const rows: Array<{ field: string; label: string; raw: string }> = [
-      { field: 'sex',         label: 'Sex',           raw: a.factSex },
-      { field: 'orientation', label: 'Orientation',   raw: a.factOrientation },
-      { field: 'weight',      label: 'Weight',        raw: a.factWeight },
-      { field: 'height',      label: 'Height',        raw: a.factHeight },
-      { field: 'datingstat',  label: 'Dating Status', raw: a.factDatingstat },
-      { field: 'pets',        label: 'Pets',          raw: a.factPets },
-      { field: 'smoke',       label: 'Smokes',        raw: a.factSmoke },
-      { field: 'drink',       label: 'Drinks',        raw: a.factDrink },
+      { field: 'sex', label: 'Sex', raw: a.factSex },
+      { field: 'orientation', label: 'Orientation', raw: a.factOrientation },
+      { field: 'weight', label: 'Weight', raw: a.factWeight },
+      { field: 'height', label: 'Height', raw: a.factHeight },
+      { field: 'datingstat', label: 'Dating Status', raw: a.factDatingstat },
+      { field: 'pets', label: 'Pets', raw: a.factPets },
+      { field: 'smoke', label: 'Smokes', raw: a.factSmoke },
+      { field: 'drink', label: 'Drinks', raw: a.factDrink },
     ];
     const out: Array<{ label: string; value: string }> = [];
     // Birthday goes first when set (mirrors the SSR site's order).
@@ -448,12 +481,12 @@ export class AuthorPage {
     for (const r of rows) {
       if (!r.raw) continue;
       const value = this.factLabel(r.field, r.raw);
-      if (!value) continue;          // skips "No Answer" (nosave) codes
+      if (!value) continue; // skips "No Answer" (nosave) codes
       out.push({ label: r.label, value });
     }
     // Free-text fields tack on at the bottom when set.
     if (a.factInterests) out.push({ label: 'Interests', value: a.factInterests });
-    if (a.factFetishes)  out.push({ label: 'Fetishes',  value: a.factFetishes });
+    if (a.factFetishes) out.push({ label: 'Fetishes', value: a.factFetishes });
     return out;
   }
 
@@ -467,14 +500,28 @@ export class AuthorPage {
     const t = Date.parse(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00Z`);
     if (isNaN(t)) return '';
     const d = new Date(t);
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
   }
 
   openExternal(url: string) {
     if (!url) return;
-    this.browser.isAvailable()
-      .then(ok => ok ? this.browser.openUrl(url) : window.open(url, '_blank'))
+    this.browser
+      .isAvailable()
+      .then(ok => (ok ? this.browser.openUrl(url) : window.open(url, '_blank')))
       .catch(() => window.open(url, '_blank'));
   }
 
@@ -545,7 +592,12 @@ export class AuthorPage {
           message: this.translations.AUTHOR_UNFOLLOW_CONFIRM_MSG.replace('{name}', this.author.name || ''),
           buttons: [
             { text: this.translations.CANCEL_BUTTON, role: 'cancel' },
-            { text: this.translations.OK_BUTTON, handler: () => { this.a.unfollow(this.author); } },
+            {
+              text: this.translations.OK_BUTTON,
+              handler: () => {
+                this.a.unfollow(this.author);
+              },
+            },
           ],
         })
         .present();

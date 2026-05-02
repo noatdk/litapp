@@ -26,8 +26,8 @@ export class UserListPage {
   // we fire a single `/3/users/{exactName}` lookup so an exact-username match
   // surfaces even before the user has scrolled deep enough to load that page.
   query: string = '';
-  searching: boolean = false;     // true while the exact-name API call is in flight
-  exactMissed: boolean = false;   // true after a finished call returned 404
+  searching: boolean = false; // true while the exact-name API call is in flight
+  exactMissed: boolean = false; // true after a finished call returned 404
   private exactHit: Author | null = null;
 
   private page: number = 0;
@@ -68,7 +68,7 @@ export class UserListPage {
   }
 
   openUser(user: Author) {
-    this.navCtrl.push('AuthorPage', { author: user });
+    this.navCtrl.push('AuthorPage', { author: user, id: user && user.id });
   }
 
   // Searchbar `ionInput` handler. The component already debounces by 350ms
@@ -77,7 +77,10 @@ export class UserListPage {
     const q = (this.query || '').trim();
     this.exactHit = null;
     this.exactMissed = false;
-    if (!q) { this.searching = false; return; }
+    if (!q) {
+      this.searching = false;
+      return;
+    }
     if (q.length < 2) return;
     this.searching = true;
     // /3/users/{name} 404s for unknown usernames. We treat 404 as a "no exact
@@ -117,9 +120,8 @@ export class UserListPage {
 
     this.loading = true;
     const next = this.page + 1;
-    const obs$ = this.kind === 'following'
-      ? this.authors.getFollowingsOf(this.username, next)
-      : this.authors.getFollowersOf(this.username, next);
+    const obs$ =
+      this.kind === 'following' ? this.authors.getFollowingsOf(this.username, next) : this.authors.getFollowersOf(this.username, next);
 
     return obs$
       .toPromise()

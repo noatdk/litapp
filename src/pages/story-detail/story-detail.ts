@@ -10,7 +10,7 @@ import { Stories, Settings, User, Categories, Files, Filters, UX } from '../../p
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'low', segment: 'story/:id' })
 @Component({
   selector: 'page-story-detail',
   templateUrl: 'story-detail.html',
@@ -41,29 +41,54 @@ export class StoryDetailPage {
     public actionSheetCtrl: ActionSheetController,
   ) {
     this.story = navParams.get('story');
+    if (!this.story) {
+      // Deep-link entry: only the id is in the URL. Stub a placeholder so the
+      // refetch path below populates it. If the id is missing too, bail out.
+      const idParam = navParams.get('id');
+      if (idParam == null) {
+        this.navCtrl.pop();
+        return;
+      }
+      this.story = { id: String(idParam), cached: false } as Story;
+    }
     this.stories.hydrateMyRating(this.story);
     this.myrating = this.story && this.story.myrating;
 
-    // load data when directly view details
-    if (!this.story.cached) {
+    // URL deep-link entry: nav params carry only `{id}` so title/author/
+    // category etc. are missing. Fetch rich metadata first; the regular
+    // getById content path doesn't include those fields.
+    const needsRichMetadata = !this.story.title;
+
+    const loadRest = () => {
+      if (this.story.cached) {
+        this.loadComments();
+        return;
+      }
       this.stories.getById(this.story.id).subscribe(story => {
         if (!story) {
           this.navCtrl.pop();
           return;
         }
-
         this.stories.hydrateMyRating(story);
         this.myrating = story.myrating;
-
-        // add details & content to db
         this.story.series = story.series;
         this.story.length = story.length;
         this.story.lang = story.lang;
-
         this.loadComments();
       });
+    };
+
+    if (needsRichMetadata) {
+      this.stories.getRichById(this.story.id).subscribe(rich => {
+        if (rich) {
+          Object.assign(this.story, rich);
+          this.stories.hydrateMyRating(this.story);
+          this.myrating = this.story.myrating;
+        }
+        loadRest();
+      });
     } else {
-      this.loadComments();
+      loadRest();
     }
   }
 
@@ -89,44 +114,40 @@ export class StoryDetailPage {
     if (ev) ev.stopPropagation();
     if (!comment || !comment.userId) return;
 
-    this.translate
-      .get(['COMMENTACTION_VIEW_PROFILE', 'STORYACTION_BLOCK_AUTHOR', 'CANCEL_BUTTON'])
-      .subscribe(t => {
-        this.actionSheetCtrl
-          .create({
-            title: comment.user || '',
-            buttons: [
-              {
-                text: t.COMMENTACTION_VIEW_PROFILE,
-                icon: 'person',
-                handler: () => this.viewCommenter(comment),
-              },
-              {
-                text: t.STORYACTION_BLOCK_AUTHOR,
-                role: 'destructive',
-                icon: 'eye-off',
-                handler: () => this.blockCommenter(comment),
-              },
-              { text: t.CANCEL_BUTTON, role: 'cancel' },
-            ],
-          })
-          .present();
-      });
+    this.translate.get(['COMMENTACTION_VIEW_PROFILE', 'STORYACTION_BLOCK_AUTHOR', 'CANCEL_BUTTON']).subscribe(t => {
+      this.actionSheetCtrl
+        .create({
+          title: comment.user || '',
+          buttons: [
+            {
+              text: t.COMMENTACTION_VIEW_PROFILE,
+              icon: 'person',
+              handler: () => this.viewCommenter(comment),
+            },
+            {
+              text: t.STORYACTION_BLOCK_AUTHOR,
+              role: 'destructive',
+              icon: 'eye-off',
+              handler: () => this.blockCommenter(comment),
+            },
+            { text: t.CANCEL_BUTTON, role: 'cancel' },
+          ],
+        })
+        .present();
+    });
   }
 
   private viewCommenter(comment: { user: string; userId: string }) {
     if (this.settings.allSettings.offlineMode) return;
     const author = new Author({ id: comment.userId, name: comment.user || '' });
-    this.navCtrl.push('AuthorPage', { author });
+    this.navCtrl.push('AuthorPage', { author, id: author && author.id });
   }
 
   private blockCommenter(comment: { user: string; userId: string }) {
     this.filters.addBlockedAuthor(comment.userId, comment.user || '');
     this.ux.showToast('INFO', 'AUTHOR_BLOCKED');
     if (this.story && this.story.comments) {
-      this.story.comments = this.story.comments.filter(
-        c => !this.filters.isAuthorBlocked(c.userId),
-      );
+      this.story.comments = this.story.comments.filter(c => !this.filters.isAuthorBlocked(c.userId));
     }
   }
 
@@ -138,12 +159,14 @@ export class StoryDetailPage {
     if (this.settings.allSettings.offlineMode) return;
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
     });
   }
 
   showSeries() {
     this.navCtrl.push('StorySeriesPage', {
       story: this.story,
+      seriesId: this.story && this.story.series,
     });
   }
 

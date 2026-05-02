@@ -42,34 +42,47 @@ import { StatusBar } from '@ionic-native/status-bar';
           </div>
 
           <div *ngIf="user.isLoggedIn()" class="signed-in">
-            <button menuClose class="identity" (click)="openAuthorPage()"
-              title="{{ 'ACCOUNT_OPEN_AUTHOR_PAGE' | translate }}">
+            <button menuClose class="identity" (click)="openAuthorPage()" title="{{ 'ACCOUNT_OPEN_AUTHOR_PAGE' | translate }}">
               <span class="avatar" [class.has-image]="!!avatarUrl">
                 <img *ngIf="avatarUrl" [src]="avatarUrl" (error)="avatarUrl = ''" alt="" />
                 <span *ngIf="!avatarUrl">{{ avatarLetter() }}</span>
               </span>
               <span class="user-info">
                 <span class="username">{{ user.getDetails().username }}</span>
-                <span class="status"
-                   [class.muted]="jwtState() === 'fresh' || jwtState() === 'unknown'"
-                   [class.warn]="jwtState() === 'stale'"
-                   [class.error]="jwtState() === 'expired'">
-                  <ng-container [ngSwitch]="jwtState()">
-                    <ng-container *ngSwitchCase="'fresh'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemaining() }}</ng-container>
-                    <ng-container *ngSwitchCase="'stale'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemaining() }}</ng-container>
-                    <ng-container *ngSwitchCase="'expired'">{{ (needsRelogin() ? 'ACCOUNT_JWT_RELOGIN_REQUIRED' : 'ACCOUNT_JWT_EXPIRED') | translate }}</ng-container>
+                <span
+                  class="status"
+                  [class.muted]="jwtStateLabel === 'fresh' || jwtStateLabel === 'unknown'"
+                  [class.warn]="jwtStateLabel === 'stale'"
+                  [class.error]="jwtStateLabel === 'expired'"
+                >
+                  <ng-container [ngSwitch]="jwtStateLabel">
+                    <ng-container *ngSwitchCase="'fresh'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemainingLabel }}</ng-container>
+                    <ng-container *ngSwitchCase="'stale'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemainingLabel }}</ng-container>
+                    <ng-container *ngSwitchCase="'expired'">{{
+                      (needsRelogin() ? 'ACCOUNT_JWT_RELOGIN_REQUIRED' : 'ACCOUNT_JWT_EXPIRED') | translate
+                    }}</ng-container>
                     <ng-container *ngSwitchDefault>id #{{ user.getDetails().id }}</ng-container>
                   </ng-container>
                 </span>
               </span>
             </button>
             <div class="actions">
-              <button *ngIf="!needsRelogin()" class="icon-btn" (click)="refreshJwt()"
-                [disabled]="refreshing" title="{{ 'ACCOUNT_JWT_REFRESH_NOW' | translate }}">
+              <button
+                *ngIf="!needsRelogin()"
+                class="icon-btn"
+                (click)="refreshJwt()"
+                [disabled]="refreshing"
+                title="{{ 'ACCOUNT_JWT_REFRESH_NOW' | translate }}"
+              >
                 <ion-icon name="refresh"></ion-icon>
               </button>
-              <button *ngIf="needsRelogin()" menuClose class="icon-btn warn" (click)="relogin()"
-                title="{{ 'ACCOUNT_RELOGIN' | translate }}">
+              <button
+                *ngIf="needsRelogin()"
+                menuClose
+                class="icon-btn warn"
+                (click)="relogin()"
+                title="{{ 'ACCOUNT_RELOGIN' | translate }}"
+              >
                 <ion-icon name="log-in"></ion-icon>
               </button>
               <button class="icon-btn danger" (click)="logout()" title="{{ 'LOGOUT' | translate }}">
@@ -96,6 +109,11 @@ export class MyApp {
   loggedIn: boolean = false;
   refreshing = false;
   avatarUrl: string = '';
+  // Cached JWT-clock values. Recomputing live in template getters caused
+  // ExpressionChangedAfterItHasBeenCheckedError when the second crossed during
+  // Angular's dev-mode double check-pass. Refreshed once per tick instead.
+  jwtRemainingLabel: string = '—';
+  jwtStateLabel: 'fresh' | 'stale' | 'expired' | 'unknown' = 'unknown';
   private tick: any;
   private avatarFetchedFor: any = null;
 
@@ -209,11 +227,16 @@ export class MyApp {
   }
 
   openPage(page) {
-    if (page.title === 'TabsPage') {
-      this.nav.setRoot(page);
-    } else {
-      this.nav.push(page);
+    if (page === 'TabsPage') {
+      // Root menu item: collapse any pushed pages and return to the tabs root.
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.popToRoot().catch(() => {});
+      return;
     }
+    // Push on the active (tab) nav so the DeepLinker URL updates. Pushing on
+    // the root <ion-nav> bypasses the linker because it tracks the leaf nav.
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push(page);
   }
 
   // --- Account footer (Discord-style bottom-of-sidebar panel) ---
@@ -224,10 +247,13 @@ export class MyApp {
       if (answer) this.user.logout();
     });
     this.fetchAvatar();
+    this.refreshJwtLabels();
     this.zone.runOutsideAngular(() => {
       if (this.tick) return;
       this.tick = setInterval(() => {
-        this.zone.run(() => {}); // trigger CD so jwtRemaining() refreshes
+        // Refresh cached values outside the zone, then re-enter zone for CD.
+        this.refreshJwtLabels();
+        this.zone.run(() => {});
       }, 1000);
     });
   }
@@ -238,7 +264,8 @@ export class MyApp {
   }
 
   login() {
-    this.nav.push('LoginPage');
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push('LoginPage');
   }
 
   logout() {
@@ -247,7 +274,8 @@ export class MyApp {
 
   relogin() {
     this.user.removeStoredUser().then(() => {
-      this.nav.push('LoginPage');
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('LoginPage');
     });
   }
 
@@ -283,7 +311,9 @@ export class MyApp {
           this.user.setAvatar(pic);
         }
       },
-      () => { this.avatarFetchedFor = null; },
+      () => {
+        this.avatarFetchedFor = null;
+      },
     );
   }
 
@@ -292,22 +322,23 @@ export class MyApp {
     if (!details || details.id == null) return;
     const author = { id: details.id, name: details.username };
     const activeNav = this.app.getActiveNavs()[0] || this.nav;
-    activeNav.push('AuthorPage', { author });
+    activeNav.push('AuthorPage', { author, id: author.id });
   }
 
-  jwtRemaining(): string {
+  private refreshJwtLabels() {
     const ms = this.user.jwtRemainingMs();
-    if (ms == null) return '—';
-    return this.formatDuration(ms);
-  }
-
-  jwtState(): 'fresh' | 'stale' | 'expired' | 'unknown' {
-    if (this.user.jwtNeedsRelogin()) return 'expired';
-    const ms = this.user.jwtRemainingMs();
-    if (ms == null) return this.user.jwtLastError() ? 'expired' : 'unknown';
-    if (ms <= 0) return 'expired';
-    if (ms < 5 * 60 * 1000) return 'stale';
-    return 'fresh';
+    this.jwtRemainingLabel = ms == null ? '—' : this.formatDuration(ms);
+    if (this.user.jwtNeedsRelogin()) {
+      this.jwtStateLabel = 'expired';
+    } else if (ms == null) {
+      this.jwtStateLabel = this.user.jwtLastError() ? 'expired' : 'unknown';
+    } else if (ms <= 0) {
+      this.jwtStateLabel = 'expired';
+    } else if (ms < 5 * 60 * 1000) {
+      this.jwtStateLabel = 'stale';
+    } else {
+      this.jwtStateLabel = 'fresh';
+    }
   }
 
   needsRelogin(): boolean {
@@ -357,7 +388,8 @@ export class MyApp {
     const storyRegex = /literotica\.com\/(beta\/)?s\/([-a-zA-Z0-9._+]*)/g;
     const storyMatch = storyRegex.exec(url);
     if (storyMatch) {
-      this.nav.push('SearchPage', {
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('SearchPage', {
         storyurl: storyMatch[storyMatch.length - 1],
       });
 
@@ -370,8 +402,10 @@ export class MyApp {
     const authorMatch = authorRegex.exec(url);
     if (authorMatch) {
       const author = { id: authorMatch[1] };
-      this.nav.push('AuthorPage', {
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('AuthorPage', {
         author,
+        id: author.id,
       });
       return;
     }

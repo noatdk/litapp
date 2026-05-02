@@ -12,7 +12,7 @@ import { buildNormalizedIndex, wrapRange } from './text-index';
 import { StorySearchController } from './search-controller';
 import { ContinuousScrollController } from './continuous-scroll-controller';
 
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'low', segment: 'story/:id/read' })
 @Component({
   selector: 'page-story-view',
   templateUrl: 'story-view.html',
@@ -105,6 +105,16 @@ export class StoryViewPage {
   ) {
     this.dir = platform.dir();
     this.story = navParams.get('story');
+    if (!this.story) {
+      // Deep-link entry: only id from URL. Stub a placeholder so the refetch
+      // path below populates content. If id is missing, give up.
+      const idParam = navParams.get('id');
+      if (idParam == null) {
+        this.navCtrl.pop();
+        return;
+      }
+      this.story = { id: String(idParam), cached: false, content: [] } as any;
+    }
 
     // TODO: making this dynamic would be so much better, alas there is no way for ionic 3
     this.statusBarHeight = appSettings.allSettings.largeStatusbarHeight && platform.is('cordova') ? 60 : this.statusBarHeight;
@@ -157,28 +167,45 @@ export class StoryViewPage {
       getScrollKey: p => this.getScrollKey(p),
     });
 
-    // get story from server
-    if (!this.story.cached) {
+    // For URL deep-link entry the local story is just `{id}`, missing the
+    // rich metadata (title, author, category, …) that normal in-app
+    // navigation carries via the pushed nav params. Fetch that first so
+    // history.add records a meaningful row. `getById`'s content endpoint
+    // doesn't return author/category, hence the separate rich fetch.
+    const needsRichMetadata = !this.story.title;
+    const richFetch$ = needsRichMetadata ? this.stories.getRichById(this.story.id) : null;
+
+    const fetchContent = () => {
+      if (this.story.cached) {
+        this.addSlides();
+        this.history.add(this.story);
+        return;
+      }
       this.stories.getById(this.story.id).subscribe(story => {
         if (!story) {
           this.navCtrl.pop();
           return;
         }
-
-        this.story.series = story.series;
-        this.story.length = story.length;
-        this.story.tags = story.tags;
-        this.story.content = story.content;
+        // Merge fetched fields into our local story object. Object.assign
+        // keeps the same reference so slides / template bindings holding
+        // `this.story` stay live.
+        Object.assign(this.story, story);
         this.story.cached = true;
-
         this.stories.cache(this.story);
         this.addSlides();
+        // Record in history only after the story is fully populated.
+        this.history.add(this.story);
+      });
+    };
+
+    if (richFetch$) {
+      richFetch$.subscribe(rich => {
+        if (rich) Object.assign(this.story, rich);
+        fetchContent();
       });
     } else {
-      this.addSlides();
+      fetchContent();
     }
-
-    this.history.add(this.story);
   }
 
   private addSlides() {
@@ -366,6 +393,7 @@ export class StoryViewPage {
         if (data[0][i].id === this.story.id) {
           this.navCtrl.push('StoryViewPage', {
             story: data[0][i + 1],
+            id: data[0][i + 1] && data[0][i + 1].id,
             fullscreen: this.inFullscreen,
           });
           this.navCtrl.remove(this.navCtrl.indexOf(this.navCtrl.last()), 1);
@@ -421,11 +449,11 @@ export class StoryViewPage {
   }
 
   showInfo(story: Story) {
-    this.navCtrl.push('StoryDetailPage', { story });
+    this.navCtrl.push('StoryDetailPage', { story, id: story && story.id });
   }
 
   showSeries(story: Story) {
-    this.navCtrl.push('StorySeriesPage', { story });
+    this.navCtrl.push('StorySeriesPage', { story, seriesId: story && story.series });
   }
 
   openListPicker(ev: UIEvent) {
