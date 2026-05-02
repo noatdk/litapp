@@ -80,9 +80,9 @@ import { StatusBar } from '@ionic-native/status-bar';
         </ion-footer>
       </ion-menu>
       <ion-nav #content root="TabsPage"></ion-nav>
-      <div class="lit-progress-bar" *ngIf="ux.loaderCount > 0" role="status" aria-live="polite">
+      <div class="lit-progress-bar" *ngIf="ux.loaderVisible" role="status" aria-live="polite">
         <div class="lit-progress-bar__track">
-          <div class="lit-progress-bar__indicator"></div>
+          <div class="lit-progress-bar__indicator" (animationiteration)="ux.onLoaderTick()"></div>
         </div>
         <span class="lit-progress-bar__label" *ngIf="ux.loaderLabel">{{ ux.loaderLabel }}</span>
       </div>

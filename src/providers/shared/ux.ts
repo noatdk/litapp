@@ -15,8 +15,15 @@ export class UX {
   // Reactive state read by the global progress bar (see MyApp template).
   // We track a count rather than a flag so overlapping requests don't blink
   // the bar off the moment the first one resolves.
+  //
+  // `loaderVisible` is decoupled from `loaderCount` so the bar can finish its
+  // current slide-out cycle after the last loader dismisses — yanking the
+  // indicator mid-stride feels jittery. The animationiteration handler on
+  // the indicator hides the bar at the end of the next cycle when the count
+  // is back to 0.
   loaderCount: number = 0;
   loaderLabel: string = '';
+  loaderVisible: boolean = false;
 
   activeToasts: Toast[] = [];
   offlineModeErrorCount = 0;
@@ -32,6 +39,7 @@ export class UX {
   // / success path can all dismiss without double-decrementing.
   showLoader(): LoaderToken {
     this.loaderCount += 1;
+    this.loaderVisible = true;
     let dismissed = false;
     return {
       dismiss: () => {
@@ -39,8 +47,17 @@ export class UX {
         dismissed = true;
         this.loaderCount = Math.max(0, this.loaderCount - 1);
         if (this.loaderCount === 0) this.loaderLabel = '';
+        // Don't clear `loaderVisible` here — the indicator's animationiteration
+        // handler does it on the next slide-out so the bar exits gracefully.
       },
     };
+  }
+
+  // Bound to the indicator's `(animationiteration)` event. Each iteration
+  // ends with the indicator translated fully off the right edge, so hiding
+  // here is the cleanest exit — no fade, no snap-back.
+  onLoaderTick() {
+    if (this.loaderCount === 0) this.loaderVisible = false;
   }
 
   // Optional textual hint shown next to the bar — used by series-download
@@ -54,6 +71,7 @@ export class UX {
   hideLoader() {
     this.loaderCount = 0;
     this.loaderLabel = '';
+    this.loaderVisible = false;
   }
 
   // label and buttonLabel can still contain a string just cast to any when needed
