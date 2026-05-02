@@ -11,14 +11,7 @@ export type MemoKind = 'story' | 'author' | 'series';
 @Component({
   selector: 'memo-button',
   template: `
-    <button
-      ion-button
-      icon-only
-      (click)="open($event)"
-      [tooltip]="tooltipKey | translate"
-      event="press"
-      navTooltip
-    >
+    <button ion-button icon-only (click)="open($event)" [tooltip]="tooltipKey | translate" event="press" navTooltip>
       <ion-icon [name]="iconName" [color]="memos.has(kind, id) ? 'secondary' : ''"></ion-icon>
     </button>
   `,
@@ -48,10 +41,9 @@ export class MemoButton implements AfterViewInit {
     return this.kind === 'series' ? 'MEMO_SERIES_BUTTON' : 'MEMO_BUTTON';
   }
 
+  // tslint:disable-next-line: variable-name
   open(_ev: UIEvent) {
     if (this.id == null) return;
-    this.popoverCtrl
-      .create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
-      .present();
+    this.popoverCtrl.create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' }).present();
   }
 }

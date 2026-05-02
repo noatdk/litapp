@@ -307,7 +307,7 @@ export class Stories {
   searchAuthors(query: string): Observable<{ id: string; name: string; userpic?: string }[]> {
     const q = (query || '').trim();
     if (q.length < 2) return Observable.of([]);
-    const params = { params: JSON.stringify({ page: 1, q, sort: '', astags: false }) };
+    const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
     return this.api
       .get('3/search/stories', params)
       .map((data: any) => {
@@ -334,7 +334,7 @@ export class Stories {
   searchSeries(query: string): Observable<{ id: string; name: string }[]> {
     const q = (query || '').trim();
     if (q.length < 2) return Observable.of([]);
-    const params = { params: JSON.stringify({ page: 1, q, sort: '', astags: false }) };
+    const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
     return this.api
       .get('3/search/stories', params)
       .map((data: any) => {

@@ -171,7 +171,7 @@ export class AuthorPage {
     stories.forEach(story => {
       const seriesId = story.series && Number(story.series) > 0 ? String(story.series) : '';
       if (!seriesId) {
-        rows.push({ kind: 'story', id: String(story.id), story });
+        rows.push({ story, kind: 'story', id: String(story.id) });
         return;
       }
       const existing = seriesMap.get(seriesId);
@@ -181,9 +181,9 @@ export class AuthorPage {
         const chapters: Story[] = [story];
         seriesMap.set(seriesId, chapters);
         rows.push({
+          chapters,
           kind: 'series',
           id: seriesId,
-          chapters,
           expanded: prevExpanded.has(seriesId),
         });
       }
@@ -356,10 +356,10 @@ export class AuthorPage {
     substack: { base: 'https://', label: 'Substack', icon: 'mail' },
   };
 
-  socialEntries(): Array<{ key: string; handle: string; url: string; label: string; icon: string }> {
+  socialEntries(): { key: string; handle: string; url: string; label: string; icon: string }[] {
     const socials = (this.author as any) && (this.author as any).socials;
     if (!socials) return [];
-    const out: Array<{ key: string; handle: string; url: string; label: string; icon: string }> = [];
+    const out: { key: string; handle: string; url: string; label: string; icon: string }[] = [];
     for (const k of Object.keys(AuthorPage.SOCIAL_META)) {
       const v = socials[k];
       if (!v) continue;
@@ -367,7 +367,7 @@ export class AuthorPage {
       // If the value already looks like a URL, use it verbatim. Otherwise
       // prepend the platform's base URL.
       const url = /^https?:\/\//i.test(v) ? v : meta.base + v;
-      out.push({ key: k, handle: v, url, label: meta.label, icon: meta.icon });
+      out.push({ url, key: k, handle: v, label: meta.label, icon: meta.icon });
     }
     return out;
   }
@@ -459,10 +459,10 @@ export class AuthorPage {
 
   // Build the list of fact rows that have a value, in the canonical display
   // order. Empty fields are skipped so the card collapses for sparse profiles.
-  factEntries(): Array<{ label: string; value: string }> {
+  factEntries(): { label: string; value: string }[] {
     const a = this.author as any;
     if (!a) return [];
-    const rows: Array<{ field: string; label: string; raw: string }> = [
+    const rows: { field: string; label: string; raw: string }[] = [
       { field: 'sex', label: 'Sex', raw: a.factSex },
       { field: 'orientation', label: 'Orientation', raw: a.factOrientation },
       { field: 'weight', label: 'Weight', raw: a.factWeight },
@@ -472,7 +472,7 @@ export class AuthorPage {
       { field: 'smoke', label: 'Smokes', raw: a.factSmoke },
       { field: 'drink', label: 'Drinks', raw: a.factDrink },
     ];
-    const out: Array<{ label: string; value: string }> = [];
+    const out: { label: string; value: string }[] = [];
     // Birthday goes first when set (mirrors the SSR site's order).
     if (a.factDob) {
       const formatted = this.formatDob(a.factDob);
@@ -482,7 +482,7 @@ export class AuthorPage {
       if (!r.raw) continue;
       const value = this.factLabel(r.field, r.raw);
       if (!value) continue; // skips "No Answer" (nosave) codes
-      out.push({ label: r.label, value });
+      out.push({ value, label: r.label });
     }
     // Free-text fields tack on at the bottom when set.
     if (a.factInterests) out.push({ label: 'Interests', value: a.factInterests });

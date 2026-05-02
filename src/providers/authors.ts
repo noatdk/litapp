@@ -70,9 +70,7 @@ export class Authors {
     // /3/users/{name} response — it appends the `profile_header` block (cover
     // banner urls). All other speculative `with*` flags were verified no-ops.
     const profileParams = encodeURIComponent(JSON.stringify({ withProfile: true }));
-    const url = name
-      ? `3/users/${encodeURIComponent(name)}?params=${profileParams}`
-      : `3/authors/${id}`;
+    const url = name ? `3/users/${encodeURIComponent(name)}?params=${profileParams}` : `3/authors/${id}`;
 
     return this.api
       .get(url)
@@ -99,9 +97,7 @@ export class Authors {
         // that creates an empty cached entry pre-fetch (the if-block above
         // would short-circuit and leave picture undefined).
         cached.name = profile.username || cached.name;
-        cached.picture = profile.userpic === oldDefaultUserPic
-          ? defaultUserPic
-          : (profile.userpic || cached.picture);
+        cached.picture = profile.userpic === oldDefaultUserPic ? defaultUserPic : profile.userpic || cached.picture;
 
         cached.storycount = Number(profile.submissions_count) || 0;
         cached.bio = profile.biography || profile.bio || '';
@@ -147,9 +143,21 @@ export class Authors {
         // undefined so the template can `*ngIf` on the row directly.
         const social: any = {};
         const socialKeys = [
-          'x', 'facebook', 'instagram', 'tiktok', 'tumblr', 'youtube',
-          'kofi', 'wattpad', 'ao3', 'allpoetry', 'deviantart',
-          'gumroad', 'goodreads', 'medium', 'substack',
+          'x',
+          'facebook',
+          'instagram',
+          'tiktok',
+          'tumblr',
+          'youtube',
+          'kofi',
+          'wattpad',
+          'ao3',
+          'allpoetry',
+          'deviantart',
+          'gumroad',
+          'goodreads',
+          'medium',
+          'substack',
         ];
         for (const k of socialKeys) {
           const v = profile[k];
@@ -262,12 +270,20 @@ export class Authors {
   // share the same paginated shape:
   //   { current_page, last_page, total, per_page, data: [...users] }
   // The website keys these by username (not numeric userid).
-  getFollowersOf(username: string, page: number = 1, pageSize: number = 50): Observable<{ users: Author[]; total: number; lastPage: number }> {
+  getFollowersOf(
+    username: string,
+    page: number = 1,
+    pageSize: number = 50,
+  ): Observable<{ users: Author[]; total: number; lastPage: number }> {
     return this.queryUserList(`3/users/${encodeURIComponent(username)}/followers`, page, pageSize);
   }
 
-  getFollowingsOf(username: string, page: number = 1, pageSize: number = 50): Observable<{ users: Author[]; total: number; lastPage: number }> {
-    const params = JSON.stringify({ userid: username, page, pageSize });
+  getFollowingsOf(
+    username: string,
+    page: number = 1,
+    pageSize: number = 50,
+  ): Observable<{ users: Author[]; total: number; lastPage: number }> {
+    const params = JSON.stringify({ page, pageSize, userid: username });
     return this.api
       .get(`3/users/${encodeURIComponent(username)}/favorite/authors?params=${encodeURIComponent(params)}`)
       .map((data: any) => this.extractUserList(data))

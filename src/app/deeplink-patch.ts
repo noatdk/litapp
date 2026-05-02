@@ -43,13 +43,14 @@ if (!(DeepLinker.prototype as any)[PATCHED_FLAG]) {
   const origInit = DeepLinker.prototype.init;
 
   DeepLinker.prototype.init = function patchedInit() {
-    const self: any = this;
-    const initialUrl = normalizeUrl(self._location.path());
+    // tslint:disable-next-line: no-this-assignment
+    const linker: any = this;
+    const initialUrl = normalizeUrl(linker._location.path());
     origInit.call(this);
-    self._litappInitialUrl = initialUrl;
-    self._litappProcessedNavIds = {};
-    self._litappViewSub = self._app.viewDidEnter.subscribe(() => {
-      setTimeout(() => processInitialUrl(self), 0);
+    linker._litappInitialUrl = initialUrl;
+    linker._litappProcessedNavIds = {};
+    linker._litappViewSub = linker._app.viewDidEnter.subscribe(() => {
+      setTimeout(() => processInitialUrl(linker), 0);
     });
   };
 
@@ -58,32 +59,26 @@ if (!(DeepLinker.prototype as any)[PATCHED_FLAG]) {
   // piece for it. Combined with the serialize patch below (which turns
   // tabs-typed segments into nav-style ones), this strips tab names from
   // the URL completely. URLs only encode TabsPage + the deep page on top.
-  const DeepLinkerProto = DeepLinker.prototype as any;
-  DeepLinkerProto.getSegmentFromTab = function patchedGetSegmentFromTab(
-    navContainer: any,
-    component: any,
-    data: any,
-  ) {
+  const deepLinkerProto = DeepLinker.prototype as any;
+  deepLinkerProto.getSegmentFromTab = function patchedGetSegmentFromTab(navContainer: any, component: any, data: any) {
     if (!navContainer || !navContainer.parent) return null;
     const tabsNav = navContainer.parent;
     const activeChildNavs = tabsNav.getActiveChildNavs && tabsNav.getActiveChildNavs();
     if (!activeChildNavs || !activeChildNavs.length) return null;
     const activeChildNav = activeChildNavs[0];
     const view = activeChildNav.getActive && activeChildNav.getActive(true);
+    let comp = component;
+    let payload = data;
     if (view) {
-      component = view.component;
-      data = view.data;
+      comp = view.component;
+      payload = view.data;
     }
     // Tab is showing its own root — emit no URL piece. URL stays at
     // /app while the user browses the default-tab home view.
-    if (
-      view &&
-      activeChildNav.root &&
-      (view.id === activeChildNav.root || view.component === activeChildNav.root)
-    ) {
+    if (view && activeChildNav.root && (view.id === activeChildNav.root || view.component === activeChildNav.root)) {
       return null;
     }
-    return this._serializer.serializeComponent(tabsNav, component, data);
+    return this._serializer.serializeComponent(tabsNav, comp, payload);
   };
 }
 
@@ -170,10 +165,10 @@ function unsubscribe(linker: any) {
 if (!(UrlSerializer.prototype as any)[PATCHED_FLAG]) {
   (UrlSerializer.prototype as any)[PATCHED_FLAG] = true;
 
-  const UrlSerializerProto = UrlSerializer.prototype as any;
-  const origSerialize = UrlSerializerProto.serialize;
+  const urlSerializerProto = UrlSerializer.prototype as any;
+  const origSerialize = urlSerializerProto.serialize;
 
-  UrlSerializerProto.serialize = function patchedSerialize(segments: any[]) {
+  urlSerializerProto.serialize = function patchedSerialize(segments: any[]) {
     const remapped = segments.map((s: any) => {
       if (s && s.type === 'tabs') {
         return Object.assign({}, s, { type: 'nav', requiresExplicitNavPrefix: false });
@@ -193,10 +188,10 @@ if (!(UrlSerializer.prototype as any)[PATCHED_FLAG]) {
 if (!(Tabs.prototype as any)[PATCHED_FLAG]) {
   (Tabs.prototype as any)[PATCHED_FLAG] = true;
 
-  const TabsProto = Tabs.prototype as any;
-  const origUpdate = TabsProto._updateCurrentTab;
+  const tabsProto = Tabs.prototype as any;
+  const origUpdate = tabsProto._updateCurrentTab;
 
-  TabsProto._updateCurrentTab = function patchedUpdate(tab: any, fromUrl: boolean) {
+  tabsProto._updateCurrentTab = function patchedUpdate(tab: any, fromUrl: boolean) {
     if (!fromUrl || !tab || !tab._segment) {
       return origUpdate.call(this, tab, fromUrl);
     }
@@ -227,10 +222,10 @@ if (!(Tabs.prototype as any)[PATCHED_FLAG]) {
 if (!(Tab.prototype as any)[PATCHED_FLAG]) {
   (Tab.prototype as any)[PATCHED_FLAG] = true;
 
-  const TabProto = Tab.prototype as any;
-  const origTabLoad = TabProto.load;
+  const tabProto = Tab.prototype as any;
+  const origTabLoad = tabProto.load;
 
-  TabProto.load = function patchedLoad(opts: any) {
+  tabProto.load = function patchedLoad(opts: any) {
     const seg = this._segment;
     if (
       seg &&

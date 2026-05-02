@@ -18,6 +18,7 @@ export class AuthorList {
   @Output() itemClick: EventEmitter<Author> = new EventEmitter();
   @Output() followToggle: EventEmitter<{ author: Author; event: Event }> = new EventEmitter();
 
+  // tslint:disable-next-line:variable-name
   trackById(_index: number, author: Author): any {
     return author && author.id;
   }

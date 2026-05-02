@@ -83,8 +83,8 @@ export class StoryListItem {
       () => {
         this.navCtrl.push('StoryViewPage', {
           story,
-          id: story && story.id,
           loader,
+          id: story && story.id,
         });
       },
       story.length > minSizeForLoader ? 100 : 0,
@@ -223,7 +223,7 @@ export class StoryListItem {
 
         buttons.push({ text: t.CANCEL_BUTTON, role: 'cancel' });
 
-        this.actionSheetCtrl.create({ title: story.title || '', buttons }).present();
+        this.actionSheetCtrl.create({ buttons, title: story.title || '' }).present();
       });
   }
 

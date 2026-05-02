@@ -14,12 +14,7 @@ import { MemoPopover } from '../memo-popover/memo-popover';
 @Component({
   selector: 'memo-preview',
   template: `
-    <button
-      type="button"
-      class="memo-preview"
-      *ngIf="memos.has(kind, id)"
-      (click)="open($event)"
-    >
+    <button type="button" class="memo-preview" *ngIf="memos.has(kind, id)" (click)="open($event)">
       <span class="memo-preview__stripe"></span>
       <ion-icon class="memo-preview__icon" [name]="iconName"></ion-icon>
       <span class="memo-preview__body">
@@ -45,10 +40,9 @@ export class MemoPreview {
     return this.kind === 'series' ? 'MEMO_SERIES_TITLE' : 'MEMO_TITLE';
   }
 
+  // tslint:disable-next-line: variable-name
   open(_ev: UIEvent) {
     if (this.id == null) return;
-    this.popoverCtrl
-      .create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
-      .present();
+    this.popoverCtrl.create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' }).present();
   }
 }

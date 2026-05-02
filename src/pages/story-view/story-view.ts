@@ -568,6 +568,7 @@ export class StoryViewPage {
     this.scrollSaveTimeout = undefined;
   }
 
+  /* tslint:disable:semicolon */
   private onScroll = () => {
     if (this.settings.continuousMode) {
       this.continuousCtrl.onScroll(this.continuousPages);
@@ -579,6 +580,7 @@ export class StoryViewPage {
       this.persistScroll();
     }, 200);
   };
+  /* tslint:enable:semicolon */
 
   private persistScroll() {
     const el = this.scrollElement || this.getScrollElement();

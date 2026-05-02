@@ -113,7 +113,7 @@ export class Lists {
   // session contexts where getId() may not yet be populated.
   private revalidate() {
     this.api
-      .get(`3/my/lists`)
+      .get('3/my/lists')
       .map((d: any) => {
         if (!d || d.error || !Array.isArray(d)) return null;
 
@@ -189,7 +189,7 @@ export class Lists {
     // /3/my/lists is the logged-in alias of /3/users/{id}/lists — same shape,
     // no need to thread the numeric user id. See `revalidate` for the same.
     return this.api
-      .get(`3/my/lists`)
+      .get('3/my/lists')
       .map((d: any) => {
         if (loader) loader.dismiss();
         if (d.error) {

@@ -135,41 +135,45 @@ export class User {
         return Observable.of('');
       });
 
-    return this.api
-      .post(
-        'login',
-        JSON.stringify({ login: info.username, password: info.password }),
-        {
-          ...authOpts,
-          headers: { 'Content-Type': 'application/json' },
-        },
-        false,
-        AUTH_URL_INDEX,
-      )
-      .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
-      .do(() => {
-        this.jwtRefreshedAt = Date.now();
-        this.jwtLastErrorStatus = 0;
-      })
-      .switchMap(() => this.api.get('3/users/session'))
-      .switchMap((res: any) => v2Login$.map(sessionId => ({ res, sessionId })))
-      .map(({ res, sessionId }: any) => {
-        if (loader) loader.dismiss();
-        if (!res || !res.userid) {
-          throw Observable.throw(res);
-        }
-        this.user = {
-          id: res.userid,
-          username: res.username,
-          sessionId: sessionId || '',
-          // wall_id is the row id of the user's activity wall — required by
-          // /3/activity/counters. The session response is the only place it
-          // surfaces, so we capture it here for the Activity provider.
-          wallId: Number(res.wall_id) || 0,
-          date: new Date().getTime(),
-        };
-        this.storage.set(USER_KEY, this.user);
-      });
+    /* tslint:disable:ter-indent */
+    return (
+      this.api
+        .post(
+          'login',
+          JSON.stringify({ login: info.username, password: info.password }),
+          {
+            ...authOpts,
+            headers: { 'Content-Type': 'application/json' },
+          },
+          false,
+          AUTH_URL_INDEX,
+        )
+        /* tslint:enable:ter-indent */
+        .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
+        .do(() => {
+          this.jwtRefreshedAt = Date.now();
+          this.jwtLastErrorStatus = 0;
+        })
+        .switchMap(() => this.api.get('3/users/session'))
+        .switchMap((res: any) => v2Login$.map(sessionId => ({ res, sessionId })))
+        .map(({ res, sessionId }: any) => {
+          if (loader) loader.dismiss();
+          if (!res || !res.userid) {
+            throw Observable.throw(res);
+          }
+          this.user = {
+            id: res.userid,
+            username: res.username,
+            sessionId: sessionId || '',
+            // wall_id is the row id of the user's activity wall — required by
+            // /3/activity/counters. The session response is the only place it
+            // surfaces, so we capture it here for the Activity provider.
+            wallId: Number(res.wall_id) || 0,
+            date: new Date().getTime(),
+          };
+          this.storage.set(USER_KEY, this.user);
+        })
+    );
   }
 
   isLoggedIn(): boolean {

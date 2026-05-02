@@ -73,6 +73,7 @@ export class UserListPage {
 
   // Searchbar `ionInput` handler. The component already debounces by 350ms
   // (set via [debounce] on the template), so this fires once per pause.
+  // tslint:disable-next-line: variable-name
   onSearch(_ev: any) {
     const q = (this.query || '').trim();
     this.exactHit = null;
