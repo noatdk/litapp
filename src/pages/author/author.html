@@ -73,12 +73,7 @@
         [attr.srcset]="author.coverPicture.m2 ? (author.coverPicture.m1 + ' 1x, ' + author.coverPicture.m2 + ' 2x') : null"
         aria-hidden="true"
       />
-      <img
-        *ngIf="!author?.coverPicture?.m1 && author?.picture"
-        class="profile-hero__bg"
-        [src]="author.picture"
-        aria-hidden="true"
-      />
+      <img *ngIf="!author?.coverPicture?.m1 && author?.picture" class="profile-hero__bg" [src]="author.picture" aria-hidden="true" />
       <div class="profile-hero__shade"></div>
 
       <div class="profile-header">
@@ -98,12 +93,9 @@
           <p class="meta">
             <ng-container *ngIf="author?.joindateApprox || author?.jointimestamp">
               <ion-icon name="calendar"></ion-icon>
-              {{ 'AUTHOR_JOINED' | translate }}
-              {{ author?.joindateApprox || (author?.jointimestamp * 1000 | date:'mediumDate') }}
+              {{ 'AUTHOR_JOINED' | translate }} {{ author?.joindateApprox || (author?.jointimestamp * 1000 | date:'mediumDate') }}
             </ng-container>
-            <ng-container *ngIf="author?.location">
-              &nbsp;·&nbsp;<ion-icon name="pin"></ion-icon> {{ author?.location }}
-            </ng-container>
+            <ng-container *ngIf="author?.location"> &nbsp;·&nbsp;<ion-icon name="pin"></ion-icon> {{ author?.location }} </ng-container>
           </p>
           <p class="meta meta--last" *ngIf="author?.lastUpdateApprox">
             <ion-icon name="time"></ion-icon> Last update {{ author?.lastUpdateApprox | lowercase }}
@@ -112,7 +104,13 @@
       </div>
     </div>
 
-    <div class="bio" *ngIf="author?.bio" [class.bio--expanded]="showBio" (click)="onBioClick($event)">
+    <div
+      class="bio"
+      *ngIf="author?.bio"
+      [class.bio--expanded]="showBio"
+      [class.bio--clamped]="showArrow && !showBio"
+      (click)="onBioClick($event)"
+    >
       <p #biotext [innerHTML]="bioHtml()"></p>
       <button type="button" class="bio-toggle" *ngIf="showArrow && !showBio">
         <ion-icon name="arrow-down"></ion-icon>
@@ -157,24 +155,14 @@
     <!-- Per-type submission breakdown — only renders rows that have a non-zero
          count, so a stories-only author doesn't get a wall of "0"s. -->
     <div class="breakdown" *ngIf="hasBreakdown()">
-      <span class="chip" *ngIf="author.storiesCount">
-        <ion-icon name="bookmark"></ion-icon>{{ author.storiesCount }} stories
-      </span>
-      <span class="chip" *ngIf="author.poemsCount">
-        <ion-icon name="paper"></ion-icon>{{ author.poemsCount }} poems
-      </span>
-      <span class="chip" *ngIf="author.audiosCount">
-        <ion-icon name="musical-notes"></ion-icon>{{ author.audiosCount }} audios
-      </span>
+      <span class="chip" *ngIf="author.storiesCount"> <ion-icon name="bookmark"></ion-icon>{{ author.storiesCount }} stories </span>
+      <span class="chip" *ngIf="author.poemsCount"> <ion-icon name="paper"></ion-icon>{{ author.poemsCount }} poems </span>
+      <span class="chip" *ngIf="author.audiosCount"> <ion-icon name="musical-notes"></ion-icon>{{ author.audiosCount }} audios </span>
       <span class="chip" *ngIf="author.illustrationsCount">
         <ion-icon name="image"></ion-icon>{{ author.illustrationsCount }} illustrations
       </span>
-      <span class="chip" *ngIf="author.sgsCount">
-        <ion-icon name="game-controller-b"></ion-icon>{{ author.sgsCount }} story games
-      </span>
-      <span class="chip" *ngIf="author.seriesCount">
-        <ion-icon name="albums"></ion-icon>{{ author.seriesCount }} series
-      </span>
+      <span class="chip" *ngIf="author.sgsCount"> <ion-icon name="game-controller-b"></ion-icon>{{ author.sgsCount }} story games </span>
+      <span class="chip" *ngIf="author.seriesCount"> <ion-icon name="albums"></ion-icon>{{ author.seriesCount }} series </span>
     </div>
   </div>
 
@@ -183,36 +171,20 @@
   <div class="lit-card card-links" *ngIf="hasLinks()">
     <h3 class="lit-card__title">Links</h3>
 
-    <a
-      *ngIf="author?.supportMeLink"
-      class="link-row link-row--support"
-      tappable
-      (click)="openExternal(author.supportMeLink)"
-    >
+    <a *ngIf="author?.supportMeLink" class="link-row link-row--support" tappable (click)="openExternal(author.supportMeLink)">
       <ion-icon [name]="supportIcon(author.supportMeService)"></ion-icon>
       <span class="label">Support on {{ supportLabel(author.supportMeService) }}</span>
       <ion-icon name="open" class="trail"></ion-icon>
     </a>
 
-    <a
-      *ngIf="author?.homepage"
-      class="link-row"
-      tappable
-      (click)="openExternal(author.homepage)"
-    >
+    <a *ngIf="author?.homepage" class="link-row" tappable (click)="openExternal(author.homepage)">
       <ion-icon name="globe"></ion-icon>
       <span class="label">{{ author.homepage }}</span>
       <ion-icon name="open" class="trail"></ion-icon>
     </a>
 
     <div class="socials" *ngIf="socialEntries().length">
-      <a
-        *ngFor="let s of socialEntries()"
-        class="social-chip"
-        tappable
-        (click)="openExternal(s.url)"
-        [title]="s.label"
-      >
+      <a *ngFor="let s of socialEntries()" class="social-chip" tappable (click)="openExternal(s.url)" [title]="s.label">
         <ion-icon [name]="s.icon"></ion-icon>
         <span>{{ s.handle }}</span>
       </a>
@@ -288,26 +260,16 @@
   </p>
 
   <ng-container *ngIf="openSegment=='stories'">
-    <p
-      *ngIf="submissionsSort !== 'default' && hasUnloadedSubmissions()"
-      class="submissions-sort-hint"
-    >
+    <p *ngIf="submissionsSort !== 'default' && hasUnloadedSubmissions()" class="submissions-sort-hint">
       {{ 'AUTHOR_SORT_INCOMPLETE' | translate }}
     </p>
     <ion-list class="submissions-list" *ngIf="submissionRows.length">
       <ng-container *ngFor="let row of submissionRows">
         <!-- Standalone story — same card the rest of the app uses -->
-        <story-list-item
-          *ngIf="row.kind === 'story'"
-          [story]="row.story"
-        ></story-list-item>
+        <story-list-item *ngIf="row.kind === 'story'" [story]="row.story"></story-list-item>
 
         <!-- Series group — expandable, woven inline with the standalone cards -->
-        <div
-          *ngIf="row.kind === 'series'"
-          class="series-card"
-          [class.series-card--expanded]="row.expanded"
-        >
+        <div *ngIf="row.kind === 'series'" class="series-card" [class.series-card--expanded]="row.expanded">
           <button ion-item detail-none class="series-card__item" (click)="toggleSeriesRow(row)">
             <h2>
               <ion-icon class="series-card__icon" name="albums"></ion-icon>
@@ -317,18 +279,16 @@
             </h2>
             <p class="series-card__stats">
               <span *ngIf="row.series.totalViews"><ion-icon name="eye"></ion-icon> {{ row.series.totalViews | compactNumber }}</span>
-              <span *ngIf="row.series.totalFavorites"><ion-icon name="heart"></ion-icon> {{ row.series.totalFavorites | compactNumber }}</span>
+              <span *ngIf="row.series.totalFavorites"
+                ><ion-icon name="heart"></ion-icon> {{ row.series.totalFavorites | compactNumber }}</span
+              >
               <span *ngIf="row.series.totalComments"><ion-icon name="text"></ion-icon> {{ row.series.totalComments | compactNumber }}</span>
               <span *ngIf="row.series.totalLists"><ion-icon name="bookmark"></ion-icon> {{ row.series.totalLists | compactNumber }}</span>
             </p>
             <p class="tags" *ngIf="row.series.categoryID">
               <strong>{{ row.series.categoryID | categoryName | async }}</strong>
             </p>
-            <ion-note
-              *ngIf="row.chapters.length > SERIES_PREVIEW_COUNT"
-              item-end
-              class="series-card__note"
-            >
+            <ion-note *ngIf="row.chapters.length > SERIES_PREVIEW_COUNT" item-end class="series-card__note">
               <ion-icon class="series-card__chevron" [name]="row.expanded ? 'arrow-dropup' : 'arrow-dropdown'"></ion-icon>
             </ion-note>
           </button>
@@ -352,14 +312,7 @@
               </ion-label>
             </button>
 
-            <button
-              *ngIf="row.expanded"
-              ion-button
-              block
-              clear
-              small
-              (click)="openSeriesPage(row)"
-            >
+            <button *ngIf="row.expanded" ion-button block clear small (click)="openSeriesPage(row)">
               {{ 'HISTORY_SERIES_VIEW_ALL' | translate }}
             </button>
           </div>

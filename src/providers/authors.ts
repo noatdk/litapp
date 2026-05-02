@@ -84,8 +84,7 @@ export class Authors {
 
     return this.api
       .get<UserByNameResponse | AuthorByIdResponse | ApiUserProfile>(url)
-      .map(data => {
-        if (loader) loader.dismiss();
+      .mergeMap(data => {
         // /3/users/{name} wraps the payload as { success, user: {...} };
         // /3/authors/{id} returns either an array or a bare object.
         let profile: ApiUserProfile | undefined;
@@ -94,9 +93,21 @@ export class Authors {
         else profile = data as ApiUserProfile;
 
         if (!profile || profile.userid == null) {
+          if (loader) loader.dismiss();
           this.ux.showToast();
           console.error('author.getDetails');
-          return null;
+          return Observable.of(null as Author | null);
+        }
+
+        // Id-route fallback returns a thin shape (no bio / joindate_approx /
+        // facts / per-type counts). When direct entry lands here without a
+        // cached username, the response still carries `profile.username` —
+        // chain a rich `/3/users/{name}` fetch so the page sees the full set
+        // instead of a half-hydrated profile.
+        if (!name && profile.username) {
+          if (cached) cached.name = profile.username;
+          if (loader) loader.dismiss();
+          return this.getDetails(id, true, profile.username);
         }
 
         if (!cached) {
@@ -218,7 +229,8 @@ export class Authors {
         (cached as any)._fullProfile = true;
 
         this.authors.set(cached.id, cached);
-        return cached;
+        if (loader) loader.dismiss();
+        return Observable.of(cached);
       })
       .catch(error => {
         if (loader) loader.dismiss();

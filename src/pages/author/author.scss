@@ -25,8 +25,13 @@ page-author {
     // Don't set `transform` in the `to` step — leaving it default means the
     // animation ends with no transform applied, so a sticky descendant
     // (`.tab-bar`) regains its position: sticky containing block.
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   // First card sits below the toolbar with breathing room. Profile card
@@ -53,11 +58,13 @@ page-author {
   }
   .profile-hero__bg {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     filter: blur(22px);
-    transform: scale(1.2);          // hide blur edges
+    transform: scale(1.2); // hide blur edges
     z-index: 0;
     pointer-events: none;
   }
@@ -72,7 +79,10 @@ page-author {
   }
   .profile-hero__shade {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.65) 100%);
     z-index: 1;
     pointer-events: none;
@@ -95,11 +105,13 @@ page-author {
     .author-lists ion-item .item-block {
       background: transparent !important;
     }
-    .author-lists ion-item:last-child .item-inner { border-bottom: none; }
+    .author-lists ion-item:last-child .item-inner {
+      border-bottom: none;
+    }
   }
 
   .profile-header {
-    position: relative;          // sit above hero bg + shade
+    position: relative; // sit above hero bg + shade
     z-index: 2;
     display: flex;
     align-items: center;
@@ -168,7 +180,9 @@ page-author {
           letter-spacing: 0.04em;
           text-transform: uppercase;
           text-shadow: none;
-          ion-icon { font-size: 12px; }
+          ion-icon {
+            font-size: 12px;
+          }
         }
       }
       .title {
@@ -205,7 +219,9 @@ page-author {
       flex: 1;
       padding: 0 $sp-2;
       border-left: 1px solid $divider;
-      &:first-child { border-left: none; }
+      &:first-child {
+        border-left: none;
+      }
 
       strong {
         display: block;
@@ -225,7 +241,9 @@ page-author {
       cursor: pointer;
       border-radius: $radius-sm;
       transition: background 80ms ease-out;
-      &:active { background: $lit-blue-active; }
+      &:active {
+        background: $lit-blue-active;
+      }
     }
     .stat--disabled {
       pointer-events: none;
@@ -275,7 +293,9 @@ page-author {
         padding: $sp-2 0;
         border-bottom: 1px solid $divider;
 
-        &:last-child { border-bottom: none; }
+        &:last-child {
+          border-bottom: none;
+        }
       }
       dt {
         flex: 0 0 110px;
@@ -308,7 +328,9 @@ page-author {
       text-decoration: none;
       border-bottom: 1px solid $divider;
 
-      &:last-of-type { border-bottom: none; }
+      &:last-of-type {
+        border-bottom: none;
+      }
 
       > ion-icon:first-child {
         flex: 0 0 24px;
@@ -338,8 +360,13 @@ page-author {
       border-bottom: none;
       background: $lit-blue-tint;
 
-      > ion-icon:first-child { color: $lit-blue; }
-      .label { color: $lit-blue; font-weight: 600; }
+      > ion-icon:first-child {
+        color: $lit-blue;
+      }
+      .label {
+        color: $lit-blue;
+        font-weight: 600;
+      }
     }
 
     .socials {
@@ -368,7 +395,9 @@ page-author {
         color: $lit-blue;
         flex: 0 0 auto;
       }
-      &:active { background: $lit-blue-tint; }
+      &:active {
+        background: $lit-blue-tint;
+      }
     }
   }
 
@@ -393,14 +422,17 @@ page-author {
     }
   }
 
-  // Collapsed state — clamp height + fade out via mask so the bottom line
-  // doesn't render half-truncated under the gradient (the prior box-shadow
-  // hack let cut-off characters bleed through).
+  // Collapsed state — clamp height for measurement so we can detect overflow
+  // (showArrow compares scrollHeight vs clientHeight). Mask is gated on
+  // bio--clamped so short bios that fit don't get a phantom fade with no
+  // toggle button.
   .bio:not(.bio--expanded) p {
     max-height: 115px;
     overflow: hidden;
+  }
+  .bio--clamped p {
     -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
-    mask-image:        linear-gradient(to bottom, #000 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
   }
 
   .bio-toggle {
@@ -414,7 +446,9 @@ page-author {
     border: 0;
     color: $lit-blue;
     cursor: pointer;
-    ion-icon { font-size: 1.4em; }
+    ion-icon {
+      font-size: 1.4em;
+    }
   }
 
   .author-lists {
