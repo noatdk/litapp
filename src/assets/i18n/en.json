@@ -4,7 +4,6 @@
 
   "MENU_HOME": "Home",
   "MENU_OPENLINK": "Open a link",
-  "MENU_ACCOUNT": "Account",
   "MENU_SETTINGS": "Settings",
 
   "ACCOUNT_TITLE": "Account",
@@ -24,6 +23,7 @@
   "ACCOUNT_JWT_REFRESH_FAILED": "JWT refresh failed.",
   "ACCOUNT_SESSION_LABEL": "Legacy session (v2 endpoints)",
   "ACCOUNT_SESSION_MISSING": "Not captured — log out and back in to enable rating.",
+  "ACCOUNT_OPEN_AUTHOR_PAGE": "Open my author page",
   "NAME": "Name",
   "EMAIL": "Email",
   "USERNAME": "Username",

@@ -68,6 +68,11 @@ export class AuthorPage {
       this.translations = values;
     });
 
+    if (!author || author.id == null) {
+      this.loaded = true;
+      return;
+    }
+
     this.a.getDetails(author.id).subscribe(author => {
       this.author = author;
       this.loaded = true;
@@ -77,7 +82,9 @@ export class AuthorPage {
   ionViewDidEnter() {
     const loop = setInterval(() => {
       if (this.loaded) {
-        this.showArrow = this.biotext.nativeElement.scrollHeight > this.biotext.nativeElement.clientHeight;
+        if (this.biotext && this.biotext.nativeElement) {
+          this.showArrow = this.biotext.nativeElement.scrollHeight > this.biotext.nativeElement.clientHeight;
+        }
         clearInterval(loop);
       }
     }, 50);

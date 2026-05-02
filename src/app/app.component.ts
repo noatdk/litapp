@@ -1,16 +1,16 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, NgZone, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Config, Nav, Platform, App, AlertController } from 'ionic-angular';
+import { Config, Nav, Platform, App, AlertController, Menu } from 'ionic-angular';
 import { WebIntent } from '@ionic-native/web-intent';
 
-import { Globals, Analytics, UX, Stories, Lists, Feed, Settings } from '../providers/providers';
+import { Globals, Analytics, UX, Stories, Lists, Feed, Settings, User, Api } from '../providers/providers';
 import { FingerprintAIO } from '@ionic-native/fingerprint-aio';
 import { StatusBar } from '@ionic-native/status-bar';
 
 @Component({
   template: `
     <ng-container *ngIf="loggedIn">
-      <ion-menu [content]="content">
+      <ion-menu [content]="content" (ionOpen)="onMenuOpen()" (ionClose)="onMenuClose()">
         <ion-header>
           <ion-toolbar>
             <ion-title>Literotica <small>(unofficial)</small></ion-title>
@@ -27,15 +27,57 @@ import { StatusBar } from '@ionic-native/status-bar';
               {{ 'MENU_OPENLINK' | translate }}
             </button>
 
-            <button menuClose ion-item (click)="openPage('AccountPage')" *ngIf="!settings.allSettings.offlineMode">
-              {{ 'MENU_ACCOUNT' | translate }}
-            </button>
-
             <button menuClose ion-item (click)="openPage('SettingsPage')">
               {{ 'MENU_SETTINGS' | translate }}
             </button>
           </ion-list>
         </ion-content>
+
+        <ion-footer class="account-footer" *ngIf="!settings.allSettings.offlineMode">
+          <div *ngIf="!user.isLoggedIn()" class="signed-out">
+            <p class="muted">{{ 'ACCOUNT_SIGNED_OUT_TITLE' | translate }}</p>
+            <button menuClose ion-button block small (click)="login()">
+              <ion-icon name="log-in"></ion-icon>&nbsp; {{ 'LOGIN' | translate }}
+            </button>
+          </div>
+
+          <div *ngIf="user.isLoggedIn()" class="signed-in">
+            <button menuClose class="identity" (click)="openAuthorPage()"
+              title="{{ 'ACCOUNT_OPEN_AUTHOR_PAGE' | translate }}">
+              <span class="avatar" [class.has-image]="!!avatarUrl">
+                <img *ngIf="avatarUrl" [src]="avatarUrl" (error)="avatarUrl = ''" alt="" />
+                <span *ngIf="!avatarUrl">{{ avatarLetter() }}</span>
+              </span>
+              <span class="user-info">
+                <span class="username">{{ user.getDetails().username }}</span>
+                <span class="status"
+                   [class.muted]="jwtState() === 'fresh' || jwtState() === 'unknown'"
+                   [class.warn]="jwtState() === 'stale'"
+                   [class.error]="jwtState() === 'expired'">
+                  <ng-container [ngSwitch]="jwtState()">
+                    <ng-container *ngSwitchCase="'fresh'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemaining() }}</ng-container>
+                    <ng-container *ngSwitchCase="'stale'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemaining() }}</ng-container>
+                    <ng-container *ngSwitchCase="'expired'">{{ (needsRelogin() ? 'ACCOUNT_JWT_RELOGIN_REQUIRED' : 'ACCOUNT_JWT_EXPIRED') | translate }}</ng-container>
+                    <ng-container *ngSwitchDefault>id #{{ user.getDetails().id }}</ng-container>
+                  </ng-container>
+                </span>
+              </span>
+            </button>
+            <div class="actions">
+              <button *ngIf="!needsRelogin()" class="icon-btn" (click)="refreshJwt()"
+                [disabled]="refreshing" title="{{ 'ACCOUNT_JWT_REFRESH_NOW' | translate }}">
+                <ion-icon name="refresh"></ion-icon>
+              </button>
+              <button *ngIf="needsRelogin()" menuClose class="icon-btn warn" (click)="relogin()"
+                title="{{ 'ACCOUNT_RELOGIN' | translate }}">
+                <ion-icon name="log-in"></ion-icon>
+              </button>
+              <button class="icon-btn danger" (click)="logout()" title="{{ 'LOGOUT' | translate }}">
+                <ion-icon name="log-out"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </ion-footer>
       </ion-menu>
       <ion-nav #content root="TabsPage"></ion-nav>
     </ng-container>
@@ -43,8 +85,13 @@ import { StatusBar } from '@ionic-native/status-bar';
 })
 export class MyApp {
   @ViewChild(Nav) nav: Nav;
+  @ViewChild(Menu) menu: Menu;
 
   loggedIn: boolean = false;
+  refreshing = false;
+  avatarUrl: string = '';
+  private tick: any;
+  private avatarFetchedFor: any = null;
 
   constructor(
     public platform: Platform,
@@ -60,8 +107,11 @@ export class MyApp {
     public s: Stories,
     public l: Lists,
     public f: Feed,
+    public user: User,
+    public api: Api,
     public faio: FingerprintAIO,
     public statusBar: StatusBar,
+    private zone: NgZone,
   ) {
     this.initTranslate();
     this.settings.load().then(() => {
@@ -161,6 +211,114 @@ export class MyApp {
     } else {
       this.nav.push(page);
     }
+  }
+
+  // --- Account footer (Discord-style bottom-of-sidebar panel) ---
+
+  onMenuOpen() {
+    if (!this.user.isLoggedIn()) return;
+    this.user.checkIfEverythingIsFucked().then(answer => {
+      if (answer) this.user.logout();
+    });
+    this.fetchAvatar();
+    this.zone.runOutsideAngular(() => {
+      if (this.tick) return;
+      this.tick = setInterval(() => {
+        this.zone.run(() => {}); // trigger CD so jwtRemaining() refreshes
+      }, 1000);
+    });
+  }
+
+  onMenuClose() {
+    if (this.tick) clearInterval(this.tick);
+    this.tick = null;
+  }
+
+  login() {
+    this.nav.push('LoginPage');
+  }
+
+  logout() {
+    this.user.logout();
+  }
+
+  relogin() {
+    this.user.removeStoredUser().then(() => {
+      this.nav.push('LoginPage');
+    });
+  }
+
+  refreshJwt() {
+    if (this.refreshing) return;
+    this.refreshing = true;
+    this.user.refreshJwt().then(ok => {
+      this.refreshing = false;
+      this.ux.showToast(ok ? 'INFO' : 'ERROR', ok ? 'ACCOUNT_JWT_REFRESHED' : 'ACCOUNT_JWT_REFRESH_FAILED');
+    });
+  }
+
+  avatarLetter(): string {
+    const d = this.user.getDetails();
+    const name = (d && d.username) || '';
+    return name ? name.charAt(0).toUpperCase() : '?';
+  }
+
+  // Fetch the logged-in user's profile picture from /3/authors/{id}.
+  // Cached per user id; called on every menu open but no-ops after the first
+  // successful fetch. Falls back to the initial-letter avatar on failure.
+  private fetchAvatar() {
+    const d = this.user.getDetails();
+    if (!d || d.id == null) return;
+    if (this.avatarFetchedFor === d.id && this.avatarUrl) return;
+    this.avatarFetchedFor = d.id;
+    this.api.get(`3/authors/${d.id}`).subscribe(
+      (data: any) => {
+        const profile = Array.isArray(data) ? data[0] : data;
+        const pic = profile && profile.userpic;
+        if (pic && pic !== 'https://www.literotica.com/imagesv2/da') {
+          this.avatarUrl = pic;
+        }
+      },
+      () => { this.avatarFetchedFor = null; },
+    );
+  }
+
+  openAuthorPage() {
+    const details = this.user.getDetails();
+    if (!details || details.id == null) return;
+    const author = { id: details.id, name: details.username };
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push('AuthorPage', { author });
+  }
+
+  jwtRemaining(): string {
+    const ms = this.user.jwtRemainingMs();
+    if (ms == null) return '—';
+    return this.formatDuration(ms);
+  }
+
+  jwtState(): 'fresh' | 'stale' | 'expired' | 'unknown' {
+    if (this.user.jwtNeedsRelogin()) return 'expired';
+    const ms = this.user.jwtRemainingMs();
+    if (ms == null) return this.user.jwtLastError() ? 'expired' : 'unknown';
+    if (ms <= 0) return 'expired';
+    if (ms < 5 * 60 * 1000) return 'stale';
+    return 'fresh';
+  }
+
+  needsRelogin(): boolean {
+    return this.user.jwtNeedsRelogin();
+  }
+
+  private formatDuration(ms: number): string {
+    const sign = ms < 0 ? '-' : '';
+    const total = Math.abs(Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h) return `${sign}${h}h ${m}m`;
+    if (m) return `${sign}${m}m ${s}s`;
+    return `${sign}${s}s`;
   }
 
   openLinkDialog(url?) {
