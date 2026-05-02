@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Lists, Memos, User, Filters, UX, Categories } from '../../providers/providers';
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
+import { MemoPopover } from '../memo-popover/memo-popover';
 
 @Component({
   selector: 'story-list-item',
@@ -119,7 +120,7 @@ export class StoryListItem {
   openMemo(kind: 'story' | 'series', id: any) {
     if (id == null) return;
     this.popoverCtrl
-      .create('MemoPopover', { kind, id }, { cssClass: 'memo-popover' })
+      .create(MemoPopover, { kind, id }, { cssClass: 'memo-popover' })
       .present();
   }
 

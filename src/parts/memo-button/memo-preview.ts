@@ -3,6 +3,7 @@ import { PopoverController } from 'ionic-angular';
 
 import { Memos } from '../../providers/providers';
 import { MemoKind } from './memo-button';
+import { MemoPopover } from '../memo-popover/memo-popover';
 
 // Inline display of a memo (under page header). Hidden when no memo exists.
 // Tapping it reopens the same popover used by <memo-button>.
@@ -29,10 +30,10 @@ export class MemoPreview {
     return this.kind === 'series' ? 'MEMO_SERIES_TITLE' : 'MEMO_TITLE';
   }
 
-  open(ev: UIEvent) {
+  open(_ev: UIEvent) {
     if (this.id == null) return;
     this.popoverCtrl
-      .create('MemoPopover', { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
-      .present({ ev });
+      .create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
+      .present();
   }
 }

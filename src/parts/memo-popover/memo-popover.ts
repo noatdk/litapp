@@ -5,7 +5,7 @@ import { Memos } from '../../providers/providers';
 
 // Tiny editor surfaced from story-detail / author / series pages. Receives `kind`
 // ('story' | 'author' | 'series') and `id` via NavParams; persists via Memos provider.
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'high' })
 @Component({
   selector: 'memo-popover',
   templateUrl: 'memo-popover.html',

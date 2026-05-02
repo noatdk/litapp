@@ -2,6 +2,7 @@ import { AfterViewInit, Component, Input, ViewChild } from '@angular/core';
 import { Button, PopoverController } from 'ionic-angular';
 
 import { Memos } from '../../providers/providers';
+import { MemoPopover } from '../memo-popover/memo-popover';
 
 export type MemoKind = 'story' | 'author' | 'series';
 
@@ -47,10 +48,10 @@ export class MemoButton implements AfterViewInit {
     return this.kind === 'series' ? 'MEMO_SERIES_BUTTON' : 'MEMO_BUTTON';
   }
 
-  open(ev: UIEvent) {
+  open(_ev: UIEvent) {
     if (this.id == null) return;
     this.popoverCtrl
-      .create('MemoPopover', { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
-      .present({ ev });
+      .create(MemoPopover, { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
+      .present();
   }
 }
