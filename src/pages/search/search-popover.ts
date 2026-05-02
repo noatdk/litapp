@@ -126,8 +126,11 @@ import { Category } from '../../models/category';
         border: none !important;
       }
 
+      // Border value matches $divider (#dde3ec) from src/theme/_tokens.scss.
+      // Inlined here because story-view's popovers are defined as inline
+      // template + styles inside .ts and don't import the SCSS partial graph.
       .list-md .item-block .item-inner {
-        border-color: #666;
+        border-color: #dde3ec;
       }
 
       .item-checkbox {

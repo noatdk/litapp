@@ -7,7 +7,8 @@
   </ion-navbar>
 </ion-header>
 
-<ion-content padding *ngIf="settingsReady">
+<ion-content padding>
+  <ng-container *ngIf="settingsReady">
   <h2>{{ 'SETTINGS_CAT_GENERAL' | translate }}</h2>
   <p>{{'SETTINGS_RESTART_DISCLAIMER' | translate}}</p>
   <form [formGroup]="form">
@@ -42,10 +43,6 @@
   <h3>{{ 'SETTINGS_CAT_TWEAKS' | translate }}</h3>
   <form [formGroup]="form">
     <ion-list>
-      <ion-item>
-        <ion-label>{{'SETTINGS_AMOLEDBLACKTHEME' | translate}}</ion-label>
-        <ion-toggle formControlName="amoledBlackTheme"></ion-toggle>
-      </ion-item>
       <ion-item>
         <ion-label>{{'SETTINGS_ALTERNATE_PAGINATION' | translate}}</ion-label>
         <ion-toggle formControlName="alternatePagination"></ion-toggle>
@@ -111,12 +108,7 @@
     </p>
   </ion-list>
 
-  <h4 class="filter-heading">
-    {{ 'SETTINGS_FILTERS_AUTHORS' | translate }}
-    <button ion-button clear icon-only (click)="pickAuthor($event)">
-      <ion-icon name="add"></ion-icon>
-    </button>
-  </h4>
+  <h4 class="filter-heading">{{ 'SETTINGS_FILTERS_AUTHORS' | translate }}</h4>
   <ion-list>
     <ion-item *ngFor="let e of filters.getBlockedAuthors()">
       <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
@@ -127,14 +119,12 @@
     <p *ngIf="filters.getBlockedAuthors().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_AUTHORS_EMPTY' | translate }}
     </p>
-  </ion-list>
-
-  <h4 class="filter-heading">
-    {{ 'SETTINGS_FILTERS_SERIES' | translate }}
-    <button ion-button clear icon-only (click)="pickSeries($event)">
+    <button ion-item class="filter-add" (click)="pickAuthor($event)">
       <ion-icon name="add"></ion-icon>
     </button>
-  </h4>
+  </ion-list>
+
+  <h4 class="filter-heading">{{ 'SETTINGS_FILTERS_SERIES' | translate }}</h4>
   <ion-list>
     <ion-item *ngFor="let e of filters.getBlockedSeries()">
       <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
@@ -145,14 +135,12 @@
     <p *ngIf="filters.getBlockedSeries().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_SERIES_EMPTY' | translate }}
     </p>
-  </ion-list>
-
-  <h4 class="filter-heading">
-    {{ 'SETTINGS_FILTERS_CATEGORIES' | translate }}
-    <button ion-button clear icon-only (click)="pickCategory($event)">
+    <button ion-item class="filter-add" (click)="pickSeries($event)">
       <ion-icon name="add"></ion-icon>
     </button>
-  </h4>
+  </ion-list>
+
+  <h4 class="filter-heading">{{ 'SETTINGS_FILTERS_CATEGORIES' | translate }}</h4>
   <ion-list>
     <ion-item *ngFor="let e of filters.getBlockedCategories()">
       <ion-label>{{ e.name || ('PICKER_UNNAMED' | translate) }} <small class="entity-id">#{{ e.id }}</small></ion-label>
@@ -163,6 +151,9 @@
     <p *ngIf="filters.getBlockedCategories().length === 0" class="filter-empty">
       {{ 'SETTINGS_FILTERS_CATEGORIES_EMPTY' | translate }}
     </p>
+    <button ion-item class="filter-add" (click)="pickCategory($event)">
+      <ion-icon name="add"></ion-icon>
+    </button>
   </ion-list>
 
   <!-- About -->
@@ -182,4 +173,5 @@
   <br />
   <br />
   <span class="version">({{'SETTINGS_VERSION' | translate}}: {{g.getVersion()}})</span>
+  </ng-container>
 </ion-content>

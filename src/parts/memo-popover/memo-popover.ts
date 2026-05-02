@@ -19,6 +19,10 @@ export class MemoPopover {
     return this.kind === 'series' ? 'MEMO_SERIES_TITLE' : 'MEMO_TITLE';
   }
 
+  get iconName(): string {
+    return this.kind === 'series' ? 'albums' : 'paper';
+  }
+
   constructor(navParams: NavParams, public viewCtrl: ViewController, public memos: Memos) {
     this.kind = navParams.get('kind');
     this.id = navParams.get('id');

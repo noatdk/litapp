@@ -10,6 +10,7 @@ import { Author } from '../../models/author';
 import { Story } from '../../models/story';
 import { summarizeSeries, SeriesSummary } from '../../providers/series';
 import { handleNoCordovaError, getAuthorPageUrl } from '../../app/utils';
+import { FACT_DEFS } from '../../data/literotica-constants';
 
 // One row in the submissions list — either a standalone story or a series
 // group containing multiple chapters. Series groups are collapsed by default
@@ -33,6 +34,8 @@ export class AuthorPage {
   author: Author;
   showArrow = false;
   showBio = false;
+  avatarFailed = false;
+  refreshing = false;
   loaded = false;
   openSegment = '';
   currentSubmissionsPage = 1;
@@ -73,8 +76,12 @@ export class AuthorPage {
       return;
     }
 
-    this.a.getDetails(author.id).subscribe(author => {
-      this.author = author;
+    // Pass `author.name` as a hint so getDetails routes the cold-cache fetch
+    // to the rich `/3/users/{name}` endpoint. Without the hint, navigating in
+    // from story-detail (where the cache hasn't seen this author yet) falls
+    // back to the lesser `/3/authors/{id}` shape and the new fields go missing.
+    this.a.getDetails(author.id, false, author.name).subscribe(a => {
+      this.author = a;
       this.loaded = true;
     });
   }
@@ -257,6 +264,203 @@ export class AuthorPage {
 
   toggleBio() {
     this.showBio = !this.showBio;
+  }
+
+  // Force-refetch this author's profile, bypassing the provider's in-memory
+  // cache. Used by the toolbar refresh button so the user can pull fresh data
+  // after the upstream API or local model has changed.
+  refresh() {
+    if (!this.author || this.author.id == null || this.refreshing) return;
+    this.refreshing = true;
+    this.avatarFailed = false;
+    this.a.getDetails(this.author.id, true, this.author.name).subscribe(
+      (a: Author) => {
+        this.refreshing = false;
+        if (a) this.author = a;
+      },
+      () => { this.refreshing = false; },
+    );
+  }
+
+  avatarLetter(): string {
+    const name = (this.author && this.author.name) || '';
+    return name ? name.charAt(0).toUpperCase() : '?';
+  }
+
+  // True iff the author has at least one non-default per-type submission count.
+  // Hides the breakdown row entirely for legacy /3/authors/{id} responses
+  // (which never populate these fields).
+  hasBreakdown(): boolean {
+    const a = this.author as any;
+    if (!a) return false;
+    return !!(a.storiesCount || a.poemsCount || a.audiosCount || a.illustrationsCount || a.sgsCount || a.seriesCount);
+  }
+
+  // True iff the Links card has anything to render.
+  hasLinks(): boolean {
+    const a = this.author as any;
+    if (!a) return false;
+    if (a.supportMeLink || a.homepage) return true;
+    return this.socialEntries().length > 0;
+  }
+
+  // Social-handle base URLs + display labels + ionicon names. Order here is
+  // the order chips render in the Links card.
+  private static SOCIAL_META: { [k: string]: { base: string; label: string; icon: string } } = {
+    x:          { base: 'https://x.com/',           label: 'X / Twitter',  icon: 'logo-twitter' },
+    facebook:   { base: 'https://facebook.com/',    label: 'Facebook',     icon: 'logo-facebook' },
+    instagram:  { base: 'https://instagram.com/',   label: 'Instagram',    icon: 'logo-instagram' },
+    tiktok:     { base: 'https://tiktok.com/@',     label: 'TikTok',       icon: 'musical-notes' },
+    tumblr:     { base: 'https://',                 label: 'Tumblr',       icon: 'logo-tumblr' },
+    youtube:    { base: 'https://youtube.com/@',    label: 'YouTube',      icon: 'logo-youtube' },
+    kofi:       { base: 'https://ko-fi.com/',       label: 'Ko-fi',        icon: 'cafe' },
+    wattpad:    { base: 'https://wattpad.com/user/', label: 'Wattpad',     icon: 'book' },
+    ao3:        { base: 'https://archiveofourown.org/users/', label: 'AO3', icon: 'bookmarks' },
+    allpoetry:  { base: 'https://allpoetry.com/',   label: 'AllPoetry',    icon: 'paper' },
+    deviantart: { base: 'https://',                 label: 'DeviantArt',   icon: 'brush' },
+    gumroad:    { base: 'https://gumroad.com/',     label: 'Gumroad',      icon: 'pricetag' },
+    goodreads:  { base: 'https://goodreads.com/',   label: 'Goodreads',    icon: 'book' },
+    medium:     { base: 'https://medium.com/@',     label: 'Medium',       icon: 'paper' },
+    substack:   { base: 'https://',                 label: 'Substack',     icon: 'mail' },
+  };
+
+  socialEntries(): Array<{ key: string; handle: string; url: string; label: string; icon: string }> {
+    const socials = (this.author as any) && (this.author as any).socials;
+    if (!socials) return [];
+    const out: Array<{ key: string; handle: string; url: string; label: string; icon: string }> = [];
+    for (const k of Object.keys(AuthorPage.SOCIAL_META)) {
+      const v = socials[k];
+      if (!v) continue;
+      const meta = AuthorPage.SOCIAL_META[k];
+      // If the value already looks like a URL, use it verbatim. Otherwise
+      // prepend the platform's base URL.
+      const url = /^https?:\/\//i.test(v) ? v : meta.base + v;
+      out.push({ key: k, handle: v, url, label: meta.label, icon: meta.icon });
+    }
+    return out;
+  }
+
+  // Map the support_me_service value to an ionicon name + display label.
+  // Defaults are used when the service is empty or unknown.
+  supportIcon(service: string): string {
+    switch ((service || '').toLowerCase()) {
+      case 'patreon':       return 'heart';
+      case 'kofi':          return 'cafe';
+      case 'subscribestar': return 'star';
+      case 'gumroad':       return 'pricetag';
+      default:              return 'cash';
+    }
+  }
+  supportLabel(service: string): string {
+    switch ((service || '').toLowerCase()) {
+      case 'patreon':       return 'Patreon';
+      case 'kofi':          return 'Ko-fi';
+      case 'subscribestar': return 'SubscribeStar';
+      case 'gumroad':       return 'Gumroad';
+      default:              return service ? service[0].toUpperCase() + service.slice(1) : 'this author';
+    }
+  }
+
+  // Per-process set of (field,code) pairs we've already toasted about, so we
+  // don't spam the user when an unknown code shows up across many profile
+  // visits. Decoder table itself lives in
+  // src/data/literotica-constants.ts (FACT_DEFS) — see header there for source.
+  private static reportedMissing: Set<string> = new Set();
+
+  // Decode a fact code to its human label using the official /3/constants
+  // table. Returns '' for "no answer" (so the row is skipped) and the raw
+  // code for genuinely unknown values, with a one-time toast warning so the
+  // gap can be filled in. Checkbox fields concatenate per-char labels.
+  factLabel(field: string, code: string): string {
+    if (!code) return '';
+    const def = FACT_DEFS[field];
+    if (!def || !def.values) return code;
+    const trimmed = String(code).trim().toLowerCase();
+    if (def.nosave && trimmed === def.nosave) return '';
+
+    if (def.type === 'checkbox') {
+      const labels: string[] = [];
+      const unknowns: string[] = [];
+      for (const ch of trimmed) {
+        const lbl = def.values[ch];
+        if (lbl) labels.push(lbl);
+        else unknowns.push(ch);
+      }
+      for (const u of unknowns) this.reportMissingCode(field, u);
+      return labels.length ? labels.join(', ') : trimmed;
+    }
+
+    const lbl = def.values[trimmed];
+    if (lbl) return lbl;
+    this.reportMissingCode(field, trimmed);
+    return trimmed;
+  }
+
+  // One-time toast per unknown (field,code) pair — alerts the user that the
+  // local FACT_DEFS table is out of sync with the upstream /3/constants
+  // payload, without spamming them across multiple profile visits.
+  private reportMissingCode(field: string, code: string) {
+    const key = `${field}:${code}`;
+    if (AuthorPage.reportedMissing.has(key)) return;
+    AuthorPage.reportedMissing.add(key);
+    if (this.ux && (this.ux as any).showToast) {
+      try { this.ux.showToast('INFO', `Unknown ${field} code “${code}”`, 3500); } catch (e) { /* no-op */ }
+    }
+    console.warn(`[author.facts] unknown code for ${field}: ${JSON.stringify(code)}`);
+  }
+
+  // Build the list of fact rows that have a value, in the canonical display
+  // order. Empty fields are skipped so the card collapses for sparse profiles.
+  factEntries(): Array<{ label: string; value: string }> {
+    const a = this.author as any;
+    if (!a) return [];
+    const rows: Array<{ field: string; label: string; raw: string }> = [
+      { field: 'sex',         label: 'Sex',           raw: a.factSex },
+      { field: 'orientation', label: 'Orientation',   raw: a.factOrientation },
+      { field: 'weight',      label: 'Weight',        raw: a.factWeight },
+      { field: 'height',      label: 'Height',        raw: a.factHeight },
+      { field: 'datingstat',  label: 'Dating Status', raw: a.factDatingstat },
+      { field: 'pets',        label: 'Pets',          raw: a.factPets },
+      { field: 'smoke',       label: 'Smokes',        raw: a.factSmoke },
+      { field: 'drink',       label: 'Drinks',        raw: a.factDrink },
+    ];
+    const out: Array<{ label: string; value: string }> = [];
+    // Birthday goes first when set (mirrors the SSR site's order).
+    if (a.factDob) {
+      const formatted = this.formatDob(a.factDob);
+      if (formatted) out.push({ label: 'Birthday', value: formatted });
+    }
+    for (const r of rows) {
+      if (!r.raw) continue;
+      const value = this.factLabel(r.field, r.raw);
+      if (!value) continue;          // skips "No Answer" (nosave) codes
+      out.push({ label: r.label, value });
+    }
+    // Free-text fields tack on at the bottom when set.
+    if (a.factInterests) out.push({ label: 'Interests', value: a.factInterests });
+    if (a.factFetishes)  out.push({ label: 'Fetishes',  value: a.factFetishes });
+    return out;
+  }
+
+  // API returns dob as "MM/DD/YYYY". Render in the same long-form date the
+  // SSR site uses (e.g. "July 26, 1972"). Returns empty on parse failure so
+  // the row drops out rather than displaying garbage.
+  private formatDob(raw: string): string {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(raw).trim());
+    if (!m) return '';
+    const [, mm, dd, yyyy] = m;
+    const t = Date.parse(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00Z`);
+    if (isNaN(t)) return '';
+    const d = new Date(t);
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  }
+
+  openExternal(url: string) {
+    if (!url) return;
+    this.browser.isAvailable()
+      .then(ok => ok ? this.browser.openUrl(url) : window.open(url, '_blank'))
+      .catch(() => window.open(url, '_blank'));
   }
 
   // Don't expand/collapse when the user is tapping a link inside the bio.

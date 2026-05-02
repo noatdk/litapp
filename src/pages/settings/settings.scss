@@ -1,52 +1,165 @@
+@import '../../theme/tokens';
+
 page-settings {
-  .scroll-content {
-    padding-bottom: 30px !important;
+  ion-content {
+    background: $page-bg;
+  }
+
+  // *ngIf="settingsReady" makes Ionic miss the auto-reflow that pushes
+  // scroll-content below the toolbar. Force it manually so the first h2
+  // banner can't render tucked under the toolbar at initial paint.
+  ion-content {
+    > .scroll-content {
+      padding-bottom: 30px !important;
+    }
   }
 
   .label {
     white-space: pre-wrap;
   }
   .version {
-    opacity: 0.5;
+    color: $text-muted;
+    font-size: 0.85em;
   }
 
+  // h2 = top-level section banner ("App settings", "About the app").
+  // Lit-blue with a left accent bar + bottom divider. Top space is
+  // delivered via PADDING (not margin) so it can't margin-collapse with
+  // the ion-content padding boundary — that collapse is what was tucking
+  // the first banner under the toolbar.
   h2 {
-    margin-top: 80px !important;
+    margin: 0 0 $sp-3 !important;
+    padding: $sp-4 0 $sp-2 $sp-3;
+    color: $lit-blue;
+    font-size: $fs-page-title;
+    font-weight: 700;
+    line-height: 1.2;
+    border-bottom: 1px solid $divider;
+    border-left: 4px solid $lit-blue;
+    text-transform: none;
+    clear: both;
   }
 
+  // Banners after the first one need extra breathing room from the section
+  // above (which now has a card border ending right above this h2).
+  h2 + *,
+  ion-list + h2,
+  form + h2,
+  button[ion-button] + h2 {
+    margin-top: $sp-4;
+  }
+
+  // h3 = mid-level section ("Tweaks", "Filters", "About the app").
+  // Same Lit-blue, lighter weight than h2; no accent bar so the visual
+  // hierarchy stays distinct from h2.
   h3 {
-    margin-top: 30px !important;
+    margin: $sp-5 0 $sp-2 !important;
+    color: $lit-blue;
+    font-size: $fs-section;
+    font-weight: 700;
+    letter-spacing: 0.01em;
   }
 
-  .item-select .label-md {
-    color: inherit;
+  // Summary paragraph under a section heading — secondary text, slightly
+  // looser line-height so it feels like a subtitle.
+  h2 + p,
+  h3 + p {
+    margin: -$sp-2 0 $sp-3;
+    color: $text-secondary;
+    font-size: $fs-meta;
   }
 
+  // Wrap form/list groups in a card so each settings cluster reads as a
+  // discrete row of options on the tinted page bg.
+  ion-list,
+  form ion-list {
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-radius: $radius-md;
+    margin: 0 0 $sp-3;
+    overflow: hidden;
+  }
+
+  ion-item {
+    background: $surface-bg;
+  }
+
+  // Action buttons (Export / Import / Save error log / Check updates).
+  button[ion-button][block],
+  button[ion-button] {
+    margin: $sp-2 0;
+  }
+
+  // Filter heading — h4 with optional inline "+" button. Visually fused
+  // with the list below into a single card so each blocked-* group reads
+  // as one unit instead of a floating header + floating list.
+  // Heading sits flush on top of the list so each blocked-* group reads as
+  // one card. The "+" trigger lives at the bottom of the card as a full-
+  // width add row (see `.filter-add` below) to avoid the tiny right-aligned
+  // icon that didn't line up with the X delete buttons in the list rows.
   .filter-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 14px 0 0 !important;
-    min-height: 32px;
-
-    button {
-      margin: 0;
-      height: 28px;
-    }
+    margin: $sp-4 0 0 !important;
+    padding: $sp-2 $sp-4;
+    color: $lit-blue;
+    font-size: $fs-row-title;
+    font-weight: 700;
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-bottom: 0;
+    border-radius: $radius-md $radius-md 0 0;
   }
 
   .filter-heading + ion-list {
-    margin-top: 0;
-    margin-bottom: 0;
+    margin: 0 0 $sp-3;
+    border-radius: 0 0 $radius-md $radius-md;
+    border-top: 0;
   }
+
+  // "+" action row at the bottom of each filter card. Same height as a
+  // regular blocked-entry row — Ionic's stock min-height (48px on .item,
+  // 44px on .item-inner) gets clamped to 40px to match the visible row
+  // chrome, with the icon centered horizontally.
+  .filter-add.item,
+  .filter-add {
+    min-height: 40px !important;
+    height: 40px;
+    padding: 0 !important;
+
+    .item-inner {
+      min-height: 40px !important;
+      height: 40px;
+      padding: 0 $sp-4 !important;
+      border-bottom: 0 !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .input-wrapper {
+      flex: 0 0 auto;
+    }
+
+    ion-icon {
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+      margin: 0;
+      color: $lit-blue;
+    }
+  }
+
   .filter-empty {
-    margin: 4px 0 0;
-    padding-left: 16px;
-    opacity: 0.55;
+    margin: 0;
+    padding: $sp-2 $sp-4;
+    color: $text-muted;
     font-size: 0.9em;
+    font-style: italic;
+    background: $surface-bg;
   }
+
   .entity-id {
     margin-left: 6px;
-    opacity: 0.5;
+    color: $text-muted;
+    font-size: 0.85em;
   }
 }

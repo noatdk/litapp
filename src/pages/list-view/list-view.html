@@ -8,7 +8,7 @@
       <span [tooltip]="list?.name + ' (' + stories?.length + ')'">
         {{ list?.name }}
       </span>
-      <small [ngStyle]="{'color': (stories && stories?.length != list.size) ? '#666' : 'white'}">
+      <small class="list-count" [class.list-count--stale]="stories && stories?.length != list.size">
         <ng-container *ngIf="stories">
           ({{stories?.length}})
         </ng-container>

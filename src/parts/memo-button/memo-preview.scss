@@ -1,0 +1,85 @@
+@import '../../theme/tokens';
+
+memo-preview {
+  display: block;
+  margin-bottom: $sp-3;
+}
+
+.memo-preview {
+  display: flex;
+  align-items: stretch;
+  gap: $sp-3;
+  width: 100%;
+  margin: 0;
+  padding: $sp-3 $sp-3 $sp-3 0;
+  background: $surface-bg;
+  border: 1px solid $divider;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 120ms ease, transform 120ms ease;
+
+  &:active {
+    box-shadow: $shadow-md;
+    transform: translateY(1px);
+  }
+}
+
+// Left accent stripe — picks up the brand blue so the memo block reads as a
+// "highlighted" annotation on the page rather than ambient chrome.
+.memo-preview__stripe {
+  flex: 0 0 4px;
+  background: $lit-blue;
+}
+
+.memo-preview__icon {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 20px;
+  color: $lit-blue;
+}
+
+.memo-preview__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  // Inherit normal text colour so the contained <span>s render in the page
+  // surface palette regardless of `<button>`'s default user-agent styling.
+  color: $text-primary;
+}
+
+.memo-preview__label {
+  font-size: $fs-meta;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.memo-preview__text {
+  font-size: $fs-row-title;
+  line-height: 1.4;
+  color: $text-primary;
+  white-space: pre-wrap;
+  word-break: break-word;
+  // Clamp long memos to 4 lines so the preview doesn't dominate the page;
+  // the popover shows the full text on tap.
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.memo-preview__edit {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-right: $sp-2;
+  font-size: 18px;
+  color: $text-muted;
+}

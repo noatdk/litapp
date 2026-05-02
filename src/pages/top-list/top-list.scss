@@ -1,2 +1,10 @@
+@import '../../theme/tokens';
+
 page-top-list {
+  ion-segment {
+    margin: 0 -16px $sp-3;
+    padding: 0 $sp-2;
+    background: $surface-bg;
+    border-bottom: 1px solid $divider;
+  }
 }

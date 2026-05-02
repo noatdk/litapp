@@ -1,3 +1,5 @@
+@import '../../theme/tokens';
+
 page-search {
   .savebutton {
     margin-left: -40px !important;
@@ -19,12 +21,15 @@ page-search {
     }
 
     .item-divider {
-      opacity: 0.33;
+      color: $text-muted;
+      background: $surface-alt;
     }
   }
 
+  // Empty-state placeholder when there is no recent-search history.
   .placeholder {
     font-size: 1em;
-    opacity: 0.65;
+    color: $text-muted;
+    font-style: italic;
   }
 }

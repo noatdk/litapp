@@ -13,7 +13,7 @@ import { StatusBar } from '@ionic-native/status-bar';
       <ion-menu [content]="content" (ionOpen)="onMenuOpen()" (ionClose)="onMenuClose()">
         <ion-header>
           <ion-toolbar>
-            <ion-title>Literotica <small>(unofficial)</small></ion-title>
+            <ion-title class="brand-wordmark">[ literotica ]</ion-title>
           </ion-toolbar>
         </ion-header>
 
@@ -129,15 +129,8 @@ export class MyApp {
         this.g.checkForUpdates();
       }
 
-      if (this.settings.allSettings.amoledBlackTheme) {
-        const styleSheet = document.createElement('link');
-        styleSheet.setAttribute('href', './assets/black-theme.css');
-        styleSheet.setAttribute('rel', 'stylesheet');
-        document.head.appendChild(styleSheet);
-        this.statusBar.backgroundColorByHexString('#000');
-      } else {
-        this.statusBar.backgroundColorByHexString('#111');
-      }
+      this.statusBar.backgroundColorByHexString('#ffffff');
+      this.statusBar.styleDefault();
     });
 
     this.catchShareIntent();

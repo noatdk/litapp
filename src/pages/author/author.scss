@@ -1,23 +1,106 @@
+@import '../../theme/row';
+@import '../../theme/series-card';
+@import '../../theme/card';
+
 page-author {
   // Kill the [padding] top inset so the sticky tab bar can clamp flush with
-  // the toolbar; the profile header gets its own top margin instead.
+  // the toolbar; cards get their own top margin instead.
   .scroll-content {
     padding-top: 0 !important;
   }
 
+  // First card sits below the toolbar with breathing room. Profile card
+  // hosts a hero banner that bleeds to the card edges, so we kill the default
+  // card padding and re-inset the bio block below.
+  .card-profile {
+    margin-top: $sp-4;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  // Hero banner — uses the author's avatar as a blurred backdrop with a dark
+  // gradient overlay. Avatar + name + title + meta sit on top in white text.
+  // Falls back to a $lit-blue gradient when the avatar URL is missing or fails.
+  .profile-hero {
+    position: relative;
+    overflow: hidden;
+    min-height: 156px;
+    padding: $sp-4;
+    display: flex;
+    align-items: flex-end;
+    background: linear-gradient(135deg, $lit-blue, $lit-blue-hover);
+    color: $text-inverse;
+  }
+  .profile-hero__bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: blur(22px);
+    transform: scale(1.2);          // hide blur edges
+    z-index: 0;
+    pointer-events: none;
+  }
+  .profile-hero__shade {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.65) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // Lists card hosts an ion-list — pull the list flush with the card edges
+  // so item rows align with the card border, then re-inset the inner content.
+  // ion-list/ion-item default backgrounds inherit $page-bg from the global
+  // theme vars; force transparent inside the card so the white card surface
+  // shows through.
+  .card-lists {
+    padding: $sp-4 $sp-4 $sp-2;
+
+    .author-lists {
+      margin: 0 (-$sp-4) (-$sp-2);
+      background: transparent;
+    }
+    .author-lists ion-item,
+    .author-lists ion-item .item-inner,
+    .author-lists ion-item .item-block {
+      background: transparent !important;
+    }
+    .author-lists ion-item:last-child .item-inner { border-bottom: none; }
+  }
+
   .profile-header {
+    position: relative;          // sit above hero bg + shade
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin: 16px 0;
+    gap: $sp-3;
+    width: 100%;
 
-    .avatar {
+    .avatar-frame {
       flex: 0 0 auto;
-      width: 84px;
-      height: 84px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       overflow: hidden;
-      img { object-fit: cover; }
+      border: 3px solid $surface-bg;
+      box-shadow: $shadow-md;
+      background: $lit-blue;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .avatar-fallback {
+      color: $text-inverse;
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1;
     }
 
     .ident {
@@ -28,61 +111,73 @@ page-author {
         margin: 0;
         font-size: 1.4em;
         font-weight: 600;
+        color: $text-inverse;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+
+        .customtitle-mark {
+          color: $accent-hot;
+          font-size: 0.85em;
+          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+        }
       }
       .title {
         margin: 2px 0 4px;
-        opacity: 0.75;
+        color: rgba(255, 255, 255, 0.88);
         font-style: italic;
       }
       .meta {
         margin: 0;
         font-size: 0.85em;
-        opacity: 0.6;
+        color: rgba(255, 255, 255, 0.78);
         ion-icon {
           font-size: 0.95em;
           vertical-align: -2px;
         }
       }
+      // Secondary meta line ("Last active …") — slightly fainter than the
+      // primary "Joined …" line so the hierarchy reads at a glance.
+      .meta--last {
+        margin-top: 2px;
+        color: rgba(255, 255, 255, 0.65);
+      }
     }
   }
 
+  // Stats strip — card border replaces the top/bottom rules from the prior
+  // flat layout. Tiles get vertical separators instead.
   .stats {
     display: flex;
     justify-content: space-between;
     text-align: center;
-    margin: 0 0 14px;
-    padding: 10px 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
     .stat {
       flex: 1;
+      padding: 0 $sp-2;
+      border-left: 1px solid $divider;
+      &:first-child { border-left: none; }
+
       strong {
         display: block;
-        font-size: 1.1em;
+        font-size: 1.2em;
+        font-weight: 600;
+        color: $text-primary;
       }
       small {
-        opacity: 0.6;
-        font-size: 0.75em;
+        color: $text-muted;
+        font-size: 0.7em;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
       }
     }
 
-    // Tappable variants are <button>s — strip the default ion-button chrome
-    // so they look identical to the non-tappable <div>s, but show a subtle
-    // hover/active hint to telegraph the tap target.
-    // Tappable stats use the same .stat layout as the static cells — they
-    // are plain <div>s with [tappable], so the parent flex sizing and
-    // alignment apply directly without ion-button's chrome interfering.
     .stat--tappable {
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: $radius-sm;
       transition: background 80ms ease-out;
-
-      &:active {
-        background: rgba(255, 255, 255, 0.05);
-      }
+      &:active { background: $lit-blue-active; }
     }
     .stat--disabled {
       pointer-events: none;
@@ -90,51 +185,202 @@ page-author {
     }
   }
 
+  // Per-type submission breakdown chips below the 4-tile stats. Each chip is
+  // a static read-only pill (no tap target) so they don't compete with the
+  // tappable Followers/Following tiles above.
+  .breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-1 $sp-2;
+    margin-top: $sp-3;
+    padding-top: $sp-3;
+    border-top: 1px solid $divider;
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: $radius-pill;
+      background: $surface-alt;
+      color: $text-secondary;
+      font-size: $fs-meta;
+
+      ion-icon {
+        font-size: 14px;
+        color: $text-muted;
+      }
+    }
+  }
+
+  // "More About Me" facts grid — 2-col label/value, mirrors the SSR site's
+  // section. Each row is a flex pair; long values (interests/fetishes) wrap
+  // and align under the label, no truncation.
+  .card-facts {
+    .facts-grid {
+      margin: 0;
+      padding: 0;
+
+      .row {
+        display: flex;
+        gap: $sp-3;
+        padding: $sp-2 0;
+        border-bottom: 1px solid $divider;
+
+        &:last-child { border-bottom: none; }
+      }
+      dt {
+        flex: 0 0 110px;
+        font-size: $fs-meta;
+        color: $text-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 0;
+      }
+      dd {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        font-size: $fs-row-title;
+        color: $text-primary;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+
+  // Links card — support-me CTA, homepage, then social chips grid.
+  .card-links {
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: $sp-2;
+      padding: $sp-2 0;
+      color: $text-primary;
+      text-decoration: none;
+      border-bottom: 1px solid $divider;
+
+      &:last-of-type { border-bottom: none; }
+
+      > ion-icon:first-child {
+        flex: 0 0 24px;
+        font-size: 20px;
+        color: $text-muted;
+      }
+      .label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: $lit-blue;
+      }
+      .trail {
+        flex: 0 0 auto;
+        font-size: 14px;
+        color: $text-muted;
+      }
+    }
+
+    // Support-me row gets a tinted bg so it reads as the primary CTA.
+    .link-row--support {
+      margin: 0 (-$sp-2) $sp-2;
+      padding: $sp-2 $sp-2;
+      border-radius: $radius-md;
+      border-bottom: none;
+      background: $lit-blue-tint;
+
+      > ion-icon:first-child { color: $lit-blue; }
+      .label { color: $lit-blue; font-weight: 600; }
+    }
+
+    .socials {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $sp-1 $sp-2;
+      margin-top: $sp-3;
+    }
+    .social-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: $radius-pill;
+      background: $surface-alt;
+      color: $text-primary;
+      text-decoration: none;
+      font-size: $fs-meta;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      ion-icon {
+        font-size: 16px;
+        color: $lit-blue;
+        flex: 0 0 auto;
+      }
+      &:active { background: $lit-blue-tint; }
+    }
+  }
+
+  // Bio sits below the hero, on the white card surface. Padding mirrors the
+  // standard card padding since we removed it from the parent to let the hero
+  // bleed edge-to-edge.
   .bio {
-    clear: both;
-    margin-bottom: 14px;
+    position: relative;
+    padding: $sp-4;
+    color: $text-primary;
   }
 
   .bio p {
-    max-height: 115px;
-    overflow-y: hidden;
     text-align: left;
     white-space: pre-wrap;
     word-break: break-word;
+    margin: 0;
 
     a {
-      color: color($colors, primary);
+      color: $lit-blue;
       text-decoration: underline;
     }
   }
 
-  .bio .arrow {
-    position: relative;
-    top: -55px;
-    height: 50px;
-    margin-bottom: -55px;
-    padding-top: 25px;
-    box-shadow: inset 0 -50px 50px -20px $background-color;
-    text-shadow: 0 0 10px color($colors, lighter);
-    text-align: center;
+  // Collapsed state — clamp height + fade out via mask so the bottom line
+  // doesn't render half-truncated under the gradient (the prior box-shadow
+  // hack let cut-off characters bleed through).
+  .bio:not(.bio--expanded) p {
+    max-height: 115px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+    mask-image:        linear-gradient(to bottom, #000 60%, transparent 100%);
+  }
+
+  .bio-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: $sp-2;
+    padding: $sp-1 0 0;
+    background: transparent;
+    border: 0;
+    color: $lit-blue;
+    cursor: pointer;
+    ion-icon { font-size: 1.4em; }
   }
 
   .author-lists {
-    margin-bottom: 12px;
     h3 {
       margin: 0;
       font-size: 0.95em;
-      font-weight: 500;
+      font-weight: 600;
+      color: $text-primary;
     }
     p {
       margin: 2px 0 0;
       font-size: 0.82em;
-      opacity: 0.65;
+      color: $text-secondary;
     }
-  }
-
-  h3 {
-    margin: 12px 0 6px;
   }
 
   .scroll-content {
@@ -145,10 +391,13 @@ page-author {
     margin: 10px 0;
     font-size: 0.8em;
     font-style: italic;
+    color: $text-secondary;
   }
 
   // Sticky bar: SUBMISSIONS / FAVORITES segment + sort funnel. Spans
   // edge-to-edge by negating the [padding] horizontal inset on the parent.
+  // White surface so it reads as a distinct chrome element against the tinted
+  // page bg (previously bled into $page-bg, making the segment look adrift).
   .tab-bar {
     position: sticky;
     top: 0;
@@ -156,9 +405,11 @@ page-author {
     display: flex;
     align-items: center;
     margin: 0 -16px 8px;
-    padding: 0 4px 0 0;
-    background: $background-color;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    padding: 0 $sp-1 0 0;
+    background: $surface-bg;
+    border-top: 1px solid $divider;
+    border-bottom: 1px solid $divider;
+    box-shadow: $shadow-sm;
   }
   .tab-bar__segment {
     flex: 1;
@@ -173,99 +424,16 @@ page-author {
     margin: 4px 4px 8px;
     font-size: 0.8em;
     font-style: italic;
-    opacity: 0.65;
+    color: $text-muted;
   }
 
   .submissions-list {
     margin: 0;
   }
 
+  // Series group — anatomy lives in `_series-card.scss`. Local extension
+  // pulls it in so author + history pages share one source of truth.
   .series-card {
-    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
-
-    &--expanded {
-      background: rgba(128, 128, 128, 0.04);
-    }
-
-    &__item .item-inner {
-      width: 100%;
-      border-color: #666 !important;
-      font-size: 0.9em;
-    }
-
-    &__item h2 {
-      font-size: 1em;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-    }
-
-    &__icon {
-      margin-right: 6px;
-      font-size: 1.05em;
-      opacity: 0.85;
-    }
-
-    &__item h2 .badge {
-      margin-top: 3px;
-      margin-left: 5px;
-      font-size: 0.7em;
-      vertical-align: bottom;
-    }
-
-    &__item p {
-      font-size: 0.9em;
-    }
-
-    &__item p ion-icon {
-      font-size: 0.95em;
-      vertical-align: -2px;
-    }
-
-    &__item .tags {
-      overflow-x: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      opacity: 0.85;
-    }
-
-    &__stats {
-      opacity: 0.75;
-
-      span {
-        display: inline-block;
-        margin-right: 12px;
-      }
-
-      ion-icon {
-        margin-right: 3px;
-      }
-    }
-
-    &__note {
-      display: flex;
-      align-items: center;
-    }
-
-    &__chevron {
-      font-size: 1.4em;
-      margin-left: 4px;
-      opacity: 0.7;
-    }
-
-    &__chapters {
-      padding: 4px 14px 10px;
-    }
-
-    &__more {
-      font-size: 0.9em;
-      opacity: 0.85;
-      color: color($colors, primary);
-
-      ion-icon {
-        margin-right: 6px;
-      }
-    }
+    @extend %lit-series-card;
   }
 }

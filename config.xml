@@ -15,15 +15,15 @@
     <preference name="android-minSdkVersion" value="19" />
     <preference name="android-targetSdkVersion" value="27" />
     <preference name="BackupWebStorage" value="none" />
-    <preference name="StatusBarBackgroundColor" value="#000" />
-    <preference name="StatusBarStyle" value="blackopaque" />
+    <preference name="StatusBarBackgroundColor" value="#ffffff" />
+    <preference name="StatusBarStyle" value="default" />
     <preference name="SplashMaintainAspectRatio" value="true" />
     <preference name="FadeSplashScreenDuration" value="300" />
     <preference name="SplashShowOnlyFirstTime" value="true" />
     <preference name="SplashScreen" value="screen" />
     <preference name="SplashScreenDelay" value="3000" />
-    <preference name="SplashScreenSpinnerColor" value="#2196F3" />
-    <preference name="HeaderColor" value="#1565C0" />
+    <preference name="SplashScreenSpinnerColor" value="#0066cc" />
+    <preference name="HeaderColor" value="#0066cc" />
     <platform name="android">
         <allow-intent href="market:*" />
         <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">

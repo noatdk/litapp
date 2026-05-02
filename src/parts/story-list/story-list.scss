@@ -1,14 +1,17 @@
+@import '../../theme/tokens';
+
 story-list {
   .item-divider {
     background: none;
     text-align: center;
     border: none;
     margin-top: 7px;
-    font-weight: bold;
+    color: $text-secondary;
+    font-weight: 600;
   }
 
   .list-md .item-block .item-inner {
-    border-color: #666;
+    border-color: $divider;
   }
 
   .virtual-position {

@@ -2,6 +2,19 @@
   <ion-navbar>
     <ion-title>{{author?.name}}</ion-title>
     <ion-buttons end>
+      <button
+        ion-button
+        icon-only
+        *ngIf="author && !settings.allSettings.offlineMode"
+        (click)="refresh()"
+        [disabled]="refreshing"
+        [tooltip]="'REFRESH_BUTTON' | translate"
+        event="press"
+        navTooltip
+      >
+        <ion-icon name="refresh"></ion-icon>
+      </button>
+
       <memo-button kind="author" [id]="author?.id"></memo-button>
 
       <button
@@ -48,65 +61,162 @@
 </ion-header>
 
 <ion-content padding>
-  <div class="profile-header">
-    <ion-img class="avatar" [src]="author?.picture + ''"></ion-img>
-    <div class="ident">
-      <h1>{{ author?.name }}</h1>
-      <p class="title" *ngIf="author?.usertitle">{{ author?.usertitle }}</p>
-      <p class="meta">
-        <ng-container *ngIf="author?.jointimestamp">
-          <ion-icon name="calendar"></ion-icon>
-          {{ 'AUTHOR_JOINED' | translate }} {{ author?.jointimestamp * 1000 | date:'mediumDate' }}
-        </ng-container>
-        <ng-container *ngIf="author?.location">
-          &nbsp;·&nbsp;<ion-icon name="pin"></ion-icon> {{ author?.location }}
-        </ng-container>
-      </p>
+  <div class="lit-card card-profile" *ngIf="author">
+    <div class="profile-hero">
+      <img *ngIf="author?.picture" class="profile-hero__bg" [src]="author.picture" aria-hidden="true" />
+      <div class="profile-hero__shade"></div>
+
+      <div class="profile-header">
+        <div class="avatar-frame">
+          <img *ngIf="author?.picture && !avatarFailed" class="avatar-img" [src]="author.picture" (error)="avatarFailed = true" alt="" />
+          <span *ngIf="!author?.picture || avatarFailed" class="avatar-fallback">{{ avatarLetter() }}</span>
+        </div>
+        <div class="ident">
+          <h1>
+            {{ author?.name }}
+            <ion-icon *ngIf="author?.customtitle" name="ribbon" class="customtitle-mark" title="Custom title"></ion-icon>
+          </h1>
+          <p class="title" *ngIf="author?.usertitle">{{ author?.usertitle }}</p>
+          <p class="meta">
+            <ng-container *ngIf="author?.joindateApprox || author?.jointimestamp">
+              <ion-icon name="calendar"></ion-icon>
+              {{ 'AUTHOR_JOINED' | translate }}
+              {{ author?.joindateApprox || (author?.jointimestamp * 1000 | date:'mediumDate') }}
+            </ng-container>
+            <ng-container *ngIf="author?.location">
+              &nbsp;·&nbsp;<ion-icon name="pin"></ion-icon> {{ author?.location }}
+            </ng-container>
+          </p>
+          <p class="meta meta--last" *ngIf="author?.lastUpdateApprox">
+            <ion-icon name="time"></ion-icon> Last update {{ author?.lastUpdateApprox | lowercase }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bio" *ngIf="author?.bio" [class.bio--expanded]="showBio" (click)="onBioClick($event)">
+      <p #biotext [innerHTML]="bioHtml()"></p>
+      <button type="button" class="bio-toggle" *ngIf="showArrow && !showBio">
+        <ion-icon name="arrow-down"></ion-icon>
+      </button>
     </div>
   </div>
 
-  <div class="stats" *ngIf="author">
-    <div class="stat" *ngIf="author.storycount != null">
-      <strong>{{ author.storycount | number }}</strong>
-      <small>{{ 'SUBMISSIONS' | translate }}</small>
+  <div class="lit-card card-stats" *ngIf="author">
+    <div class="stats">
+      <div class="stat" *ngIf="author.storycount != null">
+        <strong>{{ author.storycount | number }}</strong>
+        <small>{{ 'SUBMISSIONS' | translate }}</small>
+      </div>
+      <div
+        class="stat stat--tappable"
+        *ngIf="author.followersCount != null"
+        [class.stat--disabled]="!author.followersCount"
+        tappable
+        (click)="openFollowers()"
+      >
+        <strong>{{ author.followersCount | number }}</strong>
+        <small>{{ 'AUTHOR_FOLLOWERS' | translate }}</small>
+      </div>
+      <div
+        class="stat stat--tappable"
+        *ngIf="author.followingsCount != null"
+        [class.stat--disabled]="!author.followingsCount"
+        tappable
+        (click)="openFollowing()"
+      >
+        <strong>{{ author.followingsCount | number }}</strong>
+        <small>{{ 'AUTHOR_FOLLOWING' | translate }}</small>
+      </div>
+      <div class="stat" *ngIf="author.commentsCount != null">
+        <strong>{{ author.commentsCount | number }}</strong>
+        <small>{{ 'AUTHOR_COMMENTS' | translate }}</small>
+      </div>
     </div>
-    <div
-      class="stat stat--tappable"
-      *ngIf="author.followersCount != null"
-      [class.stat--disabled]="!author.followersCount"
-      tappable
-      (click)="openFollowers()"
-    >
-      <strong>{{ author.followersCount | number }}</strong>
-      <small>{{ 'AUTHOR_FOLLOWERS' | translate }}</small>
-    </div>
-    <div
-      class="stat stat--tappable"
-      *ngIf="author.followingsCount != null"
-      [class.stat--disabled]="!author.followingsCount"
-      tappable
-      (click)="openFollowing()"
-    >
-      <strong>{{ author.followingsCount | number }}</strong>
-      <small>{{ 'AUTHOR_FOLLOWING' | translate }}</small>
-    </div>
-    <div class="stat" *ngIf="author.commentsCount != null">
-      <strong>{{ author.commentsCount | number }}</strong>
-      <small>{{ 'AUTHOR_COMMENTS' | translate }}</small>
+
+    <!-- Per-type submission breakdown — only renders rows that have a non-zero
+         count, so a stories-only author doesn't get a wall of "0"s. -->
+    <div class="breakdown" *ngIf="hasBreakdown()">
+      <span class="chip" *ngIf="author.storiesCount">
+        <ion-icon name="bookmark"></ion-icon>{{ author.storiesCount }} stories
+      </span>
+      <span class="chip" *ngIf="author.poemsCount">
+        <ion-icon name="paper"></ion-icon>{{ author.poemsCount }} poems
+      </span>
+      <span class="chip" *ngIf="author.audiosCount">
+        <ion-icon name="musical-notes"></ion-icon>{{ author.audiosCount }} audios
+      </span>
+      <span class="chip" *ngIf="author.illustrationsCount">
+        <ion-icon name="image"></ion-icon>{{ author.illustrationsCount }} illustrations
+      </span>
+      <span class="chip" *ngIf="author.sgsCount">
+        <ion-icon name="game-controller-b"></ion-icon>{{ author.sgsCount }} story games
+      </span>
+      <span class="chip" *ngIf="author.seriesCount">
+        <ion-icon name="albums"></ion-icon>{{ author.seriesCount }} series
+      </span>
     </div>
   </div>
 
-  <div class="bio" *ngIf="author?.bio" (click)="onBioClick($event)">
-    <p #biotext [innerHTML]="bioHtml()" [style.maxHeight]="showBio ? 'unset' : '115px'"></p>
-    <div class="arrow" *ngIf="showArrow && !showBio">
-      <ion-icon name="arrow-down"></ion-icon>
+  <!-- Links card — surfaces support-me link + social handles when the author
+       has set them. Hidden entirely if the author has no external links. -->
+  <div class="lit-card card-links" *ngIf="hasLinks()">
+    <h3 class="lit-card__title">Links</h3>
+
+    <a
+      *ngIf="author?.supportMeLink"
+      class="link-row link-row--support"
+      tappable
+      (click)="openExternal(author.supportMeLink)"
+    >
+      <ion-icon [name]="supportIcon(author.supportMeService)"></ion-icon>
+      <span class="label">Support on {{ supportLabel(author.supportMeService) }}</span>
+      <ion-icon name="open" class="trail"></ion-icon>
+    </a>
+
+    <a
+      *ngIf="author?.homepage"
+      class="link-row"
+      tappable
+      (click)="openExternal(author.homepage)"
+    >
+      <ion-icon name="globe"></ion-icon>
+      <span class="label">{{ author.homepage }}</span>
+      <ion-icon name="open" class="trail"></ion-icon>
+    </a>
+
+    <div class="socials" *ngIf="socialEntries().length">
+      <a
+        *ngFor="let s of socialEntries()"
+        class="social-chip"
+        tappable
+        (click)="openExternal(s.url)"
+        [title]="s.label"
+      >
+        <ion-icon [name]="s.icon"></ion-icon>
+        <span>{{ s.handle }}</span>
+      </a>
     </div>
+  </div>
+
+  <!-- "More about me" — surfaces the optional profile facts the SSR site
+       renders under that heading. Codes from the API are decoded into human
+       labels by AuthorPage.factLabel; entries with no value are skipped so
+       the card collapses for authors who haven't filled in anything. -->
+  <div class="lit-card card-facts" *ngIf="factEntries().length">
+    <h3 class="lit-card__title">More About Me</h3>
+    <dl class="facts-grid">
+      <div class="row" *ngFor="let f of factEntries()">
+        <dt>{{ f.label }}</dt>
+        <dd>{{ f.value }}</dd>
+      </div>
+    </dl>
   </div>
 
   <memo-preview kind="author" [id]="author?.id"></memo-preview>
 
-  <ng-container *ngIf="author?.lists?.length">
-    <h3>{{ 'AUTHOR_LISTS' | translate }}</h3>
+  <div class="lit-card card-lists" *ngIf="author?.lists?.length">
+    <h3 class="lit-card__title">{{ 'AUTHOR_LISTS' | translate }}</h3>
     <ion-list class="author-lists">
       <ion-item *ngFor="let l of author.lists">
         <ion-icon
@@ -122,7 +232,7 @@
         <ion-note item-end>{{ l.storiesCount }}</ion-note>
       </ion-item>
     </ion-list>
-  </ng-container>
+  </div>
 
   <!-- Sticky tab bar — segment plus a sort button (mirrors the History
        page's sort funnel). Clings to the top of the scroll viewport once
