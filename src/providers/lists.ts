@@ -260,8 +260,7 @@ export class Lists {
 
           if (l.size > newPartialList.stories.length && page < newPartialList.lastPage) {
             const next = page + 1;
-            // tslint:disable-next-line: prefer-template
-            this.ux.updateLoader(Math.round((newPartialList.stories.length / l.size) * 100) + '%');
+            this.ux.updateLoader(`${Math.round((newPartialList.stories.length / l.size) * 100)}%`);
             loop(next, newPartialList);
           } else {
             this.lists[this.lists.indexOf(list)] = newPartialList;

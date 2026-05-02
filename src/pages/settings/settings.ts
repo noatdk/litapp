@@ -265,8 +265,7 @@ export class SettingsPage {
   }
 
   saveErrorLog() {
-    // tslint:disable-next-line: prefer-template
-    const filename = 'litapp-errorlog-' + Math.round(new Date().getTime() / 1000) + '.json';
+    const filename = `litapp-errorlog-${Math.round(new Date().getTime() / 1000)}.json`;
 
     // log some device data before saving to file
     const runtimeData = {

@@ -568,6 +568,9 @@ export class StoryViewPage {
     this.scrollSaveTimeout = undefined;
   }
 
+  // Class field arrow function — auto-binds `this` so it can be used as
+  // an event listener. Prettier requires the trailing semicolon; tslint's
+  // `semicolon` rule misclassifies it. Locally disable for this binding.
   /* tslint:disable:semicolon */
   private onScroll = () => {
     if (this.settings.continuousMode) {

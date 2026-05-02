@@ -1,5 +1,3 @@
-/* tslint:disable */
-// disabled because prefer-template and shorthand properties shorthand
 import { HttpClient, HttpParams, HttpParameterCodec, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ENV } from '../../app/env';
@@ -40,12 +38,10 @@ export class Api {
     try {
       const search = location.search.substring(1);
       const queryParams = JSON.parse(
-        '{"' +
-          decodeURI(search)
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"') +
-          '"}',
+        `{"${decodeURI(search)
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
       );
       if (queryParams.proxy) {
         this.corsProxy = queryParams.proxy;
@@ -56,22 +52,22 @@ export class Api {
 
   getUrls() {
     return [
-      this.corsProxy + 'https://literotica.com/api',
-      this.corsProxy + 'https://search.literotica.com/api',
-      this.corsProxy + 'https://www.literotica.com',
-      this.corsProxy + ENV.APP_JSON_RAW_BASE,
-      this.corsProxy + 'https://literotica.com',
-      this.corsProxy + 'https://api.github.com',
-      this.corsProxy + 'https://auth.literotica.com',
+      `${this.corsProxy}https://literotica.com/api`,
+      `${this.corsProxy}https://search.literotica.com/api`,
+      `${this.corsProxy}https://www.literotica.com`,
+      `${this.corsProxy}${ENV.APP_JSON_RAW_BASE}`,
+      `${this.corsProxy}https://literotica.com`,
+      `${this.corsProxy}https://api.github.com`,
+      `${this.corsProxy}https://auth.literotica.com`,
     ];
   }
 
   handleAPIError<T = any>(error: HttpErrorResponse, url: string, data: any, method: string): Observable<T> {
     console.error({
-      type: 'API_Error',
       url,
       method,
       data,
+      type: 'API_Error',
       ...error,
     });
 
@@ -114,7 +110,7 @@ export class Api {
       newReqOpts.params = newReqOpts.params.set('appid', this.appid);
     }
 
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${endpoint}`;
     const req = ((this.http.get<T>(url, newReqOpts) as any) as Observable<T>).catch(err =>
       this.handleAPIError<T>(err, url, newReqOpts.params, 'GET'),
     );
@@ -126,32 +122,29 @@ export class Api {
     if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     let newEndpoint = endpoint;
     if (addIDs) {
-      if (endpoint.indexOf('?') > -1) {
-        newEndpoint += '&apikey=' + this.apikey + '&appid=' + this.appid;
-      } else {
-        newEndpoint += '?apikey=' + this.apikey + '&appid=' + this.appid;
-      }
+      const sep = endpoint.indexOf('?') > -1 ? '&' : '?';
+      newEndpoint += `${sep}apikey=${this.apikey}&appid=${this.appid}`;
     }
 
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + newEndpoint;
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${newEndpoint}`;
     return ((this.http.post<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'POST'));
   }
 
   put<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
     if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
-    const url = this.urls[0] + '/' + endpoint;
+    const url = `${this.urls[0]}/${endpoint}`;
     return ((this.http.put<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PUT'));
   }
 
   delete<T = any>(endpoint: string, reqOpts?: any, urlIndex?: number): Observable<T> {
     if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${endpoint}`;
     return ((this.http.delete<T>(url, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, {}, 'DELETE'));
   }
 
   patch<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
     if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
-    const url = this.urls[0] + '/' + endpoint;
+    const url = `${this.urls[0]}/${endpoint}`;
     return ((this.http.patch<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PATCH'));
   }
 }

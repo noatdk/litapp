@@ -4,8 +4,7 @@ export class Author {
   constructor(fields: any) {
     // Quick and dirty extend/assign fields to this model
     for (const f in fields) {
-      // @ts-ignore
-      this[f] = fields[f];
+      (this as any)[f] = fields[f];
     }
   }
 }
@@ -35,7 +34,7 @@ export interface Author {
 
   // Extended profile fields (3/authors/{id} or 3/users/{name} response)
   usertitle: string;
-  customtitle: boolean;       // true = author paid for a custom usertitle
+  customtitle: boolean; // true = author paid for a custom usertitle
   location: string;
   homepage: string;
   followersCount: number;
@@ -47,11 +46,11 @@ export interface Author {
 
   // Richer fields surfaced only by /3/users/{name}. All optional — older
   // /3/authors/{id} call doesn't populate them.
-  joindateApprox: string;     // e.g. "16 Years Ago"
-  lastUpdateApprox: string;   // e.g. "Last Year"
-  status: string;             // away/active marker (rarely populated)
+  joindateApprox: string; // e.g. "16 Years Ago"
+  lastUpdateApprox: string; // e.g. "Last Year"
+  status: string; // away/active marker (rarely populated)
   supportMeLink: string;
-  supportMeService: string;   // e.g. "patreon", "kofi"
+  supportMeService: string; // e.g. "patreon", "kofi"
   // Per-type submission counts (only the ones > 0 should be rendered).
   storiesCount: number;
   poemsCount: number;
@@ -70,9 +69,9 @@ export interface Author {
   factPets: string;
   factSmoke: string;
   factDrink: string;
-  factInterests: string;        // free-text
-  factFetishes: string;         // free-text
-  factDob: string;              // raw "MM/DD/YYYY" string from /3/users/{name}
+  factInterests: string; // free-text
+  factFetishes: string; // free-text
+  factDob: string; // raw "MM/DD/YYYY" string from /3/users/{name}
   // Cover banner urls returned only with ?params={"withProfile":true}.
   // Mobile sizes drive the in-app hero; desktop sizes kept for completeness.
   coverPicture?: {

@@ -3,10 +3,11 @@ import { List } from './list';
 
 export class Story {
   constructor(fields: any) {
-    // Quick and dirty extend/assign fields to this model
+    // Quick and dirty extend/assign fields to this model. The `this as any`
+    // cast is needed because the class itself doesn't carry the index
+    // signature that the merged interface declaration adds (TS 2.4).
     for (const f in fields) {
-      // @ts-ignore
-      this[f] = fields[f];
+      (this as any)[f] = fields[f];
     }
   }
 }

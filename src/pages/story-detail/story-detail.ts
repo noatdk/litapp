@@ -245,8 +245,7 @@ export class StoryDetailPage {
   }
 
   export() {
-    // tslint:disable-next-line: prefer-template
-    const filename = 'litapp-story-' + this.story.url + '-' + Math.round(new Date().getTime() / 1000) + '.html';
+    const filename = `litapp-story-${this.story.url}-${Math.round(new Date().getTime() / 1000)}.html`;
     const data = `
 <html>
 <body>
@@ -304,12 +303,11 @@ export class StoryDetailPage {
 
   // quick and dirty fix
   private updateValues(story: Story) {
-    const fields = Object.assign({}, story);
+    const fields: any = Object.assign({}, story);
     const blackListedKeys = ['downloaded', 'cached', 'currentpage'];
     for (const f in this.story) {
       if (!blackListedKeys.includes(f) && fields[f] !== undefined) {
-        // @ts-ignore
-        this.story[f] = fields[f];
+        (this.story as any)[f] = fields[f];
       }
     }
   }

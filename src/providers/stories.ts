@@ -759,15 +759,13 @@ export class Stories {
             this.ux.hideLoader();
             return;
           }
-          // tslint:disable-next-line: prefer-template
-          this.ux.updateLoader(Math.round(index + (1 / series.length) * 100) + '%');
+          this.ux.updateLoader(`${Math.round(index + (1 / series.length) * 100)}%`);
           loop(index + 1);
         });
         return;
       }
       this.download(series[index]);
-      // tslint:disable-next-line: prefer-template
-      this.ux.updateLoader(Math.round(index + (1 / series.length) * 100) + '%');
+      this.ux.updateLoader(`${Math.round(index + (1 / series.length) * 100)}%`);
       loop(index + 1);
     };
 

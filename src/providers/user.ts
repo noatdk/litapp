@@ -138,6 +138,8 @@ export class User {
         return Observable.of('');
       });
 
+    // tslint and prettier disagree on multi-line method-call args after
+    // a chained `.method(` — prettier's formatting is what's applied.
     /* tslint:disable:ter-indent */
     return (
       this.api

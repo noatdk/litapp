@@ -63,8 +63,7 @@ export class FollowingPage {
     popover.onDidDismiss((choice: string) => {
       if (choice) {
         let data = null;
-        // tslint:disable-next-line: prefer-template
-        let filename = 'litapp-following-' + Math.round(new Date().getTime() / 1000);
+        let filename = `litapp-following-${Math.round(new Date().getTime() / 1000)}`;
 
         if (choice === 'json') {
           filename += '.json';
