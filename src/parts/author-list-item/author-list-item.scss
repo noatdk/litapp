@@ -1,16 +1,26 @@
 @import '../../theme/tokens';
 
 author-list-item {
+  // Neutral placeholder fill — was `$lit-blue`, but the inner <img> doesn't
+  // perfectly cover a circular crop on every device pixel ratio, so a faint
+  // blue ring leaked around the avatar. Surface-alt blends with the row bg
+  // and disappears against the actual portrait.
   ion-avatar {
-    width: 36px;
-    height: 36px;
-    background: $lit-blue;
+    width: 44px;
+    height: 44px;
+    background: $surface-alt;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: 0 0 auto;
   }
 
   ion-avatar img,
   ion-avatar ion-img {
+    width: 100% !important;
+    height: 100% !important;
     border-radius: 50%;
     object-fit: cover;
+    display: block;
   }
 
   h2 {

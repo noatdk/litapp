@@ -8,19 +8,35 @@
 </ion-header>
 
 <ion-content padding>
-  <p *ngIf="!loading && !users.length" class="empty-placeholder">
-    {{ 'USERLIST_EMPTY' | translate }}
+  <ion-searchbar
+    [(ngModel)]="query"
+    (ionInput)="onSearch($event)"
+    (ionClear)="clearSearch()"
+    placeholder="Search by username"
+    debounce="350"
+    cancelButtonText="Cancel">
+  </ion-searchbar>
+
+  <p *ngIf="searching" class="hint"><ion-icon name="search"></ion-icon> Looking up “{{ query }}”…</p>
+  <p *ngIf="exactMissed" class="hint hint--miss">
+    No user named “{{ query }}” — showing matches in the loaded list.
   </p>
 
-  <ion-list>
-    <author-list-item
-      *ngFor="let u of users"
-      [author]="u"
-      (itemClick)="openUser(u)"
-    ></author-list-item>
-  </ion-list>
+  <p *ngIf="!loading && !filtered.length && !searching" class="empty-placeholder">
+    {{ query ? 'No matches.' : ('USERLIST_EMPTY' | translate) }}
+  </p>
 
-  <ion-infinite-scroll (ionInfinite)="loadMore($event)">
+  <div class="users-card" *ngIf="filtered.length">
+    <ion-list>
+      <author-list-item
+        *ngFor="let u of filtered"
+        [author]="u"
+        (itemClick)="openUser(u)"
+      ></author-list-item>
+    </ion-list>
+  </div>
+
+  <ion-infinite-scroll *ngIf="!query" (ionInfinite)="loadMore($event)">
     <ion-infinite-scroll-content></ion-infinite-scroll-content>
   </ion-infinite-scroll>
 </ion-content>
