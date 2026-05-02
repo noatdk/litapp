@@ -1,23 +1,110 @@
 @import '../../theme/tokens';
 
-.bookmarks {
-  max-height: 300px;
-  overflow: auto;
+// "Save to list" picker — visual language matches memo-popover (header strip
+// + clean rows + lit-blue accent). Replaces the old star-rating glyphs with a
+// YouTube-style add/checkmark indicator since the action is "put this story
+// on a list", not "rate it".
+.bookmark-picker {
+  display: flex;
+  flex-direction: column;
+  background: $surface-bg;
+  min-width: 240px;
+  max-width: 320px;
+}
 
-  .list-md {
-    margin-bottom: 5px;
-  }
+.bookmark-picker__head {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-3 $sp-4;
+  border-bottom: 1px solid $divider;
 
-  .list-header-md {
-    margin-bottom: -10px;
-  }
-
-  [item-end] {
-    margin: 0 !important;
-  }
-
-  .button:active,
-  .button:focus .ion-md-star-outline {
+  ion-icon {
+    font-size: 20px;
     color: $lit-blue;
   }
+
+  h2 {
+    margin: 0;
+    font-size: $fs-section;
+    font-weight: $fw-section;
+    line-height: $lh-section;
+    color: $text-primary;
+  }
+}
+
+.bookmark-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: $sp-1 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.bookmark-row {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-4;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:active,
+  &:hover {
+    background: $surface-alt;
+  }
+}
+
+.bookmark-row__type {
+  flex: 0 0 auto;
+  font-size: 18px;
+  color: $text-secondary;
+}
+
+.bookmark-row__name {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-1;
+  font-size: $fs-row-title;
+  font-weight: $fw-row-title;
+  line-height: $lh-row-title;
+  color: $text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-row__lock {
+  font-size: 14px;
+  color: $text-muted;
+  flex: 0 0 auto;
+}
+
+// Add/checkmark indicator. Outline circle when not in list, filled blue
+// circle with a white tick when on the list — same affordance YouTube uses
+// for "Save to playlist".
+.bookmark-row__check {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: $radius-pill;
+  border: 1.5px solid $divider;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-muted;
+  background: $surface-bg;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+
+  ion-icon {
+    font-size: 16px;
+  }
+}
+
+.bookmark-row--on .bookmark-row__check {
+  background: $lit-blue;
+  border-color: $lit-blue;
+  color: $text-inverse;
 }

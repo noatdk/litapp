@@ -235,9 +235,13 @@ export class StoryDetailPage {
   }
 
   openListPicker(ev: UIEvent) {
-    const popover = this.popoverCtrl.create('BookmarkPopover', {
-      story: this.story,
-    });
+    const popover = this.popoverCtrl.create(
+      'BookmarkPopover',
+      {
+        story: this.story,
+      },
+      { cssClass: 'bookmark-popover' },
+    );
 
     popover.present({
       ev,

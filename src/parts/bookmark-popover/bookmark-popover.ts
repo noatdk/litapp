@@ -43,6 +43,22 @@ export class BookmarkPopover {
     return !!list && !!list.stories && list.stories.some(s => s.id === this.story.id);
   }
 
+  // Mirrors list-list.ts so the picker shows the same per-type glyph as the
+  // My Lists page (paper/musical-notes/image/game-controller-b, default
+  // bookmark). urlname AND name are checked because Literotica's urlname
+  // conventions differ across submission types.
+  listIconFor(list: List): string {
+    const haystack = `${(list && list.urlname) || ''} ${(list && list.name) || ''}`.toLowerCase();
+    if (haystack.indexOf('poem') >= 0) return 'paper';
+    if (haystack.indexOf('audio') >= 0) return 'musical-notes';
+    if (haystack.indexOf('artwork') >= 0) return 'image';
+    if (haystack.indexOf('illustra') >= 0) return 'image';
+    if (haystack.indexOf('game') >= 0) return 'game-controller-b';
+    if (haystack.indexOf('ink') >= 0) return 'game-controller-b';
+    if (haystack.indexOf('interactive') >= 0) return 'game-controller-b';
+    return 'bookmark';
+  }
+
   toggleFromList(list: List) {
     if (!list.stories) {
       // load list before adding

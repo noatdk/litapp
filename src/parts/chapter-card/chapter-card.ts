@@ -24,6 +24,6 @@ export class ChapterCard {
   bookmark(ev: Event) {
     ev.stopPropagation();
     if (!this.user.isLoggedIn()) return;
-    this.popoverCtrl.create('BookmarkPopover', { story: this.story }).present({ ev });
+    this.popoverCtrl.create('BookmarkPopover', { story: this.story }, { cssClass: 'bookmark-popover' }).present({ ev });
   }
 }

@@ -186,16 +186,30 @@ ion-menu .account-footer {
   padding: $sp-2 $sp-3;
   color: $sidebar-text;
   // Kill Ionic's default footer top-shadow line.
-  &::before { display: none !important; }
+  &::before {
+    display: none !important;
+  }
 
-  .muted { color: $sidebar-text-muted; opacity: 1; }
+  .muted {
+    color: $sidebar-text-muted;
+    opacity: 1;
+  }
   .warn,
-  .error { color: $sidebar-text; }
+  .error {
+    color: $sidebar-text;
+  }
 
   .signed-out {
     padding: $sp-1 2px;
-    p { margin: 0 0 $sp-2; font-size: 0.85em; opacity: 0.7; text-align: center; }
-    button { margin: 0; }
+    p {
+      margin: 0 0 $sp-2;
+      font-size: 0.85em;
+      opacity: 0.7;
+      text-align: center;
+    }
+    button {
+      margin: 0;
+    }
   }
 
   .signed-in {
@@ -218,7 +232,9 @@ ion-menu .account-footer {
       cursor: pointer;
       outline: none;
 
-      &:active { background: rgba(255, 255, 255, 0.08); }
+      &:active {
+        background: rgba(255, 255, 255, 0.08);
+      }
     }
 
     .avatar {
@@ -236,7 +252,9 @@ ion-menu .account-footer {
       line-height: 1;
       overflow: hidden;
 
-      &.has-image { background: transparent; }
+      &.has-image {
+        background: transparent;
+      }
 
       img {
         width: 100%;
@@ -289,19 +307,33 @@ ion-menu .account-footer {
       align-items: center;
       justify-content: center;
 
-      ion-icon { font-size: 20px; color: inherit; }
+      ion-icon {
+        font-size: 20px;
+        color: inherit;
+      }
 
-      &:hover { background: rgba(255, 255, 255, 0.14); }
-      &:active { background: rgba(255, 255, 255, 0.2); }
-      &[disabled] { opacity: 0.4; cursor: default; }
+      &:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      &:active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      &[disabled] {
+        opacity: 0.4;
+        cursor: default;
+      }
 
       // Affordance for state-laden actions sitting on the dark drawer surface.
       // Reuses $accent-hot (the documented HOT exception) for danger so the
       // logout button reads as destructive without re-introducing extra
       // palette colors. Warn uses the same accent at lower emphasis (icon
       // color only, no background).
-      &.warn { color: $accent-hot; }
-      &.danger { color: $accent-hot; }
+      &.warn {
+        color: $accent-hot;
+      }
+      &.danger {
+        color: $accent-hot;
+      }
     }
   }
 }
@@ -323,10 +355,17 @@ ion-menu .account-footer {
   cursor: pointer;
   transition: background 0.15s ease;
 
-  ion-icon { font-size: 20px; color: inherit; }
+  ion-icon {
+    font-size: 20px;
+    color: inherit;
+  }
 
-  &:hover { background: $lit-blue-tint; }
-  &:active { background: $lit-blue-active; }
+  &:hover {
+    background: $lit-blue-tint;
+  }
+  &:active {
+    background: $lit-blue-active;
+  }
 }
 
 // Brand wordmark — applied to the drawer header. Reuses bundled Mulish
@@ -396,17 +435,27 @@ ion-app.md page-story-view [padding] .scroll-content {
 }
 
 // Toolbar heights differ per platform — stripe sits flush below it.
-ion-app.md .lit-progress-bar { top: 56px; }
-ion-app.ios .lit-progress-bar { top: 44px; }
-ion-app.wp .lit-progress-bar { top: 46px; }
+ion-app.md .lit-progress-bar {
+  top: 56px;
+}
+ion-app.ios .lit-progress-bar {
+  top: 44px;
+}
+ion-app.wp .lit-progress-bar {
+  top: 46px;
+}
 
 // Indicator is 35% of the track width; translate is in % of the indicator's
 // own width, so to move it from fully-off-left to fully-off-right we need
 // to span (100/35)% on each side ≈ -286% → +286% (rounded to ±300% for a
 // touch of breathing room past the edges).
 @keyframes lit-progress-slide {
-  0%   { transform: translateX(-300%); }
-  100% { transform: translateX(300%); }
+  0% {
+    transform: translateX(-300%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 .item-md.activated {
@@ -451,7 +500,9 @@ ion-action-sheet {
     margin-bottom: $sp-2;
     padding: 0 !important;
 
-    &:last-child { margin-bottom: 0; }
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .action-sheet-title {
@@ -506,14 +557,18 @@ ion-action-sheet {
     color: $text-secondary !important;
     font-weight: 600 !important;
     justify-content: center !important;
-    .button-inner { justify-content: center !important; }
+    .button-inner {
+      justify-content: center !important;
+    }
   }
 
   // Destructive entry (role: 'destructive') — re-tint the row in $accent-hot
   // so "Delete" / "Remove" don't look identical to neutral actions.
   .action-sheet-destructive {
     color: $accent-hot !important;
-    .action-sheet-icon { color: $accent-hot !important; }
+    .action-sheet-icon {
+      color: $accent-hot !important;
+    }
   }
 }
 
@@ -562,7 +617,9 @@ ion-alert {
     color: $text-primary !important;
     border-bottom: 1px solid $divider !important;
     padding: $sp-2 0 !important;
-    &:focus { border-color: $lit-blue !important; }
+    &:focus {
+      border-color: $lit-blue !important;
+    }
   }
 
   .alert-radio-group,
@@ -579,9 +636,9 @@ ion-alert {
     .alert-checkbox-icon {
       border-color: $lit-blue !important;
     }
-    [aria-checked="true"] .alert-radio-icon,
-    [aria-checked="true"] .alert-radio-label,
-    [aria-checked="true"] .alert-checkbox-label {
+    [aria-checked='true'] .alert-radio-icon,
+    [aria-checked='true'] .alert-radio-label,
+    [aria-checked='true'] .alert-checkbox-label {
       color: $lit-blue !important;
     }
   }
@@ -714,6 +771,41 @@ ion-popover .scroll-content,
 }
 .memo-popover .popover-arrow {
   display: none;
+}
+
+// "Save to list" picker — anchored popover (not a fullscreen sheet) but
+// styled to match the rest of the design system: rounded card on
+// $surface-bg, soft shadow, no arrow, and the inner list never inherits the
+// tinted page bg from the global content override.
+.bookmark-popover .popover-content {
+  border-radius: $radius-md;
+  background: $surface-bg;
+  box-shadow: $shadow-md;
+  border: 1px solid $divider;
+  overflow: hidden;
+  padding: 0;
+}
+.bookmark-popover .popover-viewport,
+.bookmark-popover ion-content,
+.bookmark-popover .scroll-content {
+  background: $surface-bg !important;
+}
+.bookmark-popover .popover-arrow {
+  display: none;
+}
+
+// "Save to list" trigger glyph on story rows / chapter cards. Ionicons v3
+// has no platform-neutral `bookmark-outline`, so we ship one `bookmark`
+// filled glyph and toggle visual state via color: muted outline-feel when
+// off, lit-blue when on. Visible against both white rows and the tinted
+// page bg.
+.bookmark-toggle {
+  color: $text-muted;
+  opacity: 0.7;
+}
+.bookmark-toggle--on {
+  color: $lit-blue;
+  opacity: 1;
 }
 
 // In-story search highlights — global so they reach DOM injected via

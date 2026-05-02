@@ -33,17 +33,7 @@
     </p>
   </div>
 
-  <button
-    *ngIf="user.isLoggedIn()"
-    class="chapter-card__bookmark"
-    ion-button
-    icon-only
-    clear
-    (click)="bookmark($event)"
-  >
-    <ion-icon
-      [name]="lists.isBookmarked(story) ? 'star' : 'star-outline'"
-      [color]="lists.isBookmarked(story) ? 'secondary' : ''"
-    ></ion-icon>
+  <button *ngIf="user.isLoggedIn()" class="chapter-card__bookmark" ion-button icon-only clear (click)="bookmark($event)">
+    <ion-icon name="bookmark" class="bookmark-toggle" [class.bookmark-toggle--on]="lists.isBookmarked(story)"></ion-icon>
   </button>
 </div>
