@@ -1,0 +1,28 @@
+// Shared card surface — white panel on tinted page bg. Used to group sections
+// on Author + Story-detail (and any future page that needs the same anatomy).
+// `@import 'card';` after tokens.
+
+@import 'tokens';
+
+%lit-card {
+  background: $surface-bg;
+  border: 1px solid $divider;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  padding: $sp-4;
+  margin-bottom: $sp-3;
+}
+
+.lit-card {
+  @extend %lit-card;
+}
+
+// Section heading inside a card — collapses the default ion-content top margin
+// so the title sits flush with the card's top padding.
+.lit-card__title {
+  margin: 0 0 $sp-3;
+  font-size: $fs-section;
+  font-weight: $fw-section;
+  line-height: $lh-section;
+  color: $text-primary;
+}
