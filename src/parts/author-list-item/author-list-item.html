@@ -1,0 +1,28 @@
+<button ion-item (click)="handleClick()">
+  <ion-avatar item-start>
+    <img [src]="author?.picture" />
+  </ion-avatar>
+  <h2>
+    <ion-icon name="paper" color="secondary" *ngIf="memos.hasAuthorMemo(author?.id)"></ion-icon>
+    {{ author?.name }}
+  </h2>
+  <p *ngIf="author?.usertitle" class="usertitle">{{ author.usertitle }}</p>
+  <p *ngIf="hasMeta()" class="meta">
+    <span *ngIf="author?.storycount != null"><ion-icon name="paper"></ion-icon> {{ author.storycount | number }}</span>
+    <span *ngIf="author?.followersCount != null"><ion-icon name="people"></ion-icon> {{ author.followersCount | number }}</span>
+  </p>
+
+  <ion-note item-end *ngIf="showFollowToggle">
+    <button
+      ion-button
+      icon-only
+      clear
+      (click)="handleFollow($event)"
+      [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
+      event="press"
+      navTooltip
+    >
+      <ion-icon [name]="author?.following ? 'remove-circle' : 'person-add'"></ion-icon>
+    </button>
+  </ion-note>
+</button>

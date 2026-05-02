@@ -23,29 +23,13 @@
 </ion-header>
 
 <ion-content padding>
-  <ion-list [virtualScroll]="sortingProp ? (authors | orderBy: sortingProp) : (authors)">
-    <button ion-item (click)="showAuthor(author)" *virtualItem="let author">
-      <ion-avatar>
-        <ion-img [src]="author?.picture + ''"></ion-img>
-      </ion-avatar>
-      <h2>
-        <ion-icon name="paper" color="secondary" *ngIf="memos.hasAuthorMemo(author?.id)"></ion-icon>
-        {{author.name}}
-      </h2>
-
-      <ion-note item-end>
-        <button
-          ion-button
-          icon-only
-          clear
-          (click)="followToggle(author, $event)"
-          [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
-          event="press"
-          navTooltip
-        >
-          <ion-icon [name]="author.following?'remove-circle':'person-add'"></ion-icon>
-        </button>
-      </ion-note>
-    </button>
+  <ion-list>
+    <author-list-item
+      *ngFor="let author of (sortingProp ? (authors | orderBy: sortingProp) : authors)"
+      [author]="author"
+      [showFollowToggle]="true"
+      (itemClick)="showAuthor(author)"
+      (followToggle)="followToggle($event.author, $event.event)"
+    ></author-list-item>
   </ion-list>
 </ion-content>
