@@ -66,7 +66,7 @@ export class Api {
     ];
   }
 
-  handleAPIError(error: HttpErrorResponse, url: string, data: any, method: string): any {
+  handleAPIError<T = any>(error: HttpErrorResponse, url: string, data: any, method: string): Observable<T> {
     console.error({
       type: 'API_Error',
       url,
@@ -87,11 +87,11 @@ export class Api {
       this.ux.showToast('ERROR', 'LITEROTICA_TEMPOFFLINE', 5000);
     }
 
-    return Observable.of();
+    return Observable.of() as Observable<T>;
   }
 
-  get(endpoint: string, params?: any, reqOpts?: any, urlIndex?: number, timeout?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  get<T = any>(endpoint: string, params?: any, reqOpts?: any, urlIndex?: number, timeout?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     let newReqOpts = reqOpts;
     if (!reqOpts) {
       newReqOpts = {
@@ -115,13 +115,15 @@ export class Api {
     }
 
     const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
-    const req = this.http.get(url, newReqOpts).catch(err => this.handleAPIError(err, url, newReqOpts.params, 'GET'));
+    const req = ((this.http.get<T>(url, newReqOpts) as any) as Observable<T>).catch(err =>
+      this.handleAPIError<T>(err, url, newReqOpts.params, 'GET'),
+    );
     if (timeout) return req.timeout(timeout);
     return req;
   }
 
-  post(endpoint: string, body: any, reqOpts?: any, addIDs?: boolean, urlIndex?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  post<T = any>(endpoint: string, body: any, reqOpts?: any, addIDs?: boolean, urlIndex?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     let newEndpoint = endpoint;
     if (addIDs) {
       if (endpoint.indexOf('?') > -1) {
@@ -132,24 +134,24 @@ export class Api {
     }
 
     const url = this.urls[urlIndex ? urlIndex : 0] + '/' + newEndpoint;
-    return this.http.post(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'POST'));
+    return ((this.http.post<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'POST'));
   }
 
-  put(endpoint: string, body: any, reqOpts?: any) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  put<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     const url = this.urls[0] + '/' + endpoint;
-    return this.http.put(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'PUT'));
+    return ((this.http.put<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PUT'));
   }
 
-  delete(endpoint: string, reqOpts?: any, urlIndex?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  delete<T = any>(endpoint: string, reqOpts?: any, urlIndex?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
-    return this.http.delete(url, reqOpts).catch(err => this.handleAPIError(err, url, {}, 'DELETE'));
+    return ((this.http.delete<T>(url, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, {}, 'DELETE'));
   }
 
-  patch(endpoint: string, body: any, reqOpts?: any) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  patch<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     const url = this.urls[0] + '/' + endpoint;
-    return this.http.patch(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'PATCH'));
+    return ((this.http.patch<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PATCH'));
   }
 }

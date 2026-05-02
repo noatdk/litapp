@@ -9,6 +9,7 @@ import { User } from './user';
 import { GLOBALS_KEY, VERSION_KEY } from './db';
 import { ENV } from '../app/env';
 import { UX } from './shared/ux';
+import { AppJsonResponse, ConstantsResponse, TagsportalTopResponse } from '../models/api';
 
 @Injectable()
 export class Globals {
@@ -88,7 +89,7 @@ export class Globals {
       periodCheck: false,
       period: 'all',
     };
-    return this.api.get('3/tagsportal/top', params);
+    return this.api.get<TagsportalTopResponse>('3/tagsportal/top', params);
   }
 
   getVersion() {
@@ -110,12 +111,12 @@ export class Globals {
     // check for updates
     if (manual) this.ux.showToast('INFO', 'UPDATE_STARTED', 2000);
     this.api
-      .get('app.json', undefined, undefined, 3)
+      .get<AppJsonResponse>('app.json', undefined, undefined, 3)
       .catch(error => {
         console.error('globals.checkForUpdates', error);
-        return Observable.of(false);
+        return Observable.of(null as AppJsonResponse | null);
       })
-      .subscribe((d: any) => {
+      .subscribe(d => {
         if (d) {
           if (d.appid !== this.api.appid) {
             this.api.appid = d.appid;
@@ -142,8 +143,8 @@ export class Globals {
 
     const loader = this.ux.showLoader();
     return this.api
-      .get('3/constants', null, null, null, 10000)
-      .map((d: any) => {
+      .get<ConstantsResponse>('3/constants', null, null, null, 10000)
+      .map(d => {
         if (loader) loader.dismiss();
         if (!d) {
           this.ux.showToast();

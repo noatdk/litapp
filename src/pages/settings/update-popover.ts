@@ -4,6 +4,7 @@ import { BrowserTab } from '@ionic-native/browser-tab';
 import { ENV } from '../../app/env';
 import { handleNoCordovaError } from '../../app/utils';
 import { Api } from '../../providers/providers';
+import { GithubRefsTagsResponse, GithubTag } from '../../models/api';
 
 @IonicPage()
 @Component({
@@ -46,11 +47,11 @@ export class UpdatePopover {
     this.data = navParams.get('data') || {};
 
     const tagsRepo = ENV.GITHUB_TAGS_REPO || 'theilluminatus/litapp';
-    this.api.get(`repos/${tagsRepo}/git/refs/tags`, undefined, undefined, 5).subscribe((list: any[]) => {
+    this.api.get<GithubRefsTagsResponse>(`repos/${tagsRepo}/git/refs/tags`, undefined, undefined, 5).subscribe(list => {
       const tagSha = Array.isArray(list) ? list.reverse()[0].object.sha : '';
       if (!tagSha) return;
-      this.api.get(`repos/${tagsRepo}/git/tags/${tagSha}`, undefined, undefined, 5).subscribe((tag: any) => {
-        this.changelog = tag.message.replace(/\n/gi, '\n\n');
+      this.api.get<GithubTag>(`repos/${tagsRepo}/git/tags/${tagSha}`, undefined, undefined, 5).subscribe(tag => {
+        this.changelog = ((tag && tag.message) || '').replace(/\n/gi, '\n\n');
       });
     });
   }

@@ -6,6 +6,16 @@ import { Author } from '../models/author';
 import { User } from './user';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import {
+  ApiUserProfile,
+  AuthorByIdResponse,
+  FavoriteAuthorsFlatResponse,
+  FavoriteAuthorsPaginatedResponse,
+  FollowAuthorResponse,
+  FollowersResponse,
+  UnfollowAuthorResponse,
+  UserByNameResponse,
+} from '../models/api';
 
 const oldDefaultUserPic = 'https://www.literotica.com/imagesv2/da'; // the old api returns an invalid url to this image
 const defaultUserPic = 'https://www.literotica.com/imagesv2/da_default.jpg';
@@ -73,14 +83,15 @@ export class Authors {
     const url = name ? `3/users/${encodeURIComponent(name)}?params=${profileParams}` : `3/authors/${id}`;
 
     return this.api
-      .get(url)
-      .map((data: any) => {
+      .get<UserByNameResponse | AuthorByIdResponse | ApiUserProfile>(url)
+      .map(data => {
         if (loader) loader.dismiss();
         // /3/users/{name} wraps the payload as { success, user: {...} };
         // /3/authors/{id} returns either an array or a bare object.
-        let profile: any = data;
-        if (data && data.user) profile = data.user;
+        let profile: ApiUserProfile | undefined;
+        if (data && (data as UserByNameResponse).user) profile = (data as UserByNameResponse).user;
         else if (Array.isArray(data)) profile = data[0];
+        else profile = data as ApiUserProfile;
 
         if (!profile || profile.userid == null) {
           this.ux.showToast();
@@ -229,9 +240,9 @@ export class Authors {
     if (!trimmed) return Observable.of(null);
     const profileParams = encodeURIComponent(JSON.stringify({ withProfile: true }));
     return this.api
-      .get(`3/users/${encodeURIComponent(trimmed)}?params=${profileParams}`)
-      .map((data: any) => {
-        const profile = (data && data.user) || data;
+      .get<UserByNameResponse | ApiUserProfile>(`3/users/${encodeURIComponent(trimmed)}?params=${profileParams}`)
+      .map(data => {
+        const profile: ApiUserProfile = ((data as UserByNameResponse) && (data as UserByNameResponse).user) || (data as ApiUserProfile);
         if (!profile || profile.userid == null) return null;
         // Reuse the cache: if we've seen this id, enrich rather than create.
         const id = profile.userid;
@@ -284,9 +295,10 @@ export class Authors {
     pageSize: number = 50,
   ): Observable<{ users: Author[]; total: number; lastPage: number }> {
     const params = JSON.stringify({ page, pageSize, userid: username });
+    const url = `3/users/${encodeURIComponent(username)}/favorite/authors?params=${encodeURIComponent(params)}`;
     return this.api
-      .get(`3/users/${encodeURIComponent(username)}/favorite/authors?params=${encodeURIComponent(params)}`)
-      .map((data: any) => this.extractUserList(data))
+      .get<FavoriteAuthorsPaginatedResponse>(url)
+      .map(data => this.extractUserList(data))
       .catch(error => {
         console.error('authors.getFollowingsOf', [username, page], error);
         return Observable.of({ users: [], total: 0, lastPage: 0 });
@@ -296,17 +308,19 @@ export class Authors {
   private queryUserList(path: string, page: number, pageSize: number): Observable<{ users: Author[]; total: number; lastPage: number }> {
     const params = JSON.stringify({ page, pageSize });
     return this.api
-      .get(`${path}?params=${encodeURIComponent(params)}`)
-      .map((data: any) => this.extractUserList(data))
+      .get<FollowersResponse>(`${path}?params=${encodeURIComponent(params)}`)
+      .map(data => this.extractUserList(data))
       .catch(error => {
         console.error('authors.queryUserList', [path, page], error);
         return Observable.of({ users: [], total: 0, lastPage: 0 });
       });
   }
 
-  private extractUserList(data: any): { users: Author[]; total: number; lastPage: number } {
-    const items = (data && data.data) || [];
-    const users = items.map((u: any) => this.extractFromUserList(u));
+  private extractUserList(
+    data: FollowersResponse | FavoriteAuthorsPaginatedResponse,
+  ): { users: Author[]; total: number; lastPage: number } {
+    const items: ApiUserProfile[] = (data && data.data) || [];
+    const users = items.map(u => this.extractFromUserList(u));
     return {
       users,
       total: Number(data && data.total) || 0,
@@ -314,8 +328,8 @@ export class Authors {
     };
   }
 
-  private extractFromUserList(item: any): Author {
-    const id = item && (item.userid != null ? item.userid : item.id);
+  private extractFromUserList(item: ApiUserProfile): Author {
+    const id = item && item.userid;
     const cached = this.authors.get(id);
     if (cached) {
       // Hydrate counts/usertitle if missing — saves a getDetails roundtrip
@@ -341,8 +355,8 @@ export class Authors {
   getFollowing() {
     const loader = this.ux.showLoader();
     return this.api
-      .get(`3/users/${this.user.getId()}/favorite/authors?params={%22nocache%22:true}`)
-      .map((data: any) => {
+      .get<FavoriteAuthorsFlatResponse>(`3/users/${this.user.getId()}/favorite/authors?params={%22nocache%22:true}`)
+      .map(data => {
         if (loader) loader.dismiss();
         if (!data.length) {
           this.ux.showToast();
@@ -366,8 +380,8 @@ export class Authors {
     data.append('id', author.id);
 
     return this.api
-      .post(`3/users/follow/${author.id}`, {})
-      .map((res: any) => res.success)
+      .post<FollowAuthorResponse>(`3/users/follow/${author.id}`, {})
+      .map((res: any) => res && res.success)
       .catch(error => {
         this.ux.showToast();
         console.error('author.follow', [author], error);
@@ -385,8 +399,8 @@ export class Authors {
 
   unfollow(author: Author) {
     return this.api
-      .delete(`3/users/follow/${author.id}`)
-      .map((res: any) => res.success)
+      .delete<UnfollowAuthorResponse>(`3/users/follow/${author.id}`)
+      .map((res: any) => res && res.success)
       .catch(error => {
         this.ux.showToast();
         console.error('author.unfollow', [author], error);

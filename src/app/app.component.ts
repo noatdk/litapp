@@ -4,6 +4,7 @@ import { Config, Nav, Platform, App, AlertController, Menu } from 'ionic-angular
 import { WebIntent } from '@ionic-native/web-intent';
 
 import { Globals, Analytics, UX, Stories, Lists, Feed, Settings, User, Api } from '../providers/providers';
+import { AuthorByIdResponse, ApiUserProfile } from '../models/api';
 import { FingerprintAIO } from '@ionic-native/fingerprint-aio';
 import { StatusBar } from '@ionic-native/status-bar';
 
@@ -302,9 +303,9 @@ export class MyApp {
     if (!d || d.id == null) return;
     if (this.avatarFetchedFor === d.id && this.avatarUrl) return;
     this.avatarFetchedFor = d.id;
-    this.api.get(`3/authors/${d.id}`).subscribe(
-      (data: any) => {
-        const profile = Array.isArray(data) ? data[0] : data;
+    this.api.get<AuthorByIdResponse | ApiUserProfile>(`3/authors/${d.id}`).subscribe(
+      data => {
+        const profile: ApiUserProfile | undefined = Array.isArray(data) ? data[0] : (data as ApiUserProfile);
         const pic = profile && profile.userpic;
         if (pic && pic !== 'https://www.literotica.com/imagesv2/da') {
           this.avatarUrl = pic;

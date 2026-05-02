@@ -9,6 +9,7 @@ import { USER_KEY, FEED_KEY, LIST_KEY } from './db';
 import { Api, AUTH_URL_INDEX } from './shared/api';
 import { Settings } from './settings';
 import { UX } from './shared/ux';
+import { JwtCheckResponse, JwtLoginResponse, SessionResponse, V2LoginResponse } from '../models/api';
 
 // JWT (auth_token cookie) issued by auth.literotica.com lasts ~1 hour. We
 // don't decode the cookie; we just remember when it was last minted/refreshed
@@ -47,8 +48,10 @@ export class User {
   private jwtLastErrorStatus = 0;
 
   private refreshAuthToken(): Promise<boolean> {
+    const checkUrl = `check?timestamp=${Math.floor(Date.now() / 1000)}`;
+    const opts = { withCredentials: true, responseType: 'text' };
     return this.api
-      .get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, { withCredentials: true, responseType: 'text' }, AUTH_URL_INDEX)
+      .get<JwtCheckResponse>(checkUrl, null, opts, AUTH_URL_INDEX)
       .toPromise()
       .then(() => {
         this.jwtRefreshedAt = Date.now();
@@ -122,12 +125,12 @@ export class User {
     // me.vertex.lib.util.MD5 hashing of the password before POSTing).
     v2LoginBody.append('password', Md5.hashStr(info.password) as string);
     const v2Login$ = this.api
-      .post('2/auth/login', v2LoginBody, undefined, true)
-      .map((res: any) => {
+      .post<V2LoginResponse>('2/auth/login', v2LoginBody, undefined, true)
+      .map(res => {
         // Modern server returns session_id at login.session_id; the older
         // shape (per the mobile app's smali) had it under login.user.session_id.
         const login = res && res.login;
-        const sid = (login && login.session_id) || (login && login.user && login.user.session_id);
+        const sid = (login && login.session_id) || (login && login.user && (login.user as any).session_id);
         return typeof sid === 'string' ? sid : '';
       })
       .catch((err: any) => {
@@ -138,7 +141,7 @@ export class User {
     /* tslint:disable:ter-indent */
     return (
       this.api
-        .post(
+        .post<JwtLoginResponse>(
           'login',
           JSON.stringify({ login: info.username, password: info.password }),
           {
@@ -149,26 +152,26 @@ export class User {
           AUTH_URL_INDEX,
         )
         /* tslint:enable:ter-indent */
-        .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
+        .switchMap(() => this.api.get<JwtCheckResponse>(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
         .do(() => {
           this.jwtRefreshedAt = Date.now();
           this.jwtLastErrorStatus = 0;
         })
-        .switchMap(() => this.api.get('3/users/session'))
-        .switchMap((res: any) => v2Login$.map(sessionId => ({ res, sessionId })))
-        .map(({ res, sessionId }: any) => {
+        .switchMap(() => this.api.get<SessionResponse>('3/users/session'))
+        .switchMap(res => v2Login$.map(sessionId => ({ res, sessionId })))
+        .map(({ res, sessionId }) => {
           if (loader) loader.dismiss();
           if (!res || !res.userid) {
             throw Observable.throw(res);
           }
+          // Note: `wall_id` was previously captured here for the Activity
+          // provider — the session response no longer carries it (verified
+          // 2026), and /3/activity/counters works without it now. Don't
+          // resurrect the field; Activity reads counters with `params={}`.
           this.user = {
             id: res.userid,
             username: res.username,
             sessionId: sessionId || '',
-            // wall_id is the row id of the user's activity wall — required by
-            // /3/activity/counters. The session response is the only place it
-            // surfaces, so we capture it here for the Activity provider.
-            wallId: Number(res.wall_id) || 0,
             date: new Date().getTime(),
           };
           this.storage.set(USER_KEY, this.user);
@@ -194,27 +197,6 @@ export class User {
 
   getDetails() {
     return this.user;
-  }
-
-  // Lazily fetch /3/users/session and persist `wall_id` onto the user record.
-  // Existing user records minted before wall_id was captured won't have it,
-  // and the Activity counters endpoint can't be called without it. Resolves
-  // to the stored wall_id (0 if still unavailable).
-  ensureWallId(): Promise<number> {
-    if (!this.user) return Promise.resolve(0);
-    if (this.user.wallId) return Promise.resolve(this.user.wallId);
-    return this.api
-      .get('3/users/session')
-      .toPromise()
-      .then((res: any) => {
-        const id = Number(res && res.wall_id) || 0;
-        if (id) {
-          this.user.wallId = id;
-          this.storage.set(USER_KEY, this.user);
-        }
-        return id;
-      })
-      .catch(() => 0);
   }
 
   // Persist the avatar URL on the user record so the sidebar can render it

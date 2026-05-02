@@ -12,6 +12,17 @@ import { User } from './user';
 import { Globals } from './globals';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import {
+  ApiStoryV3,
+  CommentsAfterResponse,
+  SearchStoriesResponse,
+  StoryDetailResponse,
+  SubmissionsListResponse,
+  SubmissionsPagesResponse,
+  SubmissionsVoteResponse,
+  TagsportalByNameResponse,
+  TagsportalSearchResponse,
+} from '../models/api';
 
 /*
   Angular http typing doesn't seem to handle tuples well
@@ -309,13 +320,13 @@ export class Stories {
     if (q.length < 2) return Observable.of([]);
     const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
     return this.api
-      .get('3/search/stories', params)
-      .map((data: any) => {
+      .get<SearchStoriesResponse>('3/search/stories', params)
+      .map(data => {
         const items = (data && data.data) || [];
         const seen = new Set<string>();
         const out: { id: string; name: string; userpic?: string }[] = [];
         for (const it of items) {
-          const u = it && it.author;
+          const u: any = it && it.author;
           const id = u && (u.userid != null ? u.userid : u.id);
           if (id == null) continue;
           const sid = String(id);
@@ -336,19 +347,25 @@ export class Stories {
     if (q.length < 2) return Observable.of([]);
     const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
     return this.api
-      .get('3/search/stories', params)
-      .map((data: any) => {
+      .get<SearchStoriesResponse>('3/search/stories', params)
+      .map(data => {
+        // v3 search-stories embeds series under `series.meta` (with id, title,
+        // url, order). Stories not in a series have `series: []`. The legacy
+        // v1 shape used `series_data` — long gone in /3/search/stories
+        // responses (verified 2026), and the previous reading produced an
+        // empty list every time.
         const items = (data && data.data) || [];
         const seen = new Set<string>();
         const out: { id: string; name: string }[] = [];
         for (const it of items) {
-          const sd = it && it.series_data;
-          const sid = sd && sd.id;
+          const series: any = it && it.series;
+          const meta = series && series.meta;
+          const sid = meta && meta.id;
           if (sid == null) continue;
           const id = String(sid);
           if (id === '0' || seen.has(id)) continue;
           seen.add(id);
-          out.push({ id, name: (sd && sd.title) || '' });
+          out.push({ id, name: (meta && meta.title) || '' });
         }
         return out;
       })
@@ -371,8 +388,8 @@ export class Stories {
     }
 
     return this.api
-      .get(path ? path : '1/submissions', params, null, urlIndex)
-      .map((data: any) => {
+      .get<SubmissionsListResponse>(path ? path : '1/submissions', params, null, urlIndex)
+      .map(data => {
         if (loader) loader.dismiss();
 
         if (!data.success && !data.submissions) {
@@ -384,7 +401,7 @@ export class Stories {
         }
 
         const stories = !data.submissions ? [] : data.submissions.map(story => this.extractFromSearch(story));
-        return [this.filters.apply(stories), data.total as number];
+        return [this.filters.apply(stories), Number(data.total) || 0];
       })
       .catch(error => {
         if (loader) loader.dismiss();
@@ -419,13 +436,15 @@ export class Stories {
     }
 
     return this.api
-      .get(path ? path : '3/search/stories', params, null, urlIndex)
-      .map((data: any) => {
+      .get<SearchStoriesResponse | TagsportalSearchResponse>(path ? path : '3/search/stories', params, null, urlIndex)
+      .map(data => {
         if (loader) loader.dismiss();
 
         // tag portals uses new api but level 1 structure of old api :'(
-        const stories = tags ? data.submissions : data.data;
-        const total: number = tags ? data.meta.submissions_count : data.meta.total;
+        const stories: ApiStoryV3[] = tags ? (data as TagsportalSearchResponse).submissions : (data as SearchStoriesResponse).data;
+        const total: number = tags
+          ? Number((data as TagsportalSearchResponse).meta && (data as TagsportalSearchResponse).meta.submissions_count) || 0
+          : Number((data as SearchStoriesResponse).meta && (data as SearchStoriesResponse).meta.total) || 0;
 
         if (!stories) {
           if (!total) {
@@ -461,9 +480,9 @@ export class Stories {
 
     // first lookup tag ids
     return this.api
-      .get(path ? path : '3/tagsportal/by-name', lookup, null, urlIndex)
-      .map((data: any) => {
-        return data.map(t => t.id);
+      .get<TagsportalByNameResponse>(path ? path : '3/tagsportal/by-name', lookup, null, urlIndex)
+      .map(data => {
+        return (data || []).map(t => t.id);
       })
       .mergeMap(ids => {
         // then lookup results
@@ -493,8 +512,8 @@ export class Stories {
   // cached Story instance when one exists so subscribers update in place.
   getMetadata(id: any): Observable<Story | null> {
     return this.api
-      .get(`3/stories/${id}`)
-      .map((data: any) => {
+      .get<StoryDetailResponse>(`3/stories/${id}`)
+      .map(data => {
         const sub = data && data.submission;
         if (!sub || !sub.id) {
           console.error('stories.getMetadata', [id]);
@@ -515,7 +534,8 @@ export class Stories {
         cached.commentsenabled = sub.enable_comments > 0;
         cached.ratingenabled = sub.allow_vote > 0;
         cached.tags = !sub.tags ? [] : sub.tags.map(t => t.tag);
-        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        const ms = sub.series as any;
+        if (ms && ms.meta) cached.series = ms.meta.id;
         if (data.meta && data.meta.pages_count) cached.length = data.meta.pages_count;
 
         this.stories.set(cached.id, cached);
@@ -536,8 +556,8 @@ export class Stories {
 
     const params = { params: JSON.stringify({ after }) };
     return this.api
-      .get(`3/stories/${slug}/comments/after`, params)
-      .map((data: any) => {
+      .get<CommentsAfterResponse>(`3/stories/${slug}/comments/after`, params)
+      .map(data => {
         const items = (data && data.data) || [];
         return {
           comments: items.map(c => this.extractComment(c)),
@@ -559,9 +579,9 @@ export class Stories {
   // `getById(id)` reads see the rich Story instance and merge content into it.
   getRichById(id: any): Observable<Story | null> {
     return this.api
-      .get(`3/stories/${id}`)
-      .map((data: any) => {
-        const sub = data && data.submission;
+      .get<StoryDetailResponse>(`3/stories/${id}`)
+      .map(data => {
+        const sub: any = data && data.submission;
         if (!sub || !sub.id) return null;
         const cached = this.stories.get(sub.id) || new Story({ id: String(sub.id) });
         cached.title = sub.title || cached.title;
@@ -618,8 +638,8 @@ export class Stories {
 
     const loader = this.ux.showLoader();
     return this.api
-      .get('2/submissions/pages', params)
-      .map((data: any) => {
+      .get<SubmissionsPagesResponse>('2/submissions/pages', params)
+      .map(data => {
         if (loader && !noLoaderDismiss) loader.dismiss();
         if (!data.success) {
           console.error('stories.getById', [id]);
@@ -682,8 +702,8 @@ export class Stories {
     data.append('vote', String(rating));
 
     return this.api
-      .post('2/submissions/vote', data, undefined, true)
-      .map((res: any) => {
+      .post<SubmissionsVoteResponse>('2/submissions/vote', data, undefined, true)
+      .map(res => {
         if (!res || !res.success) {
           this.ux.showToast();
           console.error('stories.rate', [story.id, rating], res && res.error);

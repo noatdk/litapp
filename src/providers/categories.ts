@@ -5,6 +5,7 @@ import 'rxjs/add/operator/publishReplay';
 
 import { Category } from '../models/category';
 import { Api } from './shared/api';
+import { TagsportalCategoriesResponse } from '../models/api';
 
 @Injectable()
 export class Categories {
@@ -16,35 +17,38 @@ export class Categories {
 
   constructor(public api: Api, public translate: TranslateService) {
     // Replayed cache shared across all subscribers; connect() keeps it warm.
-    this.categories = this.api.get('3/tagsportal/categories', null).map((cats: any[]) => {
-      const tempcats: Category[] = [];
+    this.categories = this.api
+      .get<TagsportalCategoriesResponse>('3/tagsportal/categories', null)
+      .map(cats => {
+        const tempcats: Category[] = [];
 
-      cats.forEach((cat: any) => {
-        tempcats.push(
-          new Category({
-            id: cat['id'],
-            name: cat['name'],
-            description: cat['ldesc'],
-            type: cat['type'],
-            url: cat['pageUrl'],
-          }),
-        );
-      });
+        cats.forEach(cat => {
+          tempcats.push(
+            new Category({
+              id: cat.id,
+              name: cat.name,
+              description: cat.ldesc,
+              type: cat.type,
+              url: cat.pageUrl,
+            }),
+          );
+        });
 
-      this.translate.get(['EXPLORE_ALLCAT', 'EXPLORE_ALLCATDESCR']).subscribe(values => {
-        tempcats.push(
-          new Category({
-            id: 0,
-            name: values.EXPLORE_ALLCAT,
-            description: values.EXPLORE_ALLCATDESCR,
-            type: 'master',
-            url: '',
-          }),
-        );
-      });
+        this.translate.get(['EXPLORE_ALLCAT', 'EXPLORE_ALLCATDESCR']).subscribe(values => {
+          tempcats.push(
+            new Category({
+              id: 0,
+              name: values.EXPLORE_ALLCAT,
+              description: values.EXPLORE_ALLCATDESCR,
+              type: 'master',
+              url: '',
+            }),
+          );
+        });
 
-      return tempcats;
-    }).publishReplay(1);
+        return tempcats;
+      })
+      .publishReplay(1);
     this.categories.connect();
 
     // Mirror the cache into a sync id -> name map for nameSync().

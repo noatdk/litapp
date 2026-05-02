@@ -12,6 +12,7 @@ import { FEED_KEY } from './db';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
 import { Activity } from './activity';
+import { ActivityWallResponse, ApiActivityItem } from '../models/api';
 
 @Injectable()
 export class Feed {
@@ -98,8 +99,8 @@ export class Feed {
     }
 
     return this.api
-      .get(`3/activity/wall?params=${JSON.stringify(params)}`)
-      .map((d: any) => {
+      .get<ActivityWallResponse>(`3/activity/wall?params=${JSON.stringify(params)}`)
+      .map(d => {
         if (loader) loader.dismiss();
         if (!d.data) {
           this.ux.showToast();
@@ -108,14 +109,30 @@ export class Feed {
         }
 
         const items = d.data
-          .map(item => {
+          .map((item: ApiActivityItem) => {
             const isStory = item.action === 'published-story';
             try {
+              // `what` is polymorphic on `action`:
+              //   published-story → full story object (handled separately
+              //                     via Stories.extractFromFeed below)
+              //   profile-updated → string[] of changed field names
+              //   publish-news    → { content, url } site-news payload
+              //   other verbs     → unknown shapes; render as a friendly fallback
+              let text: string[] = [];
+              if (!isStory) {
+                if (Array.isArray(item.what)) {
+                  text = item.what as string[];
+                } else if (item.action === 'publish-news' && item.what && typeof (item.what as any).content === 'string') {
+                  text = [(item.what as any).content];
+                } else {
+                  text = ['their profile'];
+                }
+              }
               return new FeedItem({
+                text,
                 id: item.id,
                 timestamp: item.when,
                 author: this.a.extractFromFeed(item.who),
-                text: isStory ? [] : Array.isArray(item.what) ? item.what : ['their profile'],
                 story: !isStory ? undefined : this.s.extractFromFeed(item),
               });
             } catch (error) {
