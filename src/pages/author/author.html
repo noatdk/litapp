@@ -21,12 +21,15 @@
         ion-button
         icon-only
         *ngIf="user.isLoggedIn()"
+        class="follow-toggle"
+        [class.follow-toggle--active]="author?.following"
+        [color]="author?.following ? 'secondary' : null"
         (click)="followToggle()"
-        [tooltip]="'AUTHOR_TOOLTIP_FOLLOW' | translate"
+        [tooltip]="(author?.following ? 'AUTHOR_TOOLTIP_UNFOLLOW' : 'AUTHOR_TOOLTIP_FOLLOW') | translate"
         event="press"
         navTooltip
       >
-        <ion-icon [name]="author?.following ? 'remove-circle' : 'person-add'"></ion-icon>
+        <ion-icon [name]="author?.following ? 'checkmark-circle' : 'person-add'"></ion-icon>
       </button>
 
       <button
@@ -87,6 +90,9 @@
           <h1>
             {{ author?.name }}
             <ion-icon *ngIf="author?.customtitle" name="ribbon" class="customtitle-mark" title="Custom title"></ion-icon>
+            <ion-badge *ngIf="author?.following" class="following-pill" color="secondary">
+              <ion-icon name="checkmark"></ion-icon> {{ 'AUTHOR_FOLLOWING_BADGE' | translate }}
+            </ion-badge>
           </h1>
           <p class="title" *ngIf="author?.usertitle">{{ author?.usertitle }}</p>
           <p class="meta">
@@ -113,6 +119,8 @@
       </button>
     </div>
   </div>
+
+  <memo-preview kind="author" [id]="author?.id"></memo-preview>
 
   <div class="lit-card card-stats" *ngIf="author">
     <div class="stats">
@@ -224,8 +232,6 @@
       </div>
     </dl>
   </div>
-
-  <memo-preview kind="author" [id]="author?.id"></memo-preview>
 
   <div class="lit-card card-lists" *ngIf="author?.lists?.length">
     <h3 class="lit-card__title">{{ 'AUTHOR_LISTS' | translate }}</h3>

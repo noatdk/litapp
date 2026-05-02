@@ -9,6 +9,7 @@ import { StoryListPageModule } from '../../parts/story-list/story-list.module';
 import { StoryListNormalPageModule } from '../../parts/story-list-normal/story-list-normal.module';
 import { SortPopoverModule } from '../../parts/sort-popover/sort-popover.module';
 import { ChapterCardModule } from '../../parts/chapter-card/chapter-card.module';
+import { AuthorListModule } from '../../parts/author-list/author-list.module';
 import { PipesModule } from '../../pipes/pipes.module';
 
 @NgModule({
@@ -22,6 +23,7 @@ import { PipesModule } from '../../pipes/pipes.module';
     StoryListPageModule,
     StoryListNormalPageModule,
     ChapterCardModule,
+    AuthorListModule,
     PipesModule,
   ],
 })

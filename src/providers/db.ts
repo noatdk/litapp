@@ -2,6 +2,7 @@ export const STARREDQUERIES_KEY: string = '_queries';
 export const RECENTQUERIES_KEY: string = '_recentqueries';
 export const STORYSTYLEOPTIONS_KEY: string = '_storystyle';
 export const HISTORY_KEY: string = '_history';
+export const RECENT_AUTHORS_KEY: string = '_recentAuthors';
 export const STORY_KEY: string = '_story';
 export const USER_KEY: string = '_user';
 export const FEED_KEY: string = '_feed';

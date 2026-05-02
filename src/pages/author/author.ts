@@ -1,11 +1,11 @@
 import { Component, SecurityContext, ViewChild } from '@angular/core';
-import { IonicPage, NavController, NavParams, PopoverController } from 'ionic-angular';
+import { AlertController, IonicPage, NavController, NavParams, PopoverController } from 'ionic-angular';
 import { SocialSharing } from '@ionic-native/social-sharing';
 import { TranslateService } from '@ngx-translate/core';
 import { BrowserTab } from '@ionic-native/browser-tab';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
-import { Authors, Stories, User, Settings, Filters, UX } from '../../providers/providers';
+import { Authors, Stories, User, Settings, Filters, UX, History } from '../../providers/providers';
 import { Author } from '../../models/author';
 import { Story } from '../../models/story';
 import { summarizeSeries, SeriesSummary } from '../../providers/series';
@@ -64,12 +64,23 @@ export class AuthorPage {
     public ux: UX,
     private popoverCtrl: PopoverController,
     private sanitizer: DomSanitizer,
+    private history: History,
+    private alertCtrl: AlertController,
   ) {
     const author = navParams.get('author');
 
-    translate.get(['COPYPROMPT_MSG', 'AUTHOR_MISSING_STORIES']).subscribe(values => {
-      this.translations = values;
-    });
+    translate
+      .get([
+        'COPYPROMPT_MSG',
+        'AUTHOR_MISSING_STORIES',
+        'AUTHOR_UNFOLLOW_CONFIRM_TITLE',
+        'AUTHOR_UNFOLLOW_CONFIRM_MSG',
+        'OK_BUTTON',
+        'CANCEL_BUTTON',
+      ])
+      .subscribe(values => {
+        this.translations = values;
+      });
 
     if (!author || author.id == null) {
       this.loaded = true;
@@ -83,6 +94,10 @@ export class AuthorPage {
     this.a.getDetails(author.id, false, author.name).subscribe(a => {
       this.author = a;
       this.loaded = true;
+      // Record this view in the user's recent-authors history. We persist
+      // *after* the rich profile resolves so the snapshot carries usertitle/
+      // counts — falling back to the navParam values would store a thinner row.
+      if (a) this.history.addAuthor(a);
     });
   }
 
@@ -521,10 +536,22 @@ export class AuthorPage {
 
   followToggle() {
     if (this.author.following) {
-      this.a.unfollow(this.author);
-    } else {
-      this.a.follow(this.author);
+      // Confirm before unfollowing — the toolbar icon sits next to several
+      // other one-tap actions (block, share) and we'd rather not silently
+      // drop a follow on a stray tap.
+      this.alertCtrl
+        .create({
+          title: this.translations.AUTHOR_UNFOLLOW_CONFIRM_TITLE,
+          message: this.translations.AUTHOR_UNFOLLOW_CONFIRM_MSG.replace('{name}', this.author.name || ''),
+          buttons: [
+            { text: this.translations.CANCEL_BUTTON, role: 'cancel' },
+            { text: this.translations.OK_BUTTON, handler: () => this.a.unfollow(this.author) },
+          ],
+        })
+        .present();
+      return;
     }
+    this.a.follow(this.author);
   }
 
   share() {

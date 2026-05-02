@@ -131,6 +131,25 @@ page-author {
           font-size: 0.85em;
           filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
         }
+
+        // Compact "Following" pill alongside the author's name. Visually
+        // unmistakable so the user can tell at a glance that they already
+        // follow this author — the toolbar icon alone wasn't doing the job.
+        .following-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          height: 18px;
+          padding: 0 8px !important;
+          border-radius: 999px !important;
+          font-size: 11px !important;
+          font-weight: 700;
+          line-height: 1 !important;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          text-shadow: none;
+          ion-icon { font-size: 12px; }
+        }
       }
       .title {
         margin: 2px 0 4px;

@@ -3,10 +3,10 @@ import { IonicPageModule } from 'ionic-angular';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { UserListPage } from './user-list';
-import { AuthorListItemModule } from '../../parts/author-list-item/author-list-item.module';
+import { AuthorListModule } from '../../parts/author-list/author-list.module';
 
 @NgModule({
   declarations: [UserListPage],
-  imports: [IonicPageModule.forChild(UserListPage), TranslateModule.forChild(), AuthorListItemModule],
+  imports: [IonicPageModule.forChild(UserListPage), TranslateModule.forChild(), AuthorListModule],
 })
 export class UserListPageModule {}

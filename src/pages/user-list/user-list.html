@@ -26,15 +26,11 @@
     {{ query ? 'No matches.' : ('USERLIST_EMPTY' | translate) }}
   </p>
 
-  <div class="users-card" *ngIf="filtered.length">
-    <ion-list>
-      <author-list-item
-        *ngFor="let u of filtered"
-        [author]="u"
-        (itemClick)="openUser(u)"
-      ></author-list-item>
-    </ion-list>
-  </div>
+  <author-list
+    *ngIf="filtered.length"
+    [authors]="filtered"
+    (itemClick)="openUser($event)"
+  ></author-list>
 
   <ion-infinite-scroll *ngIf="!query" (ionInfinite)="loadMore($event)">
     <ion-infinite-scroll-content></ion-infinite-scroll-content>
