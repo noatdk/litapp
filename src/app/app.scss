@@ -161,3 +161,22 @@ span.reader-search-hit.current {
   color: #000 !important;
   box-shadow: 0 0 0 1px #ff6d00;
 }
+
+// Native text selection in the story reader. Scoped to .allow-text-select on
+// the story-view root, so default tap-to-paginate UX is preserved when off.
+// Lives in global CSS (not the component SCSS) so the cascade reaches DOM
+// injected via [innerHTML] and beats Ionic v3's body-level `user-select: none`
+// + universal `-webkit-touch-callout: none`. !important is required because
+// Ionic's `* { -webkit-touch-callout: none }` matches every descendant.
+.allow-text-select,
+.allow-text-select *,
+.allow-text-select #slide-content,
+.allow-text-select #slide-content *,
+.allow-text-select .continuous-page-content,
+.allow-text-select .continuous-page-content * {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}

@@ -94,11 +94,7 @@ export class SettingsPage {
         ? this.filters.getBlockedSeries().map(e => e.id)
         : this.filters.getBlockedCategories().map(e => e.id);
 
-    const popover = this.popoverCtrl.create(
-      'EntityPicker',
-      { kind, exclude },
-      { cssClass: 'entity-picker-popover' },
-    );
+    const popover = this.popoverCtrl.create('EntityPicker', { kind, exclude }, { cssClass: 'entity-picker-popover' });
     popover.present();
     popover.onDidDismiss((data: any) => {
       if (!data || !data.picked) return;
@@ -145,6 +141,7 @@ export class SettingsPage {
         defaultLanguage: [this.options.defaultLanguage],
         enableImmersiveReading: [this.options.enableImmersiveReading],
         largeStatusbarHeight: [this.options.largeStatusbarHeight],
+        allowTextSelection: [this.options.allowTextSelection],
       });
 
       this.form.valueChanges.subscribe(v => {

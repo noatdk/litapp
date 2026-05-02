@@ -290,6 +290,14 @@ export class StoryViewPage {
   }
 
   clickSlides(event: MouseEvent) {
+    // When native text selection is enabled, the click that dismisses a
+    // selection bubbles up to here — toggling immersive or flipping pages
+    // out from under the user. Bail if anything is currently selected.
+    if (this.appSettings.allSettings.allowTextSelection) {
+      const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+      if (sel && sel.toString().length > 0) return;
+    }
+
     if (this.alternatePagination || this.settings.continuousMode) {
       this.toggleImmersive();
       return;

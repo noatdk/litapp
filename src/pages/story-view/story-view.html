@@ -1,18 +1,11 @@
-<div #rootElement>
+<div #rootElement [class.allow-text-select]="appSettings.allSettings.allowTextSelection">
   <ion-header #header no-border class="{{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}">
     <ion-navbar [style.color]="settings.color" [style.background]="settings.background">
       <ion-title>
         {{ story.title }}
       </ion-title>
       <ion-buttons end>
-        <button
-          ion-button
-          icon-only
-          (click)="toggleSearch()"
-          [tooltip]="'STORYVIEW_SEARCH' | translate"
-          event="press"
-          navTooltip
-        >
+        <button ion-button icon-only (click)="toggleSearch()" [tooltip]="'STORYVIEW_SEARCH' | translate" event="press" navTooltip>
           <ion-icon name="search" [style.color]="settings.color"></ion-icon>
         </button>
 
@@ -168,6 +161,9 @@
       [max]="slides.length"
     ></ion-range>
 
-    <span class="count">{{Math.min(slides.length, (settings.continuousMode ? lastActivePage : (slidesElement?.getActiveIndex() || 0)) + 1)}} / {{slides.length}}</span>
+    <span class="count"
+      >{{Math.min(slides.length, (settings.continuousMode ? lastActivePage : (slidesElement?.getActiveIndex() || 0)) + 1)}} /
+      {{slides.length}}</span
+    >
   </div>
 </div>

@@ -101,6 +101,7 @@
   "SETTINGS_LARGE_STATUSBAR_HEIGHT": "Enable this if your phone has a large notch (bigger than default status bar)",
   "SETTINGS_ONLY_STORIES_FEED": "Only display new stories on the feed page (hide bio updates etc...)",
   "SETTINGS_NAVIGATE_VOLUME_ROCKER": "Turn pages with the volume rocker buttons",
+  "SETTINGS_ALLOW_TEXT_SELECTION": "Allow selecting text in stories (long-press to select / copy)",
   "SETTINGS_ABOUTAPP": "About the app",
   "SETTINGS_ABOUT_DESCRIPTION": "Want to suggest a feature, report a bug or read some more info about the app you are currently using?",
   "SETTINGS_VERSION": "Current build version",
