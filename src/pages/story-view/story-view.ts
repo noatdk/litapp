@@ -8,6 +8,9 @@ import { AndroidFullScreen } from '@ionic-native/android-full-screen';
 import { STORYSTYLEOPTIONS_KEY } from '../../providers/db';
 import { Stories, Analytics, Settings, History, User, UX } from '../../providers/providers';
 import { Story } from '../../models/story';
+import { buildNormalizedIndex, wrapRange } from './text-index';
+import { StorySearchController } from './search-controller';
+import { ContinuousScrollController } from './continuous-scroll-controller';
 
 @IonicPage({ priority: 'low' })
 @Component({
@@ -36,30 +39,8 @@ export class StoryViewPage {
   private scrollSaveTimeout: any;
   private pauseSub: any;
   private resumeSub: any;
-
-  // Continuous mode state
-  pageHeights: number[] = [];
-  materialized: boolean[] = [];
-  measured: boolean[] = [];
-  estimatedPageHeight = 1200;
-  private intersectionObserver: IntersectionObserver;
-  private continuousPagesSub: any;
-  private continuousReady = false;
   private suppressScrollSave = false;
   private suppressRangeChange = false;
-  private lastActivePage = 0;
-
-  // In-story text search
-  searchOpen = false;
-  searchQuery = '';
-  searchMatches: { page: number; occurrence: number }[] = [];
-  currentMatchIdx = -1;
-  private searchPageTexts: string[] = [];
-  // Map from match index → wrapped spans on the page (sparse: only entries for
-  // currently-rendered pages exist). Lets us toggle the "current" class on
-  // navigation and re-wrap as pages materialize in continuous mode.
-  private searchHighlightSpans: { [idx: number]: HTMLElement[] } = {};
-  private searchInputDebounce: any;
 
   settings = {
     fontsize: 15,
@@ -74,6 +55,38 @@ export class StoryViewPage {
     continuousMode: false,
   };
 
+  // --------------------------------------------------------------------------
+  // In-story search — fields stay on page; template bindings unchanged.
+  // StorySearchController writes these directly via the SearchState reference.
+  // --------------------------------------------------------------------------
+
+  searchOpen = false;
+  searchQuery = '';
+  searchMatches: { page: number; occurrence: number }[] = [];
+  currentMatchIdx = -1;
+
+  private readonly search: StorySearchController;
+
+  // --------------------------------------------------------------------------
+  // Continuous scroll
+  // --------------------------------------------------------------------------
+
+  private readonly continuousCtrl: ContinuousScrollController;
+
+  // Expose arrays to template (was direct fields, now delegating to controller)
+  get pageHeights() {
+    return this.continuousCtrl.pageHeights;
+  }
+  get materialized() {
+    return this.continuousCtrl.materialized;
+  }
+  get estimatedPageHeight() {
+    return this.continuousCtrl.estimatedPageHeight;
+  }
+  get lastActivePage() {
+    return this.continuousCtrl.lastActivePage;
+  }
+
   constructor(
     public navCtrl: NavController,
     public platform: Platform,
@@ -86,7 +99,7 @@ export class StoryViewPage {
     private popoverCtrl: PopoverController,
     public ux: UX,
     private androidFullScreen: AndroidFullScreen,
-    private zone: NgZone,
+    readonly zone: NgZone,
     translate: TranslateService,
     public navParams: NavParams,
   ) {
@@ -113,6 +126,37 @@ export class StoryViewPage {
       }
     });
 
+    // StoryViewPage itself satisfies SearchState (has the four fields) and
+    // provides the SearchHost callbacks via the anonymous object below.
+    this.search = new StorySearchController(this, {
+      getActivePageIndex: () => this.getActivePageIndex(),
+      getContentRootForPage: p => this.getContentRootForPage(p),
+      getScrollElement: () => this.scrollElement || this.getScrollElement(),
+      getPageContent: () => (this.story && this.story.content) || [],
+      isContinuousMode: () => this.settings.continuousMode,
+      scrollToPage: (p, speed) => this.continuousCtrl.scrollToPage(p, speed, this.continuousPages),
+      slideTo: (p, speed) => this.slideTo(p, speed),
+      setSuppressScrollSave: v => {
+        this.suppressScrollSave = v;
+      },
+    });
+
+    this.continuousCtrl = new ContinuousScrollController({
+      getPageCount: () => this.slides.length,
+      getScrollElement: () => this.getScrollElement(),
+      persistScroll: () => this.persistScroll(),
+      setSuppressScrollSave: v => {
+        this.suppressScrollSave = v;
+      },
+      onActivePageChanged: p => this.onContinuousPageChanged(p),
+      onMaterialized: () => {
+        if (this.searchOpen) this.search.rehighlight();
+      },
+      zone: this.zone,
+      storage: this.storage,
+      getScrollKey: p => this.getScrollKey(p),
+    });
+
     // get story from server
     if (!this.story.cached) {
       this.stories.getById(this.story.id).subscribe(story => {
@@ -121,7 +165,6 @@ export class StoryViewPage {
           return;
         }
 
-        // add details & content to db
         this.story.series = story.series;
         this.story.length = story.length;
         this.story.tags = story.tags;
@@ -140,17 +183,14 @@ export class StoryViewPage {
 
   private addSlides() {
     this.story.content.forEach((item, index) => {
-      // Add fallback handlers for images
       const parsedContent = item.replace('<img src=', `<img alt='&nbsp;${this.translations.STORYVIEW_ERROR_IMAGE}' src=`);
       this.slides.push({
         content: parsedContent,
         page: index,
         desktoppage: index,
       });
-      this.pageHeights.push(this.estimatedPageHeight);
-      this.materialized.push(false);
-      this.measured.push(false);
     });
+    this.continuousCtrl.init(this.slides.length);
   }
 
   ionViewWillEnter() {
@@ -165,14 +205,12 @@ export class StoryViewPage {
     this.analytics.track('StoryView');
 
     setTimeout(() => {
-      // enable fullscreen mode when previous story in series was being read
       const shouldBeFullscreen = this.navParams.get('fullscreen') || this.inFullscreen;
       if (shouldBeFullscreen) {
         this.toggleImmersive();
       } else if (this.enableImmersive) {
         this.androidFullScreen.showUnderSystemUI();
       }
-
       this.rootElement.nativeElement.style.setProperty('--statusbar-height', `${this.statusBarHeight}px`);
     }, 10);
 
@@ -195,7 +233,7 @@ export class StoryViewPage {
     this.persistScroll();
     this.unbindScroll();
     this.teardownContinuous();
-    this.clearHighlights();
+    this.search.clearHighlights();
     if (this.pauseSub) this.pauseSub.unsubscribe();
     if (this.resumeSub) this.resumeSub.unsubscribe();
     if (this.enableImmersive) {
@@ -219,9 +257,9 @@ export class StoryViewPage {
   // Moving between slides
   // ----------------------------------------------------------------------
 
-  private slideTo(newPage: number, speed?: number) {
+  slideTo(newPage: number, speed?: number) {
     if (this.settings.continuousMode) {
-      this.scrollToPage(newPage, typeof speed === 'number' ? speed : 300);
+      this.continuousCtrl.scrollToPage(newPage, typeof speed === 'number' ? speed : 300, this.continuousPages);
       return;
     }
     if (this.alternatePagination) this.slidesElement.lockSwipes(false);
@@ -233,13 +271,11 @@ export class StoryViewPage {
     if (event) event.stopPropagation();
 
     const active = this.getActivePageIndex();
-    // try going to next in series on last page
     if (active >= this.slides.length - 1) {
       this.goToNextInSeries();
       return;
     }
 
-    // hide status bar after reading the first page
     if (this.firstTimeNextPage && !this.inFullscreen) {
       this.toggleImmersive();
     }
@@ -260,10 +296,8 @@ export class StoryViewPage {
     }
 
     if (event.clientX < this.platform.width() / 4) {
-      // clicking in left most 25%
       this.prevSlide();
     } else if (event.clientX > (3 * this.platform.width()) / 4) {
-      // clicking in right most 25%
       this.nextSlide();
     } else {
       this.toggleImmersive();
@@ -282,9 +316,7 @@ export class StoryViewPage {
   }
 
   slideSelectionChange(event: any) {
-    // Ionic's ion-range fires ionChange even on programmatic setValue, so
-    // ignore those echoes — otherwise scroll-driven page updates would snap
-    // scrollTop back to the page start, losing the user's in-page offset.
+    // Ionic's ion-range fires ionChange even on programmatic setValue; ignore those echoes.
     if (this.suppressRangeChange) return;
     this.slideTo(event.value - 1, 0);
   }
@@ -299,11 +331,8 @@ export class StoryViewPage {
       return;
     }
 
-    // only one page
     if (this.range) {
-      this.suppressRangeChange = true;
-      this.range.setValue(currentIndex + 1);
-      setTimeout(() => (this.suppressRangeChange = false), 0);
+      this.setRangeValue(currentIndex + 1);
       this.story.currentpage = currentIndex;
       this.stories.cache(this.story);
     }
@@ -311,10 +340,10 @@ export class StoryViewPage {
     setTimeout(() => {
       this.bindScroll();
       if (this.searchOpen) {
-        // restoreScroll has a late re-apply pass that would override the
-        // search jump's scroll target. Let the search drive the position.
-        this.rehighlight();
-        this.scrollCurrentIntoView();
+        // restoreScroll's late re-apply pass would override the search scroll target.
+        // Let the search drive position.
+        this.search.rehighlight();
+        this.search.scrollCurrentIntoView(this.scrollElement || this.getScrollElement());
       } else {
         this.restoreScroll();
       }
@@ -346,20 +375,13 @@ export class StoryViewPage {
 
   showPopover(ev: UIEvent) {
     const wasContinuous = this.settings.continuousMode;
-    // The popover binds directly to `settings`, so by the time onDidDismiss
-    // fires the mode has already flipped and *ngIf has swapped the DOM. Grab
-    // the anchor now while the previous mode's container is still mounted —
-    // saved scroll offsets don't translate cleanly between modes (different
-    // paddings, page heights), and a sentence-level anchor is far less
-    // disorienting for the user.
+    // Capture before *ngIf swaps the DOM so the sentence anchor survives the mode switch.
     const anchor = this.captureAnchor();
     const popover = this.popoverCtrl.create('StoryPopover', {
       settings: this.settings,
     });
 
-    popover.present({
-      ev,
-    });
+    popover.present({ ev });
 
     popover.onDidDismiss(() => {
       this.storage.set(STORYSTYLEOPTIONS_KEY, this.settings);
@@ -368,17 +390,12 @@ export class StoryViewPage {
         this.persistScroll();
         this.unbindScroll();
         this.teardownContinuous();
-        // Reset measurement cache; pages will remeasure under the new layout.
-        this.pageHeights = this.slides.map(() => this.estimatedPageHeight);
-        this.materialized = this.slides.map(() => false);
-        this.measured = this.slides.map(() => false);
-        this.continuousReady = false;
+        this.continuousCtrl.reset();
 
         setTimeout(() => {
           if (this.settings.continuousMode) {
             this.setupContinuous();
-            // setupContinuous runs scroll restore passes up to ~600ms; chase
-            // it so the anchor wins.
+            // setupContinuous runs restore passes up to ~600ms; chase it so the anchor wins.
             if (anchor) setTimeout(() => this.restoreAnchor(anchor), 750);
           } else {
             const targetPage = anchor ? anchor.page : this.story.currentpage;
@@ -396,278 +413,81 @@ export class StoryViewPage {
   }
 
   showInfo(story: Story) {
-    this.navCtrl.push('StoryDetailPage', {
-      story,
-    });
+    this.navCtrl.push('StoryDetailPage', { story });
   }
 
   showSeries(story: Story) {
-    this.navCtrl.push('StorySeriesPage', {
-      story,
-    });
+    this.navCtrl.push('StorySeriesPage', { story });
   }
 
   openListPicker(ev: UIEvent) {
-    const popover = this.popoverCtrl.create('BookmarkPopover', {
-      story: this.story,
-    });
-
-    popover.present({
-      ev,
-    });
+    const popover = this.popoverCtrl.create('BookmarkPopover', { story: this.story });
+    popover.present({ ev });
   }
 
   // ----------------------------------------------------------------------
-  // In-story search
+  // In-story search — thin delegates to StorySearchController
   // ----------------------------------------------------------------------
 
   toggleSearch() {
     if (this.searchOpen) {
-      this.closeSearch();
+      this.search.closeSearch();
     } else {
-      // Drop out of fullscreen so the search bar (and the on-screen keyboard)
-      // aren't fighting the immersive header offset.
       if (this.inFullscreen) this.toggleImmersive();
-      this.searchOpen = true;
-      setTimeout(() => {
-        const el = this.rootElement && this.rootElement.nativeElement.querySelector('.search-bar input');
-        if (el) (el as HTMLInputElement).focus();
-      }, 50);
+      this.search.toggleSearch(this.rootElement);
     }
   }
 
   closeSearch() {
-    this.searchOpen = false;
-    this.clearHighlights();
-    this.searchMatches = [];
-    this.currentMatchIdx = -1;
+    this.search.closeSearch();
   }
 
   onSearchInput() {
-    if (this.searchInputDebounce) clearTimeout(this.searchInputDebounce);
-    this.searchInputDebounce = setTimeout(() => this.runSearch(), 200);
+    this.search.onSearchInput();
   }
 
   nextMatch() {
-    if (this.searchMatches.length === 0) return;
-    this.currentMatchIdx = (this.currentMatchIdx + 1) % this.searchMatches.length;
-    this.jumpToMatch(this.currentMatchIdx);
+    this.search.nextMatch();
   }
 
   prevMatch() {
-    if (this.searchMatches.length === 0) return;
-    this.currentMatchIdx = (this.currentMatchIdx - 1 + this.searchMatches.length) % this.searchMatches.length;
-    this.jumpToMatch(this.currentMatchIdx);
-  }
-
-  // Build normalized text per page off-DOM using the same walker we use on the
-  // live DOM, so match counts are consistent regardless of whether a page is
-  // currently materialized. Cached because pages are immutable once cached.
-  private getNormalizedPageText(page: number): string {
-    if (this.searchPageTexts[page] != null) return this.searchPageTexts[page];
-    const html = (this.story.content && this.story.content[page]) || '';
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    const { normalized } = this.buildNormalizedIndex(tmp);
-    this.searchPageTexts[page] = normalized;
-    return normalized;
-  }
-
-  private runSearch() {
-    this.clearHighlights();
-    const q = this.searchQuery.replace(/\s+/g, ' ').trim();
-    this.searchMatches = [];
-    this.currentMatchIdx = -1;
-    if (q.length < 2) return;
-
-    const qLower = q.toLowerCase();
-    for (let p = 0; p < this.slides.length; p += 1) {
-      const text = this.getNormalizedPageText(p).toLowerCase();
-      let from = 0;
-      let occ = 0;
-      while (true) {
-        const idx = text.indexOf(qLower, from);
-        if (idx < 0) break;
-        this.searchMatches.push({ page: p, occurrence: occ });
-        occ += 1;
-        from = idx + qLower.length;
-      }
-    }
-    if (this.searchMatches.length > 0) {
-      this.currentMatchIdx = 0;
-      this.jumpToMatch(0);
-    }
-  }
-
-  private jumpToMatch(idx: number) {
-    const m = this.searchMatches[idx];
-    if (!m) return;
-    const active = this.getActivePageIndex();
-
-    // Immediate class swap so the orange "current" follows the user's tap
-    // without waiting for the materialize/layout delay below. No-op for
-    // matches whose page isn't wrapped yet — those will get the correct
-    // class when rehighlight runs.
-    this.updateCurrentHighlight();
-
-    const after = (delay: number) =>
-      setTimeout(() => {
-        this.rehighlight();
-        this.scrollCurrentIntoView();
-      }, delay);
-
-    if (active !== m.page) {
-      if (this.settings.continuousMode) {
-        this.scrollToPage(m.page, 0);
-        after(300);
-      } else {
-        this.slideTo(m.page, 0);
-        // slideChanged rebinds scroll ~50ms later; give the new active slide
-        // time to render its content before the DOM walk.
-        after(250);
-      }
-    } else {
-      this.rehighlight();
-      this.scrollCurrentIntoView();
-    }
-  }
-
-  private updateCurrentHighlight() {
-    Object.keys(this.searchHighlightSpans).forEach(k => {
-      const idx = parseInt(k, 10);
-      const isCurrent = idx === this.currentMatchIdx;
-      this.searchHighlightSpans[idx].forEach(span => {
-        if (isCurrent) span.classList.add('current');
-        else span.classList.remove('current');
-      });
-    });
-  }
-
-  // Wrap every match on every currently-rendered page, marking the active
-  // match with `.current`. Idempotent — safe to call after page changes,
-  // materialization, or current-index updates.
-  private rehighlight() {
-    this.clearHighlights();
-    if (!this.searchOpen || this.searchMatches.length === 0) return;
-    const qLower = this.searchQuery.replace(/\s+/g, ' ').trim().toLowerCase();
-    if (!qLower) return;
-
-    // In slides mode only the active slide's DOM is queryable by
-    // getContentRootForPage; other rendered slides share the #slide-content id
-    // but can't be reliably scoped. Limit to the active page so we don't
-    // re-walk the wrong content and double-wrap.
-    const activePage = this.getActivePageIndex();
-    const byPage: { [page: number]: number[] } = {};
-    this.searchMatches.forEach((m, i) => {
-      if (!this.settings.continuousMode && m.page !== activePage) return;
-      if (!byPage[m.page]) byPage[m.page] = [];
-      byPage[m.page].push(i);
-    });
-
-    Object.keys(byPage).forEach(pageStr => {
-      const page = parseInt(pageStr, 10);
-      const root = this.getContentRootForPage(page);
-      if (!root) return;
-      const { normalized, map } = this.buildNormalizedIndex(root);
-      const lower = normalized.toLowerCase();
-
-      // Wrap in descending occurrence order — surroundContents splits the
-      // boundary text nodes, so wrapping later matches first keeps offsets
-      // for earlier matches valid.
-      const ordered = byPage[page]
-        .slice()
-        .sort((a, b) => this.searchMatches[b].occurrence - this.searchMatches[a].occurrence);
-
-      ordered.forEach(i => {
-        const occ = this.searchMatches[i].occurrence;
-        let from = 0;
-        let foundIdx = -1;
-        for (let k = 0; k <= occ; k += 1) {
-          foundIdx = lower.indexOf(qLower, from);
-          if (foundIdx < 0) break;
-          from = foundIdx + qLower.length;
-        }
-        if (foundIdx < 0) return;
-        const endIdx = Math.min(foundIdx + qLower.length, map.length) - 1;
-        const isCurrent = i === this.currentMatchIdx;
-        const className = isCurrent ? 'reader-search-hit current' : 'reader-search-hit';
-        this.searchHighlightSpans[i] = this.wrapRange(map, foundIdx, endIdx, className);
-      });
-    });
-  }
-
-  private scrollCurrentIntoView() {
-    const spans = this.searchHighlightSpans[this.currentMatchIdx];
-    if (!spans || spans.length === 0) return;
-    const scrollEl = this.scrollElement || this.getScrollElement();
-    if (!scrollEl) return;
-    const r = spans[0].getBoundingClientRect();
-    const cr = scrollEl.getBoundingClientRect();
-
-    // If the match already sits inside the visible area (with a small margin
-    // so it isn't jammed against the edges), leave the scroll alone — jumping
-    // a match the user can already see is just disorienting.
-    const margin = 40;
-    if (r.top >= cr.top + margin && r.bottom <= cr.bottom - margin) return;
-
-    this.suppressScrollSave = true;
-    scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop + (r.top - cr.top) - 100);
-    setTimeout(() => (this.suppressScrollSave = false), 150);
-  }
-
-  private wrapRange(
-    map: { node: Text; offset: number }[],
-    startIdx: number,
-    endIdx: number,
-    className: string,
-  ): HTMLElement[] {
-    const wraps: HTMLElement[] = [];
-    let i = startIdx;
-    while (i <= endIdx) {
-      const node = map[i].node;
-      let j = i;
-      let lastOffset = map[i].offset;
-      while (j + 1 <= endIdx && map[j + 1].node === node) {
-        j += 1;
-        lastOffset = map[j].offset;
-      }
-      try {
-        const r = document.createRange();
-        r.setStart(node, map[i].offset);
-        const len = (node.textContent || '').length;
-        r.setEnd(node, Math.min(lastOffset + 1, len));
-        const span = document.createElement('span');
-        span.className = className;
-        r.surroundContents(span);
-        wraps.push(span);
-      } catch (e) {
-        // ignore — partial wrap is acceptable
-      }
-      i = j + 1;
-    }
-    return wraps;
-  }
-
-  private clearHighlights() {
-    Object.keys(this.searchHighlightSpans).forEach(k => {
-      this.searchHighlightSpans[k].forEach(span => {
-        const p = span.parentNode;
-        if (!p) return;
-        while (span.firstChild) p.insertBefore(span.firstChild, span);
-        p.removeChild(span);
-        if ((p as any).normalize) (p as any).normalize();
-      });
-    });
-    this.searchHighlightSpans = {};
+    this.search.prevMatch();
   }
 
   // ----------------------------------------------------------------------
-  // Scroll persistence
+  // Continuous scroll — setup / teardown wired to controller
+  // ----------------------------------------------------------------------
+
+  private setupContinuous() {
+    this.bindScroll();
+    const startPage = this.story && typeof this.story.currentpage === 'number' ? this.story.currentpage : 0;
+    this.continuousCtrl.setup(startPage, this.continuousPages);
+  }
+
+  private teardownContinuous() {
+    this.continuousCtrl.teardown();
+  }
+
+  /** Callback from ContinuousScrollController when the active page changes. */
+  private onContinuousPageChanged(p: number) {
+    this.story.currentpage = p;
+    if (this.range) this.setRangeValue(p + 1);
+  }
+
+  private setRangeValue(value: number) {
+    if (!this.range) return;
+    this.suppressRangeChange = true;
+    this.range.setValue(value);
+    setTimeout(() => (this.suppressRangeChange = false), 0);
+  }
+
+  // ----------------------------------------------------------------------
+  // Scroll persistence (slides-mode only; continuous handled by controller)
   // ----------------------------------------------------------------------
 
   private getActivePageIndex(): number {
     if (this.settings.continuousMode) {
-      return this.lastActivePage;
+      return this.continuousCtrl.lastActivePage;
     }
     try {
       if (this.slidesElement) return this.slidesElement.getActiveIndex();
@@ -681,176 +501,17 @@ export class StoryViewPage {
     return `storyscroll:${this.story.id}:${page}`;
   }
 
-  private getScrollElement(): HTMLElement {
+  private getScrollElement(): HTMLElement | undefined {
     if (!this.rootElement || !this.rootElement.nativeElement) return undefined;
 
     if (this.settings.continuousMode) {
-      // Continuous mode uses the ion-content's own scroll container.
-      return this.rootElement.nativeElement.querySelector('.continuous-content .scroll-content');
+      return this.rootElement.nativeElement.querySelector('.continuous-content .scroll-content') || undefined;
     }
 
-    // ngx-scrollbar renders a dedicated scroll view element; keep the query tight for perf.
+    // ngx-scrollbar renders a dedicated scroll view element.
     const activeSlide = this.rootElement.nativeElement.querySelector('ion-slide.swiper-slide-active');
     if (!activeSlide) return undefined;
-    return activeSlide.querySelector('.ng-scrollbar-view') || activeSlide.querySelector('.scroll-content');
-  }
-
-  // ----------------------------------------------------------------------
-  // Anchor capture/restore for mode switches
-  // ----------------------------------------------------------------------
-
-  private getContentRootForPage(page: number): HTMLElement | null {
-    if (!this.rootElement || !this.rootElement.nativeElement) return null;
-    const root = this.rootElement.nativeElement as HTMLElement;
-    if (this.settings.continuousMode) {
-      const pageEl = root.querySelector(`.continuous-page[data-page="${page}"]`) as HTMLElement | null;
-      return pageEl ? (pageEl.querySelector('.continuous-page-content') as HTMLElement) : null;
-    }
-    // Slides mode: only the active slide actually has its content rendered.
-    const active = root.querySelector('ion-slide.swiper-slide-active') as HTMLElement | null;
-    if (!active) return null;
-    return active.querySelector('#slide-content') as HTMLElement;
-  }
-
-  // Walk all text nodes under root and produce (a) a whitespace-normalized
-  // string and (b) a per-character map back to the original (textNode, offset).
-  // Lets us treat the page as flat text for searching while still rebuilding
-  // a precise DOM Range when we want to scroll/highlight.
-  private buildNormalizedIndex(root: HTMLElement): { normalized: string; map: Array<{ node: Text; offset: number }> } {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null as any);
-    let normalized = '';
-    const map: Array<{ node: Text; offset: number }> = [];
-    let prevWasSpace = true;
-    let node = walker.nextNode() as Text | null;
-    while (node) {
-      const raw = node.textContent || '';
-      for (let i = 0; i < raw.length; i += 1) {
-        const c = raw.charCodeAt(i);
-        const isSpace = c === 32 || c === 9 || c === 10 || c === 13 || c === 160;
-        if (isSpace) {
-          if (!prevWasSpace) {
-            normalized += ' ';
-            map.push({ node, offset: i });
-            prevWasSpace = true;
-          }
-        } else {
-          normalized += raw[i];
-          map.push({ node, offset: i });
-          prevWasSpace = false;
-        }
-      }
-      node = walker.nextNode() as Text | null;
-    }
-    return { normalized, map };
-  }
-
-  private captureAnchor(): { page: number; text: string } | null {
-    try {
-      const page = this.getActivePageIndex();
-      const root = this.getContentRootForPage(page);
-      const scrollEl = this.scrollElement || this.getScrollElement();
-      if (!root || !scrollEl) return null;
-
-      const { normalized, map } = this.buildNormalizedIndex(root);
-      if (!normalized || map.length === 0) return null;
-
-      const containerTop = scrollEl.getBoundingClientRect().top;
-
-      // Binary-search the first character whose rect top is at or below the
-      // container's top — that's the first reading position visible to the user.
-      const charTop = (idx: number): number => {
-        const m = map[idx];
-        if (!m) return Number.POSITIVE_INFINITY;
-        const len = (m.node.textContent || '').length;
-        const end = Math.min(m.offset + 1, len);
-        if (end <= m.offset) return Number.POSITIVE_INFINITY;
-        const r = document.createRange();
-        r.setStart(m.node, m.offset);
-        r.setEnd(m.node, end);
-        return r.getBoundingClientRect().top;
-      };
-
-      let lo = 0;
-      let hi = map.length;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (charTop(mid) >= containerTop - 5) hi = mid;
-        else lo = mid + 1;
-      }
-      let start = Math.max(0, Math.min(lo, map.length - 1));
-      // Snap back to a word boundary so the snippet doesn't begin mid-word.
-      while (start > 0 && normalized[start - 1] !== ' ') start -= 1;
-
-      // ~100 chars is roughly a sentence — long enough to be unique on a page,
-      // short enough not to span huge swathes of layout.
-      const text = normalized.substring(start, start + 100).trim();
-      if (text.length < 20) return null;
-      return { page, text };
-    } catch (_e) {
-      return null;
-    }
-  }
-
-  private restoreAnchor(anchor: { page: number; text: string }): void {
-    const root = this.getContentRootForPage(anchor.page);
-    const scrollEl = this.scrollElement || this.getScrollElement();
-    if (!root || !scrollEl) return;
-
-    const { normalized, map } = this.buildNormalizedIndex(root);
-    const idx = normalized.indexOf(anchor.text);
-    if (idx < 0 || !map[idx]) return;
-    const endIdx = Math.min(idx + anchor.text.length, map.length) - 1;
-    const startMap = map[idx];
-    const endMap = map[endIdx];
-
-    const range = document.createRange();
-    try {
-      range.setStart(startMap.node, startMap.offset);
-      const endLen = (endMap.node.textContent || '').length;
-      range.setEnd(endMap.node, Math.min(endMap.offset + 1, endLen));
-    } catch (_e) {
-      return;
-    }
-
-    const rect = range.getBoundingClientRect();
-    const containerRect = scrollEl.getBoundingClientRect();
-    // Park the anchor ~80px below the container's top so it's clearly visible
-    // and not jammed against the (sometimes immersive) header.
-    const target = scrollEl.scrollTop + (rect.top - containerRect.top) - 80;
-
-    this.suppressScrollSave = true;
-    scrollEl.scrollTop = Math.max(0, target);
-    setTimeout(() => (this.suppressScrollSave = false), 150);
-
-    this.flashAnchor(map, idx, endIdx, root);
-  }
-
-  // Briefly highlight the restored anchor by wrapping it in fading spans, then
-  // unwrap them after the CSS animation completes. Falls back to flashing the
-  // page root when the range can't be wrapped at all (e.g. structural reflow).
-  private flashAnchor(
-    map: Array<{ node: Text; offset: number }>,
-    startIdx: number,
-    endIdx: number,
-    fallback: HTMLElement,
-  ): void {
-    const wraps = this.wrapRange(map, startIdx, endIdx, 'reader-anchor-flash');
-
-    if (wraps.length === 0) {
-      fallback.classList.add('reader-anchor-flash');
-      setTimeout(() => fallback.classList.remove('reader-anchor-flash'), 2500);
-      return;
-    }
-
-    setTimeout(() => {
-      wraps.forEach(span => {
-        const p = span.parentNode;
-        if (!p) return;
-        while (span.firstChild) p.insertBefore(span.firstChild, span);
-        p.removeChild(span);
-        if ((p as any).normalize) (p as any).normalize();
-      });
-    }, 2500);
+    return activeSlide.querySelector('.ng-scrollbar-view') || activeSlide.querySelector('.scroll-content') || undefined;
   }
 
   private bindScroll() {
@@ -872,30 +533,27 @@ export class StoryViewPage {
   }
 
   private onScroll = () => {
-    if (this.settings.continuousMode) this.updateActivePageFromScroll();
+    if (this.settings.continuousMode) {
+      this.continuousCtrl.onScroll(this.continuousPages);
+    }
     if (this.suppressScrollSave) return;
     if (this.scrollSaveTimeout) return;
     this.scrollSaveTimeout = setTimeout(() => {
       this.scrollSaveTimeout = undefined;
       this.persistScroll();
     }, 200);
-  }
+  };
 
   private persistScroll() {
     const el = this.scrollElement || this.getScrollElement();
     if (!el) return;
 
     if (this.settings.continuousMode) {
-      const page = this.getActivePageIndex();
-      const offset = Math.max(0, Math.floor((el.scrollTop || 0) - this.getPageStart(page)));
+      const { page, offset } = this.continuousCtrl.getContinuousScrollOffset(el);
       this.storage.set(this.getScrollKey(page), offset);
       this.story.currentpage = page;
       this.stories.cache(this.story);
-      if (this.range) {
-        this.suppressRangeChange = true;
-        this.range.setValue(page + 1);
-        setTimeout(() => (this.suppressRangeChange = false), 0);
-      }
+      this.setRangeValue(page + 1);
       return;
     }
 
@@ -911,261 +569,124 @@ export class StoryViewPage {
 
     this.storage.get(this.getScrollKey(page)).then((offset: number) => {
       if (typeof offset !== 'number' || isNaN(offset)) return;
-      const target = this.settings.continuousMode ? this.getPageStart(page) + offset : offset;
+      const target = this.settings.continuousMode ? this.continuousCtrl.getPageStart(page) + offset : offset;
       setTimeout(() => (el.scrollTop = target), 0);
-      // extra restore pass for images/font layout changes
+      // Extra restore pass for images/font layout changes.
       setTimeout(() => (el.scrollTop = target), 250);
     });
   }
 
   // ----------------------------------------------------------------------
-  // Continuous mode
+  // Anchor capture / restore for mode switches (concerns E)
+  // Uses buildNormalizedIndex / wrapRange from text-index.ts
   // ----------------------------------------------------------------------
 
-  private setupContinuous() {
-    this.bindScroll();
+  private getContentRootForPage(page: number): HTMLElement | null {
+    if (!this.rootElement || !this.rootElement.nativeElement) return null;
+    const root = this.rootElement.nativeElement as HTMLElement;
+    if (this.settings.continuousMode) {
+      const pageEl = root.querySelector(`.continuous-page[data-page="${page}"]`) as HTMLElement | null;
+      return pageEl ? (pageEl.querySelector('.continuous-page-content') as HTMLElement) : null;
+    }
+    const active = root.querySelector('ion-slide.swiper-slide-active') as HTMLElement | null;
+    if (!active) return null;
+    return active.querySelector('#slide-content') as HTMLElement;
+  }
 
-    // Materialize every page from 0 up to the saved page (plus a window below)
-    // so cumulative heights are exact at restore time. Without this, restored
-    // scrollTop would land in the wrong page because pages above the saved one
-    // would still be using the placeholder estimate.
-    const startPage = this.story && typeof this.story.currentpage === 'number' ? this.story.currentpage : 0;
-    this.lastActivePage = startPage;
-    for (let i = 0; i <= Math.min(startPage + 2, this.slides.length - 1); i += 1) {
-      this.materialized[i] = true;
+  private captureAnchor(): { page: number; text: string } | null {
+    try {
+      const page = this.getActivePageIndex();
+      const root = this.getContentRootForPage(page);
+      const scrollEl = this.scrollElement || this.getScrollElement();
+      if (!root || !scrollEl) return null;
+
+      const { normalized, map } = buildNormalizedIndex(root);
+      if (!normalized || map.length === 0) return null;
+
+      const containerTop = scrollEl.getBoundingClientRect().top;
+
+      const charTop = (idx: number): number => {
+        const m = map[idx];
+        if (!m) return Number.POSITIVE_INFINITY;
+        const len = (m.node.textContent || '').length;
+        const end = Math.min(m.offset + 1, len);
+        if (end <= m.offset) return Number.POSITIVE_INFINITY;
+        const r = document.createRange();
+        r.setStart(m.node, m.offset);
+        r.setEnd(m.node, end);
+        return r.getBoundingClientRect().top;
+      };
+
+      let lo = 0;
+      let hi = map.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (charTop(mid) >= containerTop - 5) hi = mid;
+        else lo = mid + 1;
+      }
+      let start = Math.max(0, Math.min(lo, map.length - 1));
+      // Snap back to word boundary so the snippet doesn't start mid-word.
+      while (start > 0 && normalized[start - 1] !== ' ') start -= 1;
+
+      const text = normalized.substring(start, start + 100).trim();
+      if (text.length < 20) return null;
+      return { page, text };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private restoreAnchor(anchor: { page: number; text: string }): void {
+    const root = this.getContentRootForPage(anchor.page);
+    const scrollEl = this.scrollElement || this.getScrollElement();
+    if (!root || !scrollEl) return;
+
+    const { normalized, map } = buildNormalizedIndex(root);
+    const idx = normalized.indexOf(anchor.text);
+    if (idx < 0 || !map[idx]) return;
+    const endIdx = Math.min(idx + anchor.text.length, map.length) - 1;
+    const startMap = map[idx];
+    const endMap = map[endIdx];
+
+    const range = document.createRange();
+    try {
+      range.setStart(startMap.node, startMap.offset);
+      const endLen = (endMap.node.textContent || '').length;
+      range.setEnd(endMap.node, Math.min(endMap.offset + 1, endLen));
+    } catch (e) {
+      return;
     }
 
-    // Wait for layout, measure, then restore scroll.
+    const rect = range.getBoundingClientRect();
+    const containerRect = scrollEl.getBoundingClientRect();
+    // Park the anchor ~80px below the container top so it's clearly visible.
+    const target = scrollEl.scrollTop + (rect.top - containerRect.top) - 80;
+
+    this.suppressScrollSave = true;
+    scrollEl.scrollTop = Math.max(0, target);
+    setTimeout(() => (this.suppressScrollSave = false), 150);
+
+    this.flashAnchor(map, idx, endIdx, root);
+  }
+
+  // Briefly highlight the restored anchor with fading spans.
+  private flashAnchor(map: { node: Text; offset: number }[], startIdx: number, endIdx: number, fallback: HTMLElement): void {
+    const wraps = wrapRange(map, startIdx, endIdx, 'reader-anchor-flash');
+
+    if (wraps.length === 0) {
+      fallback.classList.add('reader-anchor-flash');
+      setTimeout(() => fallback.classList.remove('reader-anchor-flash'), 2500);
+      return;
+    }
+
     setTimeout(() => {
-      this.measureAllRendered();
-      this.suppressScrollSave = true;
-      this.restoreContinuousScroll(startPage).then(() => {
-        // After scroll, additional pages may have been materialized via observer.
-        setTimeout(() => {
-          this.measureAllRendered();
-          this.suppressScrollSave = false;
-          this.continuousReady = true;
-        }, 200);
+      wraps.forEach(span => {
+        const p = span.parentNode;
+        if (!p) return;
+        while (span.firstChild) p.insertBefore(span.firstChild, span);
+        p.removeChild(span);
+        if ((p as any).normalize) (p as any).normalize();
       });
-      this.observeContinuousPages();
-    }, 50);
-  }
-
-  private teardownContinuous() {
-    if (this.continuousPagesSub) {
-      this.continuousPagesSub.unsubscribe();
-      this.continuousPagesSub = undefined;
-    }
-    if (this.intersectionObserver) {
-      this.intersectionObserver.disconnect();
-      this.intersectionObserver = undefined;
-    }
-    this.continuousReady = false;
-  }
-
-  private observeContinuousPages() {
-    const root = this.scrollElement || this.getScrollElement();
-    if (!root || !('IntersectionObserver' in window)) return;
-
-    this.intersectionObserver = new IntersectionObserver(
-      entries => {
-        let needsMeasure = false;
-        entries.forEach(entry => {
-          if (!(entry as any).isIntersecting && entry.intersectionRatio <= 0) return;
-          const idx = parseInt((entry.target as HTMLElement).getAttribute('data-page'), 10);
-          if (isNaN(idx)) return;
-          if (!this.materialized[idx]) {
-            this.zone.run(() => (this.materialized[idx] = true));
-            needsMeasure = true;
-          } else if (!this.measured[idx]) {
-            // Already materialized (e.g. via materializeWindow during scroll)
-            // but never measured — pick up its real height now.
-            needsMeasure = true;
-          }
-        });
-        if (needsMeasure) setTimeout(() => this.measureAllRendered(), 0);
-      },
-      { root, rootMargin: '1500px 0px 1500px 0px', threshold: 0 },
-    );
-
-    this.continuousPages.forEach(ref => this.intersectionObserver.observe(ref.nativeElement));
-    // Mode toggle teardown can null out the observer before this fires; guard
-    // against a late changes notification from the unmounting *ngFor.
-    this.continuousPagesSub = this.continuousPages.changes.subscribe(() => {
-      if (!this.intersectionObserver) return;
-      this.continuousPages.forEach(ref => this.intersectionObserver.observe(ref.nativeElement));
-    });
-  }
-
-  private materializeWindow(centerPage: number, radius: number = 2) {
-    const min = Math.max(0, centerPage - radius);
-    const max = Math.min(this.slides.length - 1, centerPage + radius);
-    for (let i = min; i <= max; i += 1) this.materialized[i] = true;
-  }
-
-  private measureAllRendered() {
-    if (!this.continuousPages) return;
-    const el = this.scrollElement || this.getScrollElement();
-    const prevScrollTop = el ? el.scrollTop : 0;
-    const activePage = this.lastActivePage;
-    const prevPageStart = this.getPageStart(activePage);
-
-    let changed = false;
-    this.continuousPages.forEach(ref => {
-      const node = ref.nativeElement as HTMLElement;
-      const idx = parseInt(node.getAttribute('data-page'), 10);
-      if (isNaN(idx)) return;
-      // Skip placeholders (would echo back min-height) and pages whose height
-      // we've already locked in — measuring once and freezing means later
-      // image/font reflow can't trigger compensation that fights the user.
-      if (!this.materialized[idx] || this.measured[idx]) return;
-      const inner = node.firstElementChild as HTMLElement;
-      const h = inner ? inner.offsetHeight : node.offsetHeight;
-      if (h && Math.abs(h - this.pageHeights[idx]) > 1) {
-        this.pageHeights[idx] = h;
-        this.measured[idx] = true;
-        changed = true;
-      } else if (h) {
-        this.measured[idx] = true;
-      }
-    });
-
-    // Newly-materialized pages need their search hits wrapped now that their
-    // DOM exists. Cheap no-op when search is closed.
-    if (changed && this.searchOpen) this.rehighlight();
-
-    // Compensate scroll position so the user's view doesn't jump when heights
-    // above the active page change (e.g. images loading after first render).
-    // Pages above the saved page are pre-materialized in setupContinuous, so
-    // the only deltas seen here at runtime should be from late content like
-    // images/fonts in already-rendered pages.
-    if (changed && el && this.continuousReady) {
-      const newPageStart = this.getPageStart(activePage);
-      const delta = newPageStart - prevPageStart;
-      if (Math.abs(delta) > 0.5) {
-        this.suppressScrollSave = true;
-        el.scrollTop = Math.max(0, prevScrollTop + delta);
-        setTimeout(() => (this.suppressScrollSave = false), 50);
-      }
-    }
-  }
-
-  private getPageStart(page: number): number {
-    let total = 0;
-    for (let i = 0; i < page && i < this.pageHeights.length; i += 1) total += this.pageHeights[i] || 0;
-    return total;
-  }
-
-  private updateActivePageFromScroll() {
-    const el = this.scrollElement;
-    if (!el) return;
-    const top = el.scrollTop;
-    let acc = 0;
-    let page = 0;
-    for (let i = 0; i < this.pageHeights.length; i += 1) {
-      const next = acc + (this.pageHeights[i] || 0);
-      if (top < next - 1) {
-        page = i;
-        break;
-      }
-      acc = next;
-      page = i;
-    }
-    if (page !== this.lastActivePage) {
-      this.lastActivePage = page;
-      // Expand materialization window around new active page.
-      this.materializeWindow(page, 2);
-      this.zone.run(() => {
-        if (this.range) {
-          this.suppressRangeChange = true;
-          this.range.setValue(page + 1);
-          setTimeout(() => (this.suppressRangeChange = false), 0);
-        }
-        this.story.currentpage = page;
-      });
-    }
-  }
-
-  private scrollToPage(page: number, speed: number = 300) {
-    const el = this.scrollElement || this.getScrollElement();
-    if (!el) return;
-    const clamped = Math.max(0, Math.min(this.slides.length - 1, page));
-    this.materializeWindow(clamped, 2);
-
-    // Allow new placeholders to lay out before scrolling so the target offset is correct.
-    setTimeout(() => {
-      this.measureAllRendered();
-      const target = this.getPageStart(clamped);
-      this.lastActivePage = clamped;
-      this.story.currentpage = clamped;
-      if (speed > 0 && (el as any).scrollTo) {
-        (el as any).scrollTo({ top: target, behavior: 'smooth' });
-      } else {
-        el.scrollTop = target;
-      }
-    }, 0);
-  }
-
-  private restoreContinuousScroll(page: number): Promise<void> {
-    return new Promise(resolve => {
-      const el = this.scrollElement || this.getScrollElement();
-      if (!el) {
-        resolve();
-        return;
-      }
-      this.storage.get(this.getScrollKey(page)).then((offset: number) => {
-        const off = typeof offset === 'number' && !isNaN(offset) ? offset : 0;
-        const apply = () => {
-          this.measureAllRendered();
-          el.scrollTop = this.getPageStart(page) + off;
-        };
-
-        // Apply once immediately, then keep re-applying as layout shifts (image
-        // dimensions arriving, font swap) change cumulative page heights. We
-        // observe the scroll container with a ResizeObserver and resolve once
-        // its height has been stable across two consecutive frames, with a
-        // 1500ms hard cap so a never-settling layout can't hang us.
-        apply();
-
-        if (typeof (window as any).ResizeObserver !== 'function') {
-          // Older WebViews: fall back to a short fixed schedule.
-          setTimeout(apply, 100);
-          setTimeout(apply, 300);
-          setTimeout(() => { apply(); resolve(); }, 600);
-          return;
-        }
-
-        let stableFrames = 0;
-        let lastHeight = el.scrollHeight;
-        let done = false;
-        const finish = () => {
-          if (done) return;
-          done = true;
-          ro.disconnect();
-          if (timer) clearTimeout(timer);
-          resolve();
-        };
-        const ro = new (window as any).ResizeObserver(() => {
-          stableFrames = 0;
-          lastHeight = el.scrollHeight;
-          apply();
-        });
-        ro.observe(el);
-
-        const tick = () => {
-          if (done) return;
-          if (el.scrollHeight === lastHeight) {
-            stableFrames += 1;
-            if (stableFrames >= 2) { apply(); finish(); return; }
-          } else {
-            stableFrames = 0;
-            lastHeight = el.scrollHeight;
-          }
-          requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-        const timer = setTimeout(() => { apply(); finish(); }, 1500);
-      });
-    });
+    }, 2500);
   }
 }
