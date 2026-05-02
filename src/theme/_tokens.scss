@@ -8,12 +8,16 @@
 $lit-blue:           #0066cc;
 $lit-blue-hover:     #004c99;
 $lit-blue-tint:      #cfe3ff;
+$lit-blue-active:    rgba(0, 102, 204, 0.18);  // pressed state for blue surfaces
 
 // Surfaces
-$body-bg:            #ffffff;
-$surface-bg:         #ffffff;
-$surface-alt:        #f5f5f5;       // subtle off-white for dividers / item-divider color="light"
-$divider:            #e6e6e6;
+// Two-tier surface: a subtle blue-tinted page bg sits around pure-white rows /
+// cards / toolbars to mirror the reference site's section separation.
+$page-bg:            #f1f4f9;       // body + content bg (faint blue-gray surround)
+$body-bg:            $page-bg;      // alias — Ionic globals expect $body-bg
+$surface-bg:         #ffffff;       // rows, cards, reader, toolbar, drawer header
+$surface-alt:        #eef2f7;       // dividers / item-divider color="light"
+$divider:            #dde3ec;       // line dividers (cool gray for blue-tinted bg)
 
 // Text
 $text-primary:       #111111;

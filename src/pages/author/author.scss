@@ -1,3 +1,6 @@
+@import '../../theme/row';
+@import '../../theme/series-card';
+
 page-author {
   // Kill the [padding] top inset so the sticky tab bar can clamp flush with
   // the toolbar; the profile header gets its own top margin instead.
@@ -28,16 +31,17 @@ page-author {
         margin: 0;
         font-size: 1.4em;
         font-weight: 600;
+        color: $text-primary;
       }
       .title {
         margin: 2px 0 4px;
-        opacity: 0.75;
+        color: $text-secondary;
         font-style: italic;
       }
       .meta {
         margin: 0;
         font-size: 0.85em;
-        opacity: 0.6;
+        color: $text-muted;
         ion-icon {
           font-size: 0.95em;
           vertical-align: -2px;
@@ -52,17 +56,18 @@ page-author {
     text-align: center;
     margin: 0 0 14px;
     padding: 10px 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid $divider;
+    border-bottom: 1px solid $divider;
 
     .stat {
       flex: 1;
       strong {
         display: block;
         font-size: 1.1em;
+        color: $text-primary;
       }
       small {
-        opacity: 0.6;
+        color: $text-muted;
         font-size: 0.75em;
         text-transform: uppercase;
         letter-spacing: 0.04em;
@@ -71,17 +76,14 @@ page-author {
 
     // Tappable variants are <button>s — strip the default ion-button chrome
     // so they look identical to the non-tappable <div>s, but show a subtle
-    // hover/active hint to telegraph the tap target.
-    // Tappable stats use the same .stat layout as the static cells — they
-    // are plain <div>s with [tappable], so the parent flex sizing and
-    // alignment apply directly without ion-button's chrome interfering.
+    // tap hint.
     .stat--tappable {
       cursor: pointer;
       border-radius: 6px;
       transition: background 80ms ease-out;
 
       &:active {
-        background: rgba(255, 255, 255, 0.05);
+        background: $lit-blue-active;
       }
     }
     .stat--disabled {
@@ -93,6 +95,7 @@ page-author {
   .bio {
     clear: both;
     margin-bottom: 14px;
+    color: $text-primary;
   }
 
   .bio p {
@@ -103,19 +106,20 @@ page-author {
     word-break: break-word;
 
     a {
-      color: color($colors, primary);
+      color: $lit-blue;
       text-decoration: underline;
     }
   }
 
+  // Fade-out gradient on the truncated bio — sits flush with the page bg.
   .bio .arrow {
     position: relative;
     top: -55px;
     height: 50px;
     margin-bottom: -55px;
     padding-top: 25px;
-    box-shadow: inset 0 -50px 50px -20px $background-color;
-    text-shadow: 0 0 10px color($colors, lighter);
+    box-shadow: inset 0 -50px 50px -20px $page-bg;
+    color: $lit-blue;
     text-align: center;
   }
 
@@ -124,17 +128,19 @@ page-author {
     h3 {
       margin: 0;
       font-size: 0.95em;
-      font-weight: 500;
+      font-weight: 600;
+      color: $text-primary;
     }
     p {
       margin: 2px 0 0;
       font-size: 0.82em;
-      opacity: 0.65;
+      color: $text-secondary;
     }
   }
 
   h3 {
     margin: 12px 0 6px;
+    color: $text-primary;
   }
 
   .scroll-content {
@@ -145,6 +151,7 @@ page-author {
     margin: 10px 0;
     font-size: 0.8em;
     font-style: italic;
+    color: $text-secondary;
   }
 
   // Sticky bar: SUBMISSIONS / FAVORITES segment + sort funnel. Spans
@@ -157,8 +164,8 @@ page-author {
     align-items: center;
     margin: 0 -16px 8px;
     padding: 0 4px 0 0;
-    background: $background-color;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    background: $page-bg;
+    border-bottom: 1px solid $divider;
   }
   .tab-bar__segment {
     flex: 1;
@@ -173,99 +180,16 @@ page-author {
     margin: 4px 4px 8px;
     font-size: 0.8em;
     font-style: italic;
-    opacity: 0.65;
+    color: $text-muted;
   }
 
   .submissions-list {
     margin: 0;
   }
 
+  // Series group — anatomy lives in `_series-card.scss`. Local extension
+  // pulls it in so author + history pages share one source of truth.
   .series-card {
-    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
-
-    &--expanded {
-      background: rgba(128, 128, 128, 0.04);
-    }
-
-    &__item .item-inner {
-      width: 100%;
-      border-color: #666 !important;
-      font-size: 0.9em;
-    }
-
-    &__item h2 {
-      font-size: 1em;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-    }
-
-    &__icon {
-      margin-right: 6px;
-      font-size: 1.05em;
-      opacity: 0.85;
-    }
-
-    &__item h2 .badge {
-      margin-top: 3px;
-      margin-left: 5px;
-      font-size: 0.7em;
-      vertical-align: bottom;
-    }
-
-    &__item p {
-      font-size: 0.9em;
-    }
-
-    &__item p ion-icon {
-      font-size: 0.95em;
-      vertical-align: -2px;
-    }
-
-    &__item .tags {
-      overflow-x: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      opacity: 0.85;
-    }
-
-    &__stats {
-      opacity: 0.75;
-
-      span {
-        display: inline-block;
-        margin-right: 12px;
-      }
-
-      ion-icon {
-        margin-right: 3px;
-      }
-    }
-
-    &__note {
-      display: flex;
-      align-items: center;
-    }
-
-    &__chevron {
-      font-size: 1.4em;
-      margin-left: 4px;
-      opacity: 0.7;
-    }
-
-    &__chapters {
-      padding: 4px 14px 10px;
-    }
-
-    &__more {
-      font-size: 0.9em;
-      opacity: 0.85;
-      color: color($colors, primary);
-
-      ion-icon {
-        margin-right: 6px;
-      }
-    }
+    @extend %lit-series-card;
   }
 }

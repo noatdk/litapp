@@ -1,0 +1,124 @@
+// Shared row anatomy for story / chapter / author list components.
+// The existing Angular templates (button[ion-item], h2, p, ion-note, etc.)
+// are preserved to keep swipe-to-delete and tooltip directives intact;
+// these styles map onto that markup. See plans/2026-05-02-visual-restyle-litapp/
+// phase-03 for the visual reference.
+//
+// USAGE: only individual row component hosts extend %lit-row-base
+// (story-list-item, chapter-card). Do NOT extend it from list wrappers
+// (story-list, story-list-normal) — those wrappers render their own children
+// and the placeholder rules don't apply at the wrapper level.
+
+@import 'tokens';
+
+// Pill badge — used for HOT/NEW/WRITER/WINNER tags.
+// Ionic's stock ion-badge bakes in `font-size: 1.3rem`, `line-height: 1`,
+// and `padding: 3px 8px` at higher specificity than our placeholder; the
+// `!important` flags below are the only way to win the cascade so the pill
+// stays compact and the glyph isn't clipped by the parent line box.
+%lit-pill {
+  display: inline-flex !important;
+  align-items: center;
+  height: 18px;
+  min-height: 0;
+  padding: 0 8px !important;
+  border-radius: $radius-pill !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1 !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+// Story-row visual rules — applied via @extend %lit-row-base inside each
+// component selector so the styles stay scoped to that component's host.
+%lit-row-base {
+  // Reset Ionic's stock item chrome.
+  .item,
+  button[ion-item] {
+    background: $surface-bg;
+    color: $text-primary;
+  }
+
+  .item-inner {
+    border-bottom: 1px solid $divider !important;
+    border-color: $divider !important;
+    background: $surface-bg;
+  }
+
+  // Title line: bold blue, mirrors the reference story-row. Line-height is
+  // generous so inline pill badges sit visually centered without clipping.
+  h2 {
+    color: $lit-blue;
+    font-weight: $fw-row-title;
+    font-size: $fs-row-title;
+    line-height: 1.5;
+    margin: 0 0 $sp-1 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: $sp-1;
+    row-gap: $sp-1;
+
+    small {
+      color: $text-muted;
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    .icon,
+    ion-icon {
+      color: $text-muted;
+    }
+  }
+
+  // Description / byline / meta paragraphs.
+  p {
+    color: $text-secondary;
+    font-size: $fs-meta;
+    line-height: $lh-meta;
+    margin: 0 0 $sp-1 0;
+
+    em { font-style: italic; color: $text-secondary; }
+    a, a:visited { color: $lit-blue; text-decoration: none; }
+    ion-icon { color: $text-muted; vertical-align: -2px; }
+  }
+
+  // Tags row — small monochrome chips. Category name still bold.
+  .tags {
+    color: $text-muted;
+    font-size: 12px;
+
+    strong { color: $text-secondary; font-weight: 600; }
+    span { margin-right: $sp-1; }
+  }
+
+  // Inline action icons on the right (bookmark / overflow).
+  ion-note {
+    background: transparent;
+
+    .button {
+      color: $text-muted;
+    }
+
+    // Active bookmark — Lit-blue. The bookmark control still uses star
+    // icons (not the reference's bookmark glyph) to preserve existing
+    // muscle memory; the color shift signals state.
+    .button .ion-md-star,
+    .button[color='secondary'] {
+      color: $lit-blue !important;
+    }
+  }
+
+  // Badges — convert to tight pills so HOT/NEW/WRITER/WINNER read like the
+  // reference. Ionic v3's $colors map (phase-01) already retargets red→
+  // $accent-hot, blue/green→$lit-blue, yellow→$accent-hot. Style here is
+  // shape + typography only.
+  ion-badge {
+    @extend %lit-pill;
+    margin-top: 0;
+    margin-left: $sp-1;
+  }
+}

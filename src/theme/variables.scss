@@ -50,16 +50,17 @@ $colors: (
 // iOS not visually QA'd in this iteration (see phase-05). Vars defined
 // symmetrically to avoid regressing upstream iOS users.
 
-$toolbar-ios-background:    $body-bg;
-$toolbar-ios-text-color:    $text-primary;
-$tabs-ios-background:       $body-bg;
-$tabs-ios-tab-color-active: $lit-blue;
-$list-ios-background-color: $body-bg;
-$item-ios-background:       $body-bg;
-$item-ios-divider-color:    $divider;
-$card-ios-background-color: $surface-bg;
-$card-ios-header-color:     $text-primary;
-$card-ios-text-color:       $text-secondary;
+$toolbar-ios-background:        $surface-bg;
+$toolbar-ios-text-color:        $text-primary;
+$tabs-ios-background:           $surface-bg;
+$tabs-ios-tab-color-active:     $lit-blue;
+$content-ios-background-color:  $page-bg;
+$list-ios-background-color:     $page-bg;
+$item-ios-background:           $surface-bg;
+$item-ios-divider-color:        $divider;
+$card-ios-background-color:     $surface-bg;
+$card-ios-header-color:         $text-primary;
+$card-ios-text-color:           $text-secondary;
 
 // App Material Design Variables
 // --------------------------------------------------
@@ -69,16 +70,17 @@ $spinner-md-bubbles-color:  $lit-blue;
 $spinner-md-circles-color:  $lit-blue;
 $spinner-md-dots-color:     $lit-blue;
 
-$toolbar-md-background:     $body-bg;
-$toolbar-md-text-color:     $text-primary;
-$tabs-md-background:        $body-bg;
-$tabs-md-tab-color-active:  $lit-blue;
-$list-md-background-color:  $body-bg;
-$item-md-background:        $body-bg;
-$item-md-divider-color:     $divider;
-$card-md-background-color:  $surface-bg;
-$card-md-header-color:      $text-primary;
-$card-md-text-color:        $text-secondary;
+$toolbar-md-background:        $surface-bg;
+$toolbar-md-text-color:        $text-primary;
+$tabs-md-background:           $surface-bg;
+$tabs-md-tab-color-active:     $lit-blue;
+$content-md-background-color:  $page-bg;
+$list-md-background-color:     $page-bg;
+$item-md-background:           $surface-bg;
+$item-md-divider-color:        $divider;
+$card-md-background-color:     $surface-bg;
+$card-md-header-color:         $text-primary;
+$card-md-text-color:           $text-secondary;
 
 // App Windows Variables
 // --------------------------------------------------

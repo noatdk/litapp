@@ -31,9 +31,8 @@
   margin: 0 5px;
 }
 
-.ion-page .list .item {
-  padding-left: 0;
-}
+// All list items (drawer + page) inherit Ionic's default left padding so menu
+// rows align with the wordmark and story rows breathe against the row bg.
 
 .menu-inner .list .item-inner {
   border-bottom: none;
@@ -208,6 +207,29 @@ ion-menu .account-footer {
       &.danger { color: $accent-hot; }
     }
   }
+}
+
+// Outline circular action button — mirrors the reference's "+" affordance
+// next to section titles ("Favorite Stories" etc.). Used wherever a small
+// floating-circle action sits inline with content.
+.lit-action-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid $lit-blue;
+  border-radius: 50%;
+  background: transparent;
+  color: $lit-blue;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  ion-icon { font-size: 20px; color: inherit; }
+
+  &:hover { background: $lit-blue-tint; }
+  &:active { background: $lit-blue-active; }
 }
 
 // Brand wordmark — applied to the drawer header. Reuses bundled Mulish

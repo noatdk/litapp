@@ -1,0 +1,125 @@
+// Shared series-card anatomy. Both the author submissions list and the
+// history Series tab render `.series-card` markup; this partial provides the
+// single source of truth so they stay visually aligned. Imported via
+// `@import 'series-card';` after tokens + row partials are available.
+
+@import 'row';
+
+%lit-series-card {
+  background: $surface-bg;
+  border-bottom: 1px solid $divider;
+
+  &.series-card--expanded {
+    background: $lit-blue-tint;
+  }
+
+  .series-card__item {
+    background: $surface-bg;
+    color: $text-primary;
+  }
+
+  .series-card__item .item-inner {
+    width: 100%;
+    border-bottom: 1px solid $divider !important;
+    border-color: $divider !important;
+    font-size: 0.9em;
+    background: $surface-bg;
+  }
+
+  .series-card__item h2 {
+    font-size: $fs-row-title;
+    font-weight: $fw-row-title;
+    color: $text-primary;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: $sp-1;
+    row-gap: $sp-1;
+    line-height: 1.5;
+    margin: 0 0 $sp-1;
+    overflow: visible;
+  }
+
+  .series-card__icon {
+    margin-right: $sp-1;
+    font-size: 1.05em;
+    color: $text-secondary;
+  }
+
+  .series-card__item h2 ion-badge {
+    @extend %lit-pill;
+    margin-left: $sp-1;
+  }
+
+  .series-card__item p {
+    font-size: $fs-meta;
+    color: $text-secondary;
+
+    em { font-style: italic; color: $text-secondary; }
+    a { color: $lit-blue; text-decoration: none; }
+  }
+
+  .series-card__item p ion-icon {
+    font-size: 0.95em;
+    vertical-align: -2px;
+    color: $text-muted;
+  }
+
+  .series-card__item .tags {
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $text-muted;
+
+    strong { color: $text-secondary; }
+  }
+
+  .series-card__stats {
+    color: $text-muted;
+
+    span {
+      display: inline-block;
+      margin-right: 12px;
+    }
+
+    ion-icon {
+      margin-right: 3px;
+      color: $text-muted;
+    }
+  }
+
+  .series-card__note {
+    display: flex;
+    align-items: center;
+
+    .button { color: $text-muted; }
+    ion-icon[color='secondary'] { color: $lit-blue !important; }
+  }
+
+  .series-card__chevron {
+    font-size: 1.4em;
+    margin-left: 4px;
+    color: $text-muted;
+  }
+
+  .series-card__chapters {
+    padding: $sp-1 $sp-4 $sp-2;
+    background: $surface-bg;
+  }
+
+  .series-card__empty {
+    margin: $sp-3 $sp-1;
+    color: $text-muted;
+    font-style: italic;
+  }
+
+  .series-card__more {
+    font-size: 0.9em;
+    color: $lit-blue;
+
+    ion-icon {
+      margin-right: $sp-1;
+      color: $lit-blue;
+    }
+  }
+}

@@ -1,19 +1,37 @@
+@import '../../theme/tokens';
+
 page-feed {
+  // Author activity entries (non-story feed items) need the same white card
+  // surface as story rows, otherwise they read as floating text on the
+  // tinted page bg.
+  .author {
+    background: $surface-bg;
+    color: $text-primary;
+  }
+
   .author .item-inner {
-    padding: 10px 0;
+    padding: $sp-2 0;
+    background: $surface-bg;
+    border-bottom: 1px solid $divider !important;
+    border-color: $divider !important;
   }
 
   .author p {
     white-space: initial;
+    color: $text-secondary;
+
+    a {
+      color: $lit-blue;
+    }
   }
 
   ion-avatar {
     float: left;
-    margin-right: 10px;
+    margin-right: $sp-2;
   }
 
   .item-inner {
-    border-color: #666 !important;
+    border-color: $divider !important;
   }
 
   .virtual-position {
@@ -21,9 +39,9 @@ page-feed {
   }
 
   .oldline {
-    padding-bottom: 10px;
-    color: #666;
+    padding-bottom: $sp-2;
+    color: $text-muted;
     text-align: center;
-    border-bottom: 1px solid #666;
+    border-bottom: 1px solid $divider;
   }
 }
