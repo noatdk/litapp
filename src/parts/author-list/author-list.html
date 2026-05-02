@@ -1,0 +1,11 @@
+<div class="author-list-card" *ngIf="authors?.length">
+  <ion-list>
+    <author-list-item
+      *ngFor="let a of authors; trackBy: trackById"
+      [author]="a"
+      [showFollowToggle]="showFollowToggle"
+      (itemClick)="onItemClick(a)"
+      (followToggle)="onFollowToggle($event)"
+    ></author-list-item>
+  </ion-list>
+</div>

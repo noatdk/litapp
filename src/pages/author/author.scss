@@ -9,6 +9,26 @@ page-author {
     padding-top: 0 !important;
   }
 
+  // Smooth fade + slight rise as deferred content (profile card, stats,
+  // links, facts, memo, lists, tab bar, story rows) lands once the API
+  // resolves. Each `*ngIf="author"` insertion runs the animation once on
+  // mount; using `both` holds the end state so nothing snaps back.
+  > ion-content > .scroll-content > .lit-card,
+  > ion-content > .scroll-content > .tab-bar,
+  > ion-content > .scroll-content > memo-preview,
+  > ion-content > .scroll-content > .submissions-list,
+  > ion-content > .scroll-content > story-list-normal {
+    animation: author-content-fade-in 320ms ease both;
+  }
+
+  @keyframes author-content-fade-in {
+    // Don't set `transform` in the `to` step — leaving it default means the
+    // animation ends with no transform applied, so a sticky descendant
+    // (`.tab-bar`) regains its position: sticky containing block.
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; }
+  }
+
   // First card sits below the toolbar with breathing room. Profile card
   // hosts a hero banner that bleeds to the card edges, so we kill the default
   // card padding and re-inset the bio block below.
@@ -40,6 +60,15 @@ page-author {
     transform: scale(1.2);          // hide blur edges
     z-index: 0;
     pointer-events: none;
+  }
+  // Real cover banner — no blur/scale, render crisp. Slightly taller hero so
+  // the banner art has room to breathe before the avatar+name overlay.
+  .profile-hero--has-cover {
+    min-height: 200px;
+  }
+  .profile-hero__bg--cover {
+    filter: none;
+    transform: none;
   }
   .profile-hero__shade {
     position: absolute;
@@ -121,6 +150,25 @@ page-author {
           color: $accent-hot;
           font-size: 0.85em;
           filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+        }
+
+        // Compact "Following" pill alongside the author's name. Visually
+        // unmistakable so the user can tell at a glance that they already
+        // follow this author — the toolbar icon alone wasn't doing the job.
+        .following-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          height: 18px;
+          padding: 0 8px !important;
+          border-radius: 999px !important;
+          font-size: 11px !important;
+          font-weight: 700;
+          line-height: 1 !important;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          text-shadow: none;
+          ion-icon { font-size: 12px; }
         }
       }
       .title {

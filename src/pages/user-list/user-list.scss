@@ -1,5 +1,4 @@
 @import '../../theme/tokens';
-@import '../../theme/card';
 
 page-user-list {
   ion-searchbar {
@@ -24,35 +23,9 @@ page-user-list {
     color: $text-muted;
   }
 
-  // Wrap the followers/following list in a single white card on the tinted
-  // page-bg so rows have a contiguous surface (matching the lists card on
-  // AuthorPage). Ionic v3's global $list-md-background-color: $page-bg would
-  // otherwise tint each row, defeating the card.
-  .users-card {
-    @extend %lit-card;
+  // Add the same top-spacing the inlined `.users-card` had, now that the
+  // card itself lives inside the shared <author-list> component.
+  author-list {
     margin-top: $sp-4;
-    padding: 0;
-    overflow: hidden;
-
-    ion-list,
-    ion-list .list-md,
-    ion-list .list-ios {
-      background: transparent !important;
-      margin: 0;
-      padding: 0;
-    }
-
-    author-list-item ion-item,
-    author-list-item .item-inner,
-    author-list-item .item-block,
-    author-list-item button[ion-item] {
-      background: transparent !important;
-    }
-
-    // Last row drops its bottom border so the row stack ends flush with the
-    // card edge instead of double-stacking against the card border.
-    author-list-item:last-child ion-item .item-inner {
-      border-bottom: none !important;
-    }
   }
 }

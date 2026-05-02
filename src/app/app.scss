@@ -351,24 +351,62 @@ ion-app.md page-story-view [padding] .scroll-content {
   border: none;
 }
 
-.loading-wrapper {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  display: block;
+// Global non-obstructive progress bar — replaces the previous Ionic
+// `LoadingController` modal overlay. Sits as a thin stripe directly under
+// the page toolbar so the user sees a fetch is in flight without being
+// blocked from interacting with the page (the old modal stopped the world
+// and ate every tap until it dismissed). UX provider drives visibility via
+// `loaderCount`.
+.lit-progress-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  .lit-progress-bar__track {
+    height: 3px;
+    background: rgba($lit-blue, 0.16);
+    overflow: hidden;
+  }
+
+  .lit-progress-bar__indicator {
+    width: 35%;
+    height: 100%;
+    background: $lit-blue;
+    border-radius: 2px;
+    animation: lit-progress-slide 1.4s linear infinite;
+  }
+
+  .lit-progress-bar__label {
+    align-self: center;
+    margin-top: 4px;
+    padding: 2px 10px;
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-radius: $radius-pill;
+    color: $text-secondary;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: $shadow-sm;
+  }
 }
 
-.loading-wrapper .loading-content {
-  color: white;
-  margin-top: -50px;
-  text-align: center;
-  margin-left: 0 !important;
-  font-size: 0.9em;
-}
+// Toolbar heights differ per platform — stripe sits flush below it.
+ion-app.md .lit-progress-bar { top: 56px; }
+ion-app.ios .lit-progress-bar { top: 44px; }
+ion-app.wp .lit-progress-bar { top: 46px; }
 
-ion-spinner {
-  width: 75px;
-  height: 75px;
+// Indicator is 35% of the track width; translate is in % of the indicator's
+// own width, so to move it from fully-off-left to fully-off-right we need
+// to span (100/35)% on each side ≈ -286% → +286% (rounded to ±300% for a
+// touch of breathing room past the edges).
+@keyframes lit-progress-slide {
+  0%   { transform: translateX(-300%); }
+  100% { transform: translateX(300%); }
 }
 
 .item-md.activated {
@@ -388,6 +426,187 @@ ion-item-options.icons button {
 
 .dark-backdrop ion-backdrop {
   opacity: 0.4;
+}
+
+// ---------------------------------------------------------------------------
+// Action sheets — Ionic's MD default ships flush-bottom and visually flat.
+// Reskin to match the rest of the app: rounded card, soft elevation, lit-blue
+// accent on icons, separated cancel row that reads as a secondary action.
+// ---------------------------------------------------------------------------
+ion-action-sheet {
+  .action-sheet-wrapper {
+    padding: $sp-3;
+  }
+
+  .action-sheet-container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .action-sheet-group {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+    margin-bottom: $sp-2;
+    padding: 0 !important;
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  .action-sheet-title {
+    padding: $sp-3 $sp-4 $sp-2 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    border-bottom: 1px solid $divider;
+    background: $surface-bg;
+    line-height: 1.35 !important;
+  }
+
+  .action-sheet-button {
+    color: $text-primary !important;
+    background: $surface-bg !important;
+    border: 0 !important;
+    height: auto !important;
+    min-height: 48px;
+    padding: 0 $sp-4 !important;
+    font-size: 15px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+
+    + .action-sheet-button {
+      border-top: 1px solid $divider !important;
+    }
+
+    .button-inner {
+      justify-content: flex-start !important;
+      color: inherit;
+    }
+
+    .action-sheet-icon {
+      color: $lit-blue !important;
+      font-size: 20px !important;
+      margin-right: $sp-3 !important;
+      min-width: 22px;
+    }
+
+    &.activated,
+    &:active {
+      background: $lit-blue-tint !important;
+    }
+  }
+
+  // Cancel sits in its own group at the bottom — render it as a quieter
+  // standalone tile so it reads as a secondary affordance.
+  .action-sheet-cancel {
+    color: $text-secondary !important;
+    font-weight: 600 !important;
+    justify-content: center !important;
+    .button-inner { justify-content: center !important; }
+  }
+
+  // Destructive entry (role: 'destructive') — re-tint the row in $accent-hot
+  // so "Delete" / "Remove" don't look identical to neutral actions.
+  .action-sheet-destructive {
+    color: $accent-hot !important;
+    .action-sheet-icon { color: $accent-hot !important; }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Alert dialogs (confirm / prompt) — match the action-sheet polish so a
+// confirmation prompt in the same flow doesn't look like a different app.
+// ---------------------------------------------------------------------------
+ion-alert {
+  .alert-wrapper {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+  }
+
+  .alert-head {
+    padding: $sp-4 $sp-4 $sp-2;
+    text-align: left;
+  }
+
+  .alert-title {
+    color: $text-primary !important;
+    font-size: $fs-section !important;
+    font-weight: $fw-section !important;
+    line-height: $lh-section !important;
+    margin: 0;
+  }
+
+  .alert-sub-title {
+    color: $text-secondary !important;
+    margin-top: $sp-1;
+  }
+
+  .alert-message {
+    padding: 0 $sp-4 $sp-3 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    line-height: 1.5 !important;
+    text-align: left !important;
+  }
+
+  .alert-input-group {
+    padding: 0 $sp-4 $sp-3 !important;
+  }
+  .alert-input {
+    color: $text-primary !important;
+    border-bottom: 1px solid $divider !important;
+    padding: $sp-2 0 !important;
+    &:focus { border-color: $lit-blue !important; }
+  }
+
+  .alert-radio-group,
+  .alert-checkbox-group {
+    border-top: 1px solid $divider;
+    border-bottom: 1px solid $divider;
+    max-height: 60vh;
+
+    .alert-radio-label,
+    .alert-checkbox-label {
+      color: $text-primary !important;
+    }
+    .alert-radio-icon,
+    .alert-checkbox-icon {
+      border-color: $lit-blue !important;
+    }
+    [aria-checked="true"] .alert-radio-icon,
+    [aria-checked="true"] .alert-radio-label,
+    [aria-checked="true"] .alert-checkbox-label {
+      color: $lit-blue !important;
+    }
+  }
+
+  .alert-button-group {
+    padding: $sp-2 !important;
+    border-top: 1px solid $divider;
+    justify-content: flex-end !important;
+  }
+
+  .alert-button {
+    color: $lit-blue !important;
+    background: transparent !important;
+    border-radius: $radius-sm !important;
+    padding: $sp-2 $sp-3 !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    min-width: 64px;
+
+    &:active,
+    &.activated {
+      background: $lit-blue-tint !important;
+    }
+  }
 }
 
 .empty-placeholder {

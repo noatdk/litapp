@@ -10,7 +10,7 @@
       </button>
 
       <button
-        *ngIf="!onlyDownloaded && filteredStories.length > 0"
+        *ngIf="!onlyDownloaded && ((openSegment === 'history' && filteredStories.length > 0) || (openSegment === 'authors' && recentAuthors.length > 0))"
         end
         ion-button
         icon-only
@@ -46,6 +46,10 @@
         {{ 'HISTORY_TAB_SERIES' | translate }}
         <small *ngIf="followedSeriesView.length">({{ followedSeriesView.length }})</small>
         <ion-badge *ngIf="totalNewChapters" color="secondary">{{ totalNewChapters }}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="authors">
+        {{ 'HISTORY_TAB_AUTHORS' | translate }}
+        <small *ngIf="recentAuthors.length">({{ recentAuthors.length }})</small>
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
@@ -128,5 +132,15 @@
         </div>
       </div>
     </ion-list>
+  </ng-container>
+
+  <ng-container *ngIf="!onlyDownloaded && openSegment === 'authors'">
+    <p *ngIf="!recentAuthors.length" class="empty-placeholder">
+      {{ 'HISTORY_AUTHORS_EMPTY' | translate }}
+    </p>
+    <author-list
+      [authors]="recentAuthors"
+      (itemClick)="openAuthor($event)"
+    ></author-list>
   </ng-container>
 </ion-content>

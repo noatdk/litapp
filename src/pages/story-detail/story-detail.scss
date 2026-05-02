@@ -123,25 +123,95 @@ page-story-detail {
     &.disabled { opacity: 0.5; }
   }
 
-  // Comments live inside the comments card — pull the ion-list flush with the
-  // card edges and zero out item bottom border on the last row. Bottom padding
-  // drops to $sp-2 since the flush ion-list already supplies its own row gap.
   .card-comments {
-    padding: $sp-4 $sp-4 $sp-2;
+    padding: $sp-4;
+
+    .lit-card__title {
+      display: flex;
+      align-items: center;
+      gap: $sp-2;
+
+      small { color: $text-muted; font-weight: 400; }
+    }
+
+    // Inline crescent spinner next to the section title — non-obstructive
+    // signal that a fetch is in flight (initial load or "load more"). Replaces
+    // the previously silent network round-trip.
+    .comments-spinner {
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      color: $lit-blue;
+    }
+
+    .comments-empty {
+      margin: $sp-3 0 0;
+      color: $text-muted;
+      font-size: $fs-meta;
+      text-align: center;
+    }
 
     .comments {
-      margin: 0 (-$sp-4) 0;
-      background: transparent;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
 
-      ion-item {
-        background: transparent;
+    .comment {
+      padding: $sp-3 0;
+      border-bottom: 1px solid $divider;
+
+      &:last-child { border-bottom: none; padding-bottom: 0; }
+      &:first-child { padding-top: $sp-2; }
+    }
+
+    .comment__head {
+      display: flex;
+      align-items: center;
+      gap: $sp-2;
+      margin: 0 0 $sp-1;
+    }
+
+    .comment__user {
+      font-size: $fs-row-title;
+      font-weight: $fw-row-title;
+      color: $lit-blue;
+      line-height: 1.2;
+    }
+
+    .comment__date {
+      font-size: 12px;
+      color: $text-muted;
+      // Pill-style date chip — visually offsets it from the username so the
+      // two read as distinct fields, not a single run-on header.
+      padding: 2px 8px;
+      border-radius: $radius-pill;
+      background: $surface-alt;
+      line-height: 1.4;
+    }
+
+    .comment__menu {
+      margin-left: auto;
+      min-height: 0;
+      height: 28px;
+      ion-icon { font-size: 18px; color: $text-muted; }
+    }
+
+    .comment__body {
+      margin: 0;
+      color: $text-primary;
+      font-size: $fs-meta;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .comments-loadmore {
+      margin-top: $sp-3;
+      ion-spinner {
+        margin-right: $sp-2;
+        width: 18px;
+        height: 18px;
       }
-
-      ion-item:last-child .item-inner {
-        border-bottom: none;
-      }
-
-      p { white-space: pre-wrap; }
     }
   }
 }
