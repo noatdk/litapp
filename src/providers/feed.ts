@@ -11,10 +11,12 @@ import { Settings } from './settings';
 import { FEED_KEY } from './db';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import { Activity } from './activity';
+import { ActivityWallResponse, ApiActivityItem } from '../models/api';
 
 @Injectable()
 export class Feed {
-  private ready;
+  private ready: Promise<void>;
   private timeout = 1000 * 60 * 10;
   private feed;
   private feedtimeout = new Date().getTime() + this.timeout;
@@ -30,6 +32,7 @@ export class Feed {
     public storage: Storage,
     public ux: UX,
     public filters: Filters,
+    public activity: Activity,
   ) {
     this.ready = new Promise((resolve, reject) => {
       Promise.all([this.settings.load(), this.user.onReady()]).then(() => {
@@ -39,6 +42,16 @@ export class Feed {
         }
 
         this.feedbadge = '·';
+
+        // Prefer the server's authoritative wall counter when available — it
+        // reflects items not yet acknowledged on this account, across devices.
+        // Falls back silently to the local "items since last viewed id" count
+        // computed below if counters can't be fetched (no wall_id, network).
+        this.activity.getCounters().subscribe(c => {
+          if (c && typeof c.wall === 'number' && c.wall > 0) {
+            this.feedbadge = c.wall > 15 ? '15+' : String(c.wall);
+          }
+        });
 
         this.query().subscribe(d => {
           if (d) {
@@ -86,8 +99,8 @@ export class Feed {
     }
 
     return this.api
-      .get(`3/activity/wall?params=${JSON.stringify(params)}`)
-      .map((d: any) => {
+      .get<ActivityWallResponse>(`3/activity/wall?params=${JSON.stringify(params)}`)
+      .map(d => {
         if (loader) loader.dismiss();
         if (!d.data) {
           this.ux.showToast();
@@ -96,14 +109,30 @@ export class Feed {
         }
 
         const items = d.data
-          .map(item => {
+          .map((item: ApiActivityItem) => {
             const isStory = item.action === 'published-story';
             try {
+              // `what` is polymorphic on `action`:
+              //   published-story → full story object (handled separately
+              //                     via Stories.extractFromFeed below)
+              //   profile-updated → string[] of changed field names
+              //   publish-news    → { content, url } site-news payload
+              //   other verbs     → unknown shapes; render as a friendly fallback
+              let text: string[] = [];
+              if (!isStory) {
+                if (Array.isArray(item.what)) {
+                  text = item.what as string[];
+                } else if (item.action === 'publish-news' && item.what && typeof (item.what as any).content === 'string') {
+                  text = [(item.what as any).content];
+                } else {
+                  text = ['their profile'];
+                }
+              }
               return new FeedItem({
+                text,
                 id: item.id,
                 timestamp: item.when,
                 author: this.a.extractFromFeed(item.who),
-                text: isStory ? [] : Array.isArray(item.what) ? item.what : ['their profile'],
                 story: !isStory ? undefined : this.s.extractFromFeed(item),
               });
             } catch (error) {

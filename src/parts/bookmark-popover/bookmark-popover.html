@@ -1,13 +1,24 @@
-<ion-list class="bookmarks">
-  <ion-list-header>{{'LISTLIST_TITLE' | translate}}</ion-list-header>
-  <ion-item *ngFor="let list of (alllists | orderBy:'id')" (click)="toggleFromList(list)">
-    <h2><ion-icon *ngIf="!list?.visibility" name="lock"></ion-icon> {{list?.name}}</h2>
-    <ion-note item-end>
-      <button ion-button icon-only clear="true" [tooltip]="'BOOKMARK_BUTTON' | translate" event="press" navTooltip>
-        <ng-container *ngIf="list?.stories">
-          <ion-icon [name]="hasStory(list) ? 'star' : 'star-outline'"></ion-icon>
-        </ng-container>
-      </button>
-    </ion-note>
-  </ion-item>
-</ion-list>
+<div class="bookmark-picker">
+  <header class="bookmark-picker__head">
+    <ion-icon name="bookmark"></ion-icon>
+    <h2>{{ 'LISTLIST_TITLE' | translate }}</h2>
+  </header>
+
+  <ul class="bookmark-picker__list">
+    <li
+      *ngFor="let list of (alllists | orderBy:'id')"
+      class="bookmark-row"
+      [class.bookmark-row--on]="hasStory(list)"
+      (click)="toggleFromList(list)"
+    >
+      <ion-icon class="bookmark-row__type" [name]="listIconFor(list)"></ion-icon>
+      <span class="bookmark-row__name">
+        <ion-icon *ngIf="!list?.visibility" name="lock" class="bookmark-row__lock"></ion-icon>
+        {{ list?.name }}
+      </span>
+      <span class="bookmark-row__check" [attr.aria-pressed]="hasStory(list)">
+        <ion-icon *ngIf="list?.stories" [name]="hasStory(list) ? 'checkmark' : 'add'"></ion-icon>
+      </span>
+    </li>
+  </ul>
+</div>

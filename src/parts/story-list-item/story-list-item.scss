@@ -1,24 +1,26 @@
-story-list-item {
-  .item-inner {
-    width: 100%;
-    border-color: #666 !important;
-    font-size: 0.9em;
-  }
+@import '../../theme/row';
 
+story-list-item {
+  @extend %lit-row-base;
+
+  // Title line: align inline glyphs/badges to the visual center so HOT/NEW
+  // pills aren't clipped against the row's tight line height.
   .item h2 {
-    font-size: 1em;
+    font-size: $fs-row-title;
+    line-height: 1.5;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: $sp-1;
   }
 
   .item small {
     vertical-align: middle;
   }
 
-  .item p {
-    font-size: 0.9em;
-  }
-
+  // Byline ("by AUTHOR on DATE"): secondary italic text.
   .item h2 + p {
     font-style: italic;
+    color: $text-secondary;
   }
 
   .item h2 .icon {
@@ -26,13 +28,8 @@ story-list-item {
     margin: -2px 3px 0 0;
   }
 
-  .badge {
-    margin-top: 3px;
-    margin-left: 5px;
-    font-size: 0.7em;
-    vertical-align: bottom;
-  }
-
+  // Tags row truncates with ellipsis so long tag lists never push the
+  // bookmark column off-row.
   .tags {
     overflow-x: hidden;
     white-space: nowrap;

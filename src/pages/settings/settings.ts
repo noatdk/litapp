@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
-import { IonicPage, NavController, NavParams, Platform } from 'ionic-angular';
+import { IonicPage, NavController, NavParams, Platform, PopoverController } from 'ionic-angular';
 import { Storage } from '@ionic/storage';
 import { File } from '@ionic-native/file';
 import { FileChooser } from '@ionic-native/file-chooser';
@@ -20,6 +20,7 @@ import {
   FILTERS_KEY,
   MEMOS_KEY,
   SERIES_FOLLOW_KEY,
+  MYRATINGS_KEY,
 } from '../../providers/db';
 import { handleNoCordovaError } from '../../app/utils';
 
@@ -27,7 +28,7 @@ const exportDataIdentifier = 'Exported data for Litapp (com.illuminatus.litapp)'
 
 declare const window: any;
 
-@IonicPage()
+@IonicPage({ segment: 'settings' })
 @Component({
   selector: 'page-settings',
   templateUrl: 'settings.html',
@@ -37,13 +38,10 @@ export class SettingsPage {
   settingsReady = false;
   form: FormGroup;
   newBlockedTag: string = '';
-  newBlockedAuthorId: string = '';
-  newBlockedSeriesId: string = '';
-  newBlockedCategoryId: string = '';
 
   translations;
   languages;
-  requireReloadSettings = ['offlineMode', 'amoledBlackTheme', 'forceNormalList'];
+  requireReloadSettings = ['offlineMode', 'forceNormalList'];
 
   private prevOptions: any = {};
 
@@ -65,6 +63,7 @@ export class SettingsPage {
     public fileChooser: FileChooser,
     public filePath: FilePath,
     public filters: Filters,
+    public popoverCtrl: PopoverController,
   ) {}
 
   addBlockedTag() {
@@ -73,38 +72,47 @@ export class SettingsPage {
     }
   }
 
-  addBlockedAuthorId() {
-    if (this.filters.addBlockedAuthorId(this.newBlockedAuthorId)) {
-      this.newBlockedAuthorId = '';
-    }
-  }
-
-  addBlockedSeriesId() {
-    if (this.filters.addBlockedSeriesId(this.newBlockedSeriesId)) {
-      this.newBlockedSeriesId = '';
-    }
-  }
-
-  addBlockedCategoryId() {
-    if (this.filters.addBlockedCategoryId(this.newBlockedCategoryId)) {
-      this.newBlockedCategoryId = '';
-    }
-  }
-
   removeBlockedTag(tag: string) {
     this.filters.removeBlockedTag(tag);
   }
 
-  removeBlockedAuthorId(id: string) {
-    this.filters.removeBlockedAuthorId(id);
+  pickAuthor(ev: UIEvent) {
+    this.openPicker(ev, 'author');
+  }
+  pickSeries(ev: UIEvent) {
+    this.openPicker(ev, 'series');
+  }
+  pickCategory(ev: UIEvent) {
+    this.openPicker(ev, 'category');
   }
 
-  removeBlockedSeriesId(id: string) {
-    this.filters.removeBlockedSeriesId(id);
+  private openPicker(ev: UIEvent, kind: 'author' | 'series' | 'category') {
+    const exclude =
+      kind === 'author'
+        ? this.filters.getBlockedAuthors().map(e => e.id)
+        : kind === 'series'
+        ? this.filters.getBlockedSeries().map(e => e.id)
+        : this.filters.getBlockedCategories().map(e => e.id);
+
+    const popover = this.popoverCtrl.create('EntityPicker', { kind, exclude }, { cssClass: 'entity-picker-popover' });
+    popover.present();
+    popover.onDidDismiss((data: any) => {
+      if (!data || !data.picked) return;
+      const { id, name } = data.picked;
+      if (kind === 'author') this.filters.addBlockedAuthor(id, name);
+      else if (kind === 'series') this.filters.addBlockedSeries(id, name);
+      else this.filters.addBlockedCategory(id, name);
+    });
   }
 
-  removeBlockedCategoryId(id: string) {
-    this.filters.removeBlockedCategoryId(id);
+  removeBlockedAuthor(id: string) {
+    this.filters.removeBlockedAuthor(id);
+  }
+  removeBlockedSeries(id: string) {
+    this.filters.removeBlockedSeries(id);
+  }
+  removeBlockedCategory(id: string) {
+    this.filters.removeBlockedCategory(id);
   }
 
   ionViewWillEnter() {
@@ -123,7 +131,6 @@ export class SettingsPage {
         checkforfeedupdates: [this.options.checkforfeedupdates],
         checkforappupdates: [this.options.checkforappupdates],
         cachelists: [this.options.cachelists],
-        amoledBlackTheme: [this.options.amoledBlackTheme],
         offlineMode: [this.options.offlineMode],
         enableLock: [this.options.enableLock],
         forceNormalList: [this.options.forceNormalList],
@@ -133,6 +140,7 @@ export class SettingsPage {
         defaultLanguage: [this.options.defaultLanguage],
         enableImmersiveReading: [this.options.enableImmersiveReading],
         largeStatusbarHeight: [this.options.largeStatusbarHeight],
+        allowTextSelection: [this.options.allowTextSelection],
       });
 
       this.form.valueChanges.subscribe(v => {
@@ -156,44 +164,52 @@ export class SettingsPage {
   }
 
   exportData() {
-    const data = {
+    const data: any = {
       type: exportDataIdentifier,
       version: this.g.getVersion(),
       timestamp: new Date().toISOString(),
     };
 
-    this.storage
-      .forEach((value, key, i) => {
-        if (
-          [
-            STARREDQUERIES_KEY,
-            RECENTQUERIES_KEY,
-            STORYSTYLEOPTIONS_KEY,
-            FEED_KEY,
-            SETTINGS_KEY,
-            HISTORY_KEY,
-            FILTERS_KEY,
-            MEMOS_KEY,
-            SERIES_FOLLOW_KEY,
-          ].indexOf(key) > -1
-        ) {
-          data[key] = value;
-        } else if (key.indexOf(STORY_KEY) > -1 && (value.downloaded || data[HISTORY_KEY].indexOf(value.id) > -1)) {
-          // add stories that are either downloaded or in history
-          data[key] = value;
-        }
-      })
-      .then(() => {
-        try {
-          const filename = `litapp-${Math.round(new Date().getTime() / 1000)}.json`;
-          const textData = JSON.stringify(data);
-          this.files.save(filename, textData, 'application/json');
-          // in case json stringify crashes
-        } catch (error) {
-          this.ux.showToast('ERROR', 'FILE_EXPORT_FAIL');
-          console.error('settings.exportData', [data], error);
-        }
-      });
+    // Top-level keys we want to round-trip. Anything user-authored or
+    // user-curated; skip auto-fetched caches (GLOBALS), server-fetched lists
+    // (LIST), auth state (USER), and app meta (VERSION).
+    const exportKeys = [
+      STARREDQUERIES_KEY,
+      RECENTQUERIES_KEY,
+      STORYSTYLEOPTIONS_KEY,
+      FEED_KEY,
+      SETTINGS_KEY,
+      HISTORY_KEY,
+      FILTERS_KEY,
+      MEMOS_KEY,
+      SERIES_FOLLOW_KEY,
+      MYRATINGS_KEY,
+    ];
+
+    // Resolve HISTORY_KEY first so the per-story filter below can rely on it
+    // regardless of forEach iteration order.
+    this.storage.get(HISTORY_KEY).then((historyIds: any[] = []) => {
+      this.storage
+        .forEach((value, key, i) => {
+          if (exportKeys.indexOf(key) > -1) {
+            data[key] = value;
+          } else if (key.indexOf(STORY_KEY) > -1 && value && (value.downloaded || (historyIds && historyIds.indexOf(value.id) > -1))) {
+            // include only stories the user has explicitly downloaded or read
+            data[key] = value;
+          }
+        })
+        .then(() => {
+          try {
+            const filename = `litapp-${Math.round(new Date().getTime() / 1000)}.json`;
+            const textData = JSON.stringify(data);
+            this.files.save(filename, textData, 'application/json');
+            // in case json stringify crashes
+          } catch (error) {
+            this.ux.showToast('ERROR', 'FILE_EXPORT_FAIL');
+            console.error('settings.exportData', [data], error);
+          }
+        });
+    });
   }
 
   importData() {
@@ -249,8 +265,7 @@ export class SettingsPage {
   }
 
   saveErrorLog() {
-    // tslint:disable-next-line: prefer-template
-    const filename = 'litapp-errorlog-' + Math.round(new Date().getTime() / 1000) + '.json';
+    const filename = `litapp-errorlog-${Math.round(new Date().getTime() / 1000)}.json`;
 
     // log some device data before saving to file
     const runtimeData = {

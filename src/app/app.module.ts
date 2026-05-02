@@ -1,6 +1,7 @@
 import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 
 import { JwtRefreshInterceptor } from '../providers/shared/jwt-refresh.interceptor';
+import { GlobalErrorHandler } from '../providers/shared/global-error.handler';
 import { ErrorHandler, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -15,7 +16,7 @@ import { HeaderColor } from '@ionic-native/header-color';
 import { IonicStorageModule, Storage } from '@ionic/storage';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { IonicApp, IonicErrorHandler, IonicModule } from 'ionic-angular';
+import { IonicApp, IonicModule } from 'ionic-angular';
 import { File } from '@ionic-native/file';
 import { FileChooser } from '@ionic-native/file-chooser';
 import { FilePath } from '@ionic-native/file-path';
@@ -42,6 +43,7 @@ import {
   Filters,
   Memos,
   Series,
+  Activity,
 } from '../providers/providers';
 import { MyApp } from './app.component';
 import { UpdatePopoverModule } from '../pages/settings/update-popover.module';
@@ -63,7 +65,6 @@ export function provideSettings(storage: Storage) {
     checkforfeedupdates: true,
     checkforappupdates: true,
     cachelists: true,
-    amoledBlackTheme: false,
     offlineMode: false,
     enableLock: false,
     forceNormalList: false,
@@ -73,6 +74,7 @@ export function provideSettings(storage: Storage) {
     defaultLanguage: 1, // en
     enableImmersiveReading: true,
     largeStatusbarHeight: false,
+    allowTextSelection: false,
   });
 }
 
@@ -114,6 +116,7 @@ export function provideSettings(storage: Storage) {
     Filters,
     Memos,
     Series,
+    Activity,
     // packages
     AndroidFullScreen,
     BrowserTab,
@@ -134,7 +137,7 @@ export function provideSettings(storage: Storage) {
     { provide: Settings, useFactory: provideSettings, deps: [Storage] },
     { provide: HTTP_INTERCEPTORS, useClass: JwtRefreshInterceptor, multi: true },
     // Keep this to enable Ionic's runtime error handling during development
-    { provide: ErrorHandler, useClass: IonicErrorHandler },
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
   ],
 })
 export class AppModule {}

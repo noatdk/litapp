@@ -30,15 +30,16 @@ export class FollowingPage {
     $event.stopPropagation();
 
     if (author.following) {
-      this.a.unfollow(author);
+      this.a.unfollow(author).subscribe();
     } else {
-      this.a.follow(author);
+      this.a.follow(author).subscribe();
     }
   }
 
   showAuthor(author: Author) {
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
     });
   }
 
@@ -62,8 +63,7 @@ export class FollowingPage {
     popover.onDidDismiss((choice: string) => {
       if (choice) {
         let data = null;
-        // tslint:disable-next-line: prefer-template
-        let filename = 'litapp-following-' + Math.round(new Date().getTime() / 1000);
+        let filename = `litapp-following-${Math.round(new Date().getTime() / 1000)}`;
 
         if (choice === 'json') {
           filename += '.json';

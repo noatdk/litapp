@@ -1,3 +1,5 @@
+@import '../../theme/tokens';
+
 page-story-view {
   & > div {
     width: 100%;
@@ -36,8 +38,8 @@ page-story-view {
   }
 
   .content {
-    background: black;
-    color: white;
+    background: $surface-bg;
+    color: $text-primary;
     top: 0;
     right: 0;
     bottom: 0;
@@ -65,7 +67,7 @@ page-story-view {
 
   .ng-scrollbar-thumb.grey,
   .ng-scrollbar-thumb.black {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.35);
   }
 
   .ng-scrollbar-autohide > .ng-scrollbar {
@@ -96,7 +98,212 @@ page-story-view {
   #slide-content img {
     min-width: 100%;
     padding: 5px;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  // Restore typographic hierarchy for HTML content rendered via [innerHTML].
+  // Ionic v3's reset flattens h1-h6, and Angular ViewEncapsulation strips
+  // component-scoped attrs from innerHTML — so we ::ng-deep past it to reach
+  // the dynamically-inserted nodes.
+  ::ng-deep #slide-content {
+    p {
+      margin: 0 0 1em 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      line-height: 1.25;
+      margin: 1.4em 0 0.6em 0;
+    }
+
+    h1 {
+      font-size: 1.6em;
+    }
+    h2 {
+      font-size: 1.4em;
+    }
+    h3 {
+      font-size: 1.2em;
+    }
+    h4 {
+      font-size: 1.1em;
+    }
+    h5,
+    h6 {
+      font-size: 1em;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    strong,
+    b {
+      font-weight: 700;
+    }
+
+    blockquote {
+      margin: 1em 0;
+      padding: 0.25em 1em;
+      border-left: 3px solid currentColor;
+      opacity: 0.85;
+      font-style: italic;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 1em 0;
+      padding-left: 1.5em;
+    }
+
+    li {
+      margin: 0.25em 0;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid currentColor;
+      opacity: 0.4;
+      margin: 1.5em 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    code,
+    pre {
+      font-family: monospace, monospace;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      margin: 1em 0;
+    }
+  }
+
+  // Continuous mode
+  .continuous-stack {
+    width: 100%;
+  }
+
+  // Horizontal padding lives on the outer .continuous-page (component-scoped)
+  // — putting it on .continuous-page-content via ::ng-deep didn't reliably
+  // apply, leaving content butting against the screen edge.
+  .continuous-page {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 20px;
+  }
+
+  ::ng-deep .continuous-page-content {
+    p {
+      margin: 0 0 1em 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      line-height: 1.25;
+      margin: 1.4em 0 0.6em 0;
+    }
+
+    h1 {
+      font-size: 1.6em;
+    }
+    h2 {
+      font-size: 1.4em;
+    }
+    h3 {
+      font-size: 1.2em;
+    }
+    h4 {
+      font-size: 1.1em;
+    }
+    h5,
+    h6 {
+      font-size: 1em;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+    strong,
+    b {
+      font-weight: 700;
+    }
+
+    blockquote {
+      margin: 1em 0;
+      padding: 0.25em 1em;
+      border-left: 3px solid currentColor;
+      opacity: 0.85;
+      font-style: italic;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 1em 0;
+      padding-left: 1.5em;
+    }
+    li {
+      margin: 0.25em 0;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid currentColor;
+      opacity: 0.4;
+      margin: 1.5em 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    code,
+    pre {
+      font-family: monospace, monospace;
+    }
+    pre {
+      white-space: pre-wrap;
+      margin: 1em 0;
+    }
+
+    img {
+      min-width: 100%;
+      padding: 5px;
+      background: rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  ::ng-deep .continuous-page-content.first {
+    padding-top: 75px;
+  }
+
+  ::ng-deep .continuous-page-content.last {
+    padding-bottom: 60px;
+  }
+
+  .immersive ::ng-deep .continuous-page-content.first {
+    padding-top: calc(45px + var(--statusbar-height, 30px));
+  }
+
+  .immersive ::ng-deep .continuous-page-content.last {
+    padding-bottom: 110px;
   }
 
   .pagination {
@@ -135,6 +342,81 @@ page-story-view {
   .pagination.fullscreen {
     bottom: -100px;
   }
+
+  // Anchor flash — briefly highlights the sentence we re-anchored on after a
+  // mode switch so the user can spot their place. Fades to transparent and is
+  // unwrapped by code shortly after the animation ends.
+  ::ng-deep .reader-anchor-flash {
+    background: rgba(0, 102, 204, 0.18);
+    border-radius: 2px;
+    animation: reader-anchor-flash-fade 2.5s ease-out forwards;
+  }
+
+  @keyframes reader-anchor-flash-fade {
+    0% {
+      background: rgba(0, 102, 204, 0.22);
+    }
+    60% {
+      background: rgba(0, 102, 204, 0.12);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+
+  // In-story search bar — sits below the header, above ion-content. Stays
+  // visible in immersive/fullscreen so the user can keep searching mid-read.
+  .search-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    // Sits above the header (z-index 9999) so it isn't occluded when the
+    // toolbar is visible. Its own opaque background covers the navbar; the
+    // close button in the bar replaces the back button while searching.
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    padding: 4px 4px 4px 12px;
+    border-bottom: 1px solid currentColor;
+    min-height: 44px;
+
+    &.immersive {
+      padding-top: calc(4px + var(--statusbar-height, 30px));
+    }
+
+    input {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      outline: 0;
+      padding: 6px 4px;
+      color: inherit;
+      font-size: 14px;
+      caret-color: currentColor;
+
+      &::placeholder {
+        color: currentColor;
+        opacity: 0.5;
+      }
+    }
+
+    .search-count {
+      font-size: 12px;
+      opacity: 0.7;
+      padding: 0 6px;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    button {
+      margin: 0;
+    }
+  }
+
+  // Highlight rules for .reader-search-hit live in app.scss as global styles.
+  // Component-scoped ::ng-deep doesn't reach innerHTML-injected DOM reliably
+  // here (browsers ignore the ::ng-deep pseudo, killing the selector match).
 
   .alternate-buttons {
     display: flex;

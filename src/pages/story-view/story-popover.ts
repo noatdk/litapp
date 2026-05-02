@@ -47,6 +47,10 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
         <ion-label>Low contrast: </ion-label>
         <ion-toggle [checked]="settings.lowcontrast" (ionChange)="toggleLowContrast($event)"></ion-toggle>
       </ion-item>
+      <ion-item class="popover-contrast-toggle">
+        <ion-label>Continuous: </ion-label>
+        <ion-toggle [checked]="settings.continuousMode" (ionChange)="toggleContinuousMode($event)"></ion-toggle>
+      </ion-item>
       <ion-item class="popover-text-sans-serif">
         <ion-label>Sans-serif</ion-label>
         <ion-radio value="sans-serif"></ion-radio>
@@ -54,6 +58,14 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
       <ion-item class="popover-text-serif">
         <ion-label>Serif</ion-label>
         <ion-radio value="'Times New Roman', serif"></ion-radio>
+      </ion-item>
+      <ion-item class="popover-text-Mulish">
+        <ion-label>Mulish</ion-label>
+        <ion-radio value="'Mulish', sans-serif"></ion-radio>
+      </ion-item>
+      <ion-item class="popover-text-DejaVuSans">
+        <ion-label>DejaVu Sans</ion-label>
+        <ion-radio value="'DejaVu Sans', sans-serif"></ion-radio>
       </ion-item>
       <ion-item class="popover-text-OpenDyslexic">
         <ion-label>OpenDyslexic</ion-label>
@@ -136,6 +148,14 @@ import { IonicPage, NavParams, Platform } from 'ionic-angular';
 
       .popover-text-serif {
         font-family: 'Times New Roman', serif;
+      }
+
+      .popover-text-Mulish {
+        font-family: 'Mulish', sans-serif;
+      }
+
+      .popover-text-DejaVuSans {
+        font-family: 'DejaVu Sans', sans-serif;
       }
 
       .popover-text-OpenDyslexic {
@@ -267,6 +287,10 @@ export class StoryPopover {
       }
     }
     this.settings.textalign = newDir;
+  }
+
+  toggleContinuousMode(event) {
+    this.settings.continuousMode = event.checked;
   }
 
   toggleLowContrast(event) {

@@ -1,4 +1,5 @@
 // http://ionicframework.com/docs/v2/theming/
+@import '../theme/tokens';
 
 @font-face {
   font-family: 'OpenDyslexic';
@@ -8,13 +9,143 @@
     url('../assets/fonts/opendyslexic-0.9.10/OpenDyslexic-Regular.otf') format('opentype');
 }
 
+// Mulish — free Proxima Nova-like humanist sans (SIL OFL). Variable axis covers
+// 200-900 weight, so a single file is enough for any weight we render.
+@font-face {
+  font-family: 'Mulish';
+  font-weight: 200 900;
+  font-style: normal;
+  src: url('../assets/fonts/mulish/Mulish-Regular.ttf') format('truetype-variations'),
+    url('../assets/fonts/mulish/Mulish-Regular.ttf') format('truetype');
+}
+
+// DejaVu Sans — free Verdana-like screen sans (DejaVu/Bitstream Vera license).
+@font-face {
+  font-family: 'DejaVu Sans';
+  font-weight: normal;
+  font-style: normal;
+  src: url('../assets/fonts/dejavu-sans/DejaVuSans.ttf') format('truetype');
+}
+
 .bar-buttons button {
   margin: 0 5px;
 }
 
-.ion-page .list .item {
-  padding-left: 0;
+// ---------------------------------------------------------------------------
+// Toolbar / header — keep Ionic's default absolute positioning (required by
+// ion-tabs for proper tab-page sizing) but make the toolbar fully opaque
+// with a clear shadow so any content scrolling under it is hidden cleanly.
+// page-story-view is excluded because immersive mode WANTS the toolbar to
+// overlay / fade as the user scrolls.
+// ---------------------------------------------------------------------------
+.ion-page:not(page-story-view) {
+  ion-header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+  }
+
+  ion-header .toolbar-background,
+  ion-header .toolbar-md .toolbar-background-md,
+  ion-header .toolbar-ios .toolbar-background-ios {
+    background: $surface-bg !important;
+  }
+
+  // Decorative wordmark-style brackets around the navbar title so each page
+  // header echoes the `[ literotica ]` lockup. Skipped on the drawer header
+  // which already renders the brackets as literal characters.
+  ion-header ion-title:not(.brand-wordmark) .toolbar-title {
+    &::before {
+      content: '[ ';
+      color: $lit-blue;
+      font-weight: $fw-wordmark;
+    }
+    &::after {
+      content: ' ]';
+      color: $lit-blue;
+      font-weight: $fw-wordmark;
+    }
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Global Ionic-component overrides for the light theme. Centralized here so
+// segment bars / searchbars / toggles / inputs read consistently across
+// every page (search, history, top-list, settings, list-create, etc.).
+// ---------------------------------------------------------------------------
+
+// Search bar — light surface, dark text. Ionic's MD default ships with a
+// shaded backdrop that looks washed out on the new tinted page bg.
+ion-searchbar {
+  .searchbar-input {
+    background: $surface-bg !important;
+    color: $text-primary !important;
+    border: 1px solid $divider !important;
+    border-radius: $radius-md !important;
+    box-shadow: none !important;
+  }
+
+  .searchbar-search-icon,
+  .searchbar-md .searchbar-search-icon {
+    color: $text-muted !important;
+  }
+
+  input::placeholder {
+    color: $text-muted;
+  }
+}
+
+// Segment bar — light bg, blue active. Used by search-popover, history,
+// top-list, author, etc.
+ion-segment {
+  .segment-button {
+    color: $text-secondary;
+    border-color: $divider;
+    opacity: 1;
+
+    &.segment-activated {
+      color: $lit-blue;
+      border-color: $lit-blue;
+    }
+  }
+}
+
+// Form controls — toggle, radio, checkbox all flip blue when active so the
+// settings + list-create + filter screens feel coherent with the row links.
+ion-toggle .toggle-checked .toggle-icon {
+  background-color: $lit-blue !important;
+}
+ion-toggle .toggle-checked .toggle-inner {
+  background-color: $lit-blue-hover !important;
+}
+ion-radio .radio-checked,
+ion-radio .radio-icon.radio-checked {
+  border-color: $lit-blue !important;
+}
+ion-radio .radio-inner {
+  background-color: $lit-blue !important;
+}
+ion-checkbox .checkbox-checked {
+  background-color: $lit-blue !important;
+  border-color: $lit-blue !important;
+}
+
+// Inputs / labels in floating-label items keep dark text on the new white
+// surfaces (Ionic's MD default fades labels heavily, which on light bg
+// reads as washed-out gray).
+ion-item .label-md {
+  color: $text-secondary;
+}
+ion-item.item-input.input-has-focus .label-md,
+ion-item.item-input.item-input-has-focus .label-md {
+  color: $lit-blue;
+}
+ion-input input,
+ion-textarea textarea {
+  color: $text-primary;
+}
+
+// All list items (drawer + page) inherit Ionic's default left padding so menu
+// rows align with the wordmark and story rows breathe against the row bg.
 
 .menu-inner .list .item-inner {
   border-bottom: none;
@@ -24,7 +155,289 @@
   margin-right: 10px !important;
 }
 
-ion-app.md [padding] .scroll-content {
+// Side menu — near-black drawer per the reference screenshot, sitting against
+// the light app surface. Uses sidebar-* tokens so the palette stays disciplined.
+ion-menu {
+  .menu-inner {
+    background-color: $sidebar-bg;
+    color: $sidebar-text;
+  }
+
+  .menu-inner ion-content,
+  .menu-inner ion-content .scroll-content {
+    background-color: $sidebar-bg;
+  }
+
+  .menu-inner ion-toolbar,
+  .menu-inner .toolbar-background {
+    background: $sidebar-bg;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .menu-inner ion-title,
+  .menu-inner .toolbar-title {
+    color: $sidebar-text;
+  }
+
+  .menu-inner .list .item,
+  .menu-inner .list .item-inner,
+  .menu-inner ion-list ion-item,
+  .menu-inner button[ion-item] {
+    background-color: transparent;
+    color: $sidebar-text;
+  }
+
+  .menu-inner .item-md.activated,
+  .menu-inner button[ion-item]:active {
+    background-color: $sidebar-row-active !important;
+    border-left: 3px solid $sidebar-accent;
+  }
+}
+
+// Account panel pinned at the bottom of the side menu — sits on the dark drawer
+// surface; uses sidebar tokens so colors stay in the white/black/Lit-blue scheme.
+ion-menu .account-footer {
+  background-color: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: $sp-2 $sp-3;
+  color: $sidebar-text;
+  // Kill Ionic's default footer top-shadow line.
+  &::before {
+    display: none !important;
+  }
+
+  .muted {
+    color: $sidebar-text-muted;
+    opacity: 1;
+  }
+  .warn,
+  .error {
+    color: $sidebar-text;
+  }
+
+  .signed-out {
+    padding: $sp-1 2px;
+    p {
+      margin: 0 0 $sp-2;
+      font-size: 0.85em;
+      opacity: 0.7;
+      text-align: center;
+    }
+    button {
+      margin: 0;
+    }
+  }
+
+  .signed-in {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+
+    .identity {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: transparent;
+      border: 0;
+      padding: $sp-1 6px;
+      border-radius: $radius-sm + 2px;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      outline: none;
+
+      &:active {
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: $lit-blue;
+      color: $sidebar-text;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      overflow: hidden;
+
+      &.has-image {
+        background: transparent;
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+    }
+
+    .user-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+
+      .username {
+        color: $sidebar-text;
+        font-size: 0.95em;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .status {
+        font-size: 0.75em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+    }
+
+    .actions {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 2px;
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 0;
+      padding: 6px;
+      width: 34px;
+      height: 34px;
+      border-radius: $radius-sm + 2px;
+      color: $sidebar-text;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      ion-icon {
+        font-size: 20px;
+        color: inherit;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      &:active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      &[disabled] {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      // Affordance for state-laden actions sitting on the dark drawer surface.
+      // Reuses $accent-hot (the documented HOT exception) for danger so the
+      // logout button reads as destructive without re-introducing extra
+      // palette colors. Warn uses the same accent at lower emphasis (icon
+      // color only, no background).
+      &.warn {
+        color: $accent-hot;
+      }
+      &.danger {
+        color: $accent-hot;
+      }
+    }
+  }
+}
+
+// Outline circular action button — mirrors the reference's "+" affordance
+// next to section titles ("Favorite Stories" etc.). Used wherever a small
+// floating-circle action sits inline with content.
+.lit-action-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid $lit-blue;
+  border-radius: 50%;
+  background: transparent;
+  color: $lit-blue;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  ion-icon {
+    font-size: 20px;
+    color: inherit;
+  }
+
+  &:hover {
+    background: $lit-blue-tint;
+  }
+  &:active {
+    background: $lit-blue-active;
+  }
+}
+
+// Brand wordmark — applied to the drawer header. Reuses bundled Mulish
+// at its heaviest variable-axis weight; brackets are literal characters.
+.brand-wordmark {
+  font-family: $font-wordmark;
+  font-weight: $fw-wordmark !important;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: $sidebar-text;
+}
+
+.brand-bracket {
+  color: $lit-blue;
+  display: inline-block;
+  position: relative;
+  top: -2px;
+}
+
+.brand-bracket--close {
+  position: relative;
+}
+
+// Tilted "(Unofficial)" sticker overlaid on the bottom-right corner of the
+// closing bracket. Uses OpenDyslexic for a hand-stamped feel.
+.brand-unofficial {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  font-family: 'OpenDyslexic', sans-serif !important;
+  font-weight: normal !important;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: $sidebar-text-muted;
+  opacity: 0.95;
+  transform: translate(-65%, -75%) rotate(-12deg);
+  transform-origin: center;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+// Allow the rotated sticker to escape the drawer toolbar/title clipping
+// regions; otherwise Ionic's default overflow:hidden hides the badge.
+.menu-inner ion-header,
+.menu-inner ion-toolbar,
+.menu-inner .toolbar,
+.menu-inner ion-title,
+.menu-inner .toolbar-title {
+  overflow: visible !important;
+}
+
+// Story reader needs flush-against-the-toolbar layout for the immersive
+// reading mode. Everywhere else `[padding]` on ion-content should keep its
+// default top/bottom padding so the navbar doesn't overlay the first lines.
+ion-app.md page-story-view [padding] .scroll-content {
   padding-top: 0;
   padding-bottom: 0;
 }
@@ -33,24 +446,72 @@ ion-app.md [padding] .scroll-content {
   border: none;
 }
 
-.loading-wrapper {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  display: block;
+// Global non-obstructive progress bar — replaces the previous Ionic
+// `LoadingController` modal overlay. Sits as a thin stripe directly under
+// the page toolbar so the user sees a fetch is in flight without being
+// blocked from interacting with the page (the old modal stopped the world
+// and ate every tap until it dismissed). UX provider drives visibility via
+// `loaderCount`.
+.lit-progress-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  .lit-progress-bar__track {
+    height: 3px;
+    background: rgba($lit-blue, 0.16);
+    overflow: hidden;
+  }
+
+  .lit-progress-bar__indicator {
+    width: 35%;
+    height: 100%;
+    background: $lit-blue;
+    border-radius: 2px;
+    animation: lit-progress-slide 1.4s linear infinite;
+  }
+
+  .lit-progress-bar__label {
+    align-self: center;
+    margin-top: 4px;
+    padding: 2px 10px;
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-radius: $radius-pill;
+    color: $text-secondary;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: $shadow-sm;
+  }
 }
 
-.loading-wrapper .loading-content {
-  color: white;
-  margin-top: -50px;
-  text-align: center;
-  margin-left: 0 !important;
-  font-size: 0.9em;
+// Toolbar heights differ per platform — stripe sits flush below it.
+ion-app.md .lit-progress-bar {
+  top: 56px;
+}
+ion-app.ios .lit-progress-bar {
+  top: 44px;
+}
+ion-app.wp .lit-progress-bar {
+  top: 46px;
 }
 
-ion-spinner {
-  width: 75px;
-  height: 75px;
+// Indicator is 35% of the track width; translate is in % of the indicator's
+// own width, so to move it from fully-off-left to fully-off-right we need
+// to span (100/35)% on each side ≈ -286% → +286% (rounded to ±300% for a
+// touch of breathing room past the edges).
+@keyframes lit-progress-slide {
+  0% {
+    transform: translateX(-300%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 .item-md.activated {
@@ -72,10 +533,370 @@ ion-item-options.icons button {
   opacity: 0.4;
 }
 
+// ---------------------------------------------------------------------------
+// Action sheets — Ionic's MD default ships flush-bottom and visually flat.
+// Reskin to match the rest of the app: rounded card, soft elevation, lit-blue
+// accent on icons, separated cancel row that reads as a secondary action.
+// ---------------------------------------------------------------------------
+ion-action-sheet {
+  .action-sheet-wrapper {
+    padding: $sp-3;
+  }
+
+  .action-sheet-container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .action-sheet-group {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+    margin-bottom: $sp-2;
+    padding: 0 !important;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .action-sheet-title {
+    padding: $sp-3 $sp-4 $sp-2 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    border-bottom: 1px solid $divider;
+    background: $surface-bg;
+    line-height: 1.35 !important;
+  }
+
+  .action-sheet-button {
+    color: $text-primary !important;
+    background: $surface-bg !important;
+    border: 0 !important;
+    height: auto !important;
+    min-height: 48px;
+    padding: 0 $sp-4 !important;
+    font-size: 15px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+
+    + .action-sheet-button {
+      border-top: 1px solid $divider !important;
+    }
+
+    .button-inner {
+      justify-content: flex-start !important;
+      color: inherit;
+    }
+
+    .action-sheet-icon {
+      color: $lit-blue !important;
+      font-size: 20px !important;
+      margin-right: $sp-3 !important;
+      min-width: 22px;
+    }
+
+    &.activated,
+    &:active {
+      background: $lit-blue-tint !important;
+    }
+  }
+
+  // Cancel sits in its own group at the bottom — render it as a quieter
+  // standalone tile so it reads as a secondary affordance.
+  .action-sheet-cancel {
+    color: $text-secondary !important;
+    font-weight: 600 !important;
+    justify-content: center !important;
+    .button-inner {
+      justify-content: center !important;
+    }
+  }
+
+  // Destructive entry (role: 'destructive') — re-tint the row in $accent-hot
+  // so "Delete" / "Remove" don't look identical to neutral actions.
+  .action-sheet-destructive {
+    color: $accent-hot !important;
+    .action-sheet-icon {
+      color: $accent-hot !important;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Alert dialogs (confirm / prompt) — match the action-sheet polish so a
+// confirmation prompt in the same flow doesn't look like a different app.
+// ---------------------------------------------------------------------------
+ion-alert {
+  .alert-wrapper {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+  }
+
+  .alert-head {
+    padding: $sp-4 $sp-4 $sp-2;
+    text-align: left;
+  }
+
+  .alert-title {
+    color: $text-primary !important;
+    font-size: $fs-section !important;
+    font-weight: $fw-section !important;
+    line-height: $lh-section !important;
+    margin: 0;
+  }
+
+  .alert-sub-title {
+    color: $text-secondary !important;
+    margin-top: $sp-1;
+  }
+
+  .alert-message {
+    padding: 0 $sp-4 $sp-3 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    line-height: 1.5 !important;
+    text-align: left !important;
+  }
+
+  .alert-input-group {
+    padding: 0 $sp-4 $sp-3 !important;
+  }
+  .alert-input {
+    color: $text-primary !important;
+    border-bottom: 1px solid $divider !important;
+    padding: $sp-2 0 !important;
+    &:focus {
+      border-color: $lit-blue !important;
+    }
+  }
+
+  .alert-radio-group,
+  .alert-checkbox-group {
+    border-top: 1px solid $divider;
+    border-bottom: 1px solid $divider;
+    max-height: 60vh;
+
+    .alert-radio-label,
+    .alert-checkbox-label {
+      color: $text-primary !important;
+    }
+    .alert-radio-icon,
+    .alert-checkbox-icon {
+      border-color: $lit-blue !important;
+    }
+    [aria-checked='true'] .alert-radio-icon,
+    [aria-checked='true'] .alert-radio-label,
+    [aria-checked='true'] .alert-checkbox-label {
+      color: $lit-blue !important;
+    }
+  }
+
+  .alert-button-group {
+    padding: $sp-2 !important;
+    border-top: 1px solid $divider;
+    justify-content: flex-end !important;
+  }
+
+  .alert-button {
+    color: $lit-blue !important;
+    background: transparent !important;
+    border-radius: $radius-sm !important;
+    padding: $sp-2 $sp-3 !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    min-width: 64px;
+
+    &:active,
+    &.activated {
+      background: $lit-blue-tint !important;
+    }
+  }
+}
+
 .empty-placeholder {
   text-align: center;
   border-top: none;
   opacity: 0.7;
   margin: 0;
   padding-top: 10px;
+}
+
+// Reusable entity picker — popover styled to act like a near-fullscreen sheet
+// card. Internal layout (title, search, results, actions) lives in
+// `src/parts/entity-picker/entity-picker.scss`.
+.entity-picker-popover .popover-content {
+  width: 94vw;
+  max-width: 94vw;
+  height: 85vh;
+  max-height: 85vh;
+  top: 7.5vh !important;
+  left: 3vw !important;
+  border-radius: $radius-md;
+  background: $surface-bg;
+  box-shadow: $shadow-md;
+  border: 1px solid $divider;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.entity-picker-popover .popover-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: $surface-bg;
+}
+.entity-picker-popover .popover-viewport > .ion-page,
+.entity-picker-popover .popover-viewport > .ion-page > .scroll-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: $surface-bg !important;
+}
+
+// Popover content ALWAYS sits on $surface-bg, never the tinted $page-bg
+// content background — phase-03's $content-md-background-color: $page-bg
+// override would otherwise bleed into popovers (entity-picker, memo editor,
+// alert sheets, etc.).
+ion-popover ion-content,
+ion-popover .scroll-content,
+.entity-picker-popover ion-content,
+.entity-picker-popover .scroll-content,
+.memo-popover ion-content,
+.memo-popover .scroll-content {
+  background: $surface-bg !important;
+}
+.entity-picker-popover .entity-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  .picker-title,
+  .picker-search {
+    flex: 0 0 auto;
+  }
+
+  .picker-results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+  }
+
+  .picker-actions {
+    flex: 0 0 auto;
+    text-align: right;
+    padding: 4px 8px;
+  }
+}
+
+// Memo editor popover — center on screen with a comfortable width instead of
+// anchoring to the click event (which clipped the sheet against the viewport).
+// Memo editor — near-fullscreen sheet like the entity picker so it never clips
+// against the viewport regardless of where the trigger button sat.
+.memo-popover .popover-content {
+  width: 94vw;
+  max-width: 94vw;
+  height: 85vh;
+  max-height: 85vh;
+  top: 7.5vh !important;
+  left: 3vw !important;
+  border-radius: $radius-md;
+  transform-origin: center !important;
+  display: flex;
+  flex-direction: column;
+  background: $surface-bg;
+}
+.memo-popover .popover-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: $surface-bg;
+}
+.memo-popover .popover-arrow {
+  display: none;
+}
+
+// "Save to list" picker — anchored popover (not a fullscreen sheet) but
+// styled to match the rest of the design system: rounded card on
+// $surface-bg, soft shadow, no arrow, and the inner list never inherits the
+// tinted page bg from the global content override.
+.bookmark-popover .popover-content {
+  border-radius: $radius-md;
+  background: $surface-bg;
+  box-shadow: $shadow-md;
+  border: 1px solid $divider;
+  overflow: hidden;
+  padding: 0;
+}
+.bookmark-popover .popover-viewport,
+.bookmark-popover ion-content,
+.bookmark-popover .scroll-content {
+  background: $surface-bg !important;
+}
+.bookmark-popover .popover-arrow {
+  display: none;
+}
+
+// "Save to list" trigger glyph on story rows / chapter cards. Ionicons v3
+// has no platform-neutral `bookmark-outline`, so we ship one `bookmark`
+// filled glyph and toggle visual state via color: muted outline-feel when
+// off, lit-blue when on. Visible against both white rows and the tinted
+// page bg.
+.bookmark-toggle {
+  color: $text-muted;
+  opacity: 0.7;
+}
+.bookmark-toggle--on {
+  color: $lit-blue;
+  opacity: 1;
+}
+
+// In-story search highlights — global so they reach DOM injected via
+// [innerHTML] inside the reader (component-scoped ::ng-deep does not).
+// Pale-blue for all matches, Lit-blue for the active one — palette discipline
+// (no yellow/orange against the new white reader surface).
+span.reader-search-hit {
+  background-color: $highlight-all-bg !important;
+  color: $highlight-all-fg !important;
+  border-radius: 2px;
+  padding: 0 1px;
+  box-shadow: 0 0 0 1px $lit-blue;
+}
+
+span.reader-search-hit.current {
+  background-color: $highlight-cur-bg !important;
+  color: $highlight-cur-fg !important;
+  box-shadow: 0 0 0 1px $lit-blue-hover;
+}
+
+// Native text selection in the story reader. Scoped to .allow-text-select on
+// the story-view root, so default tap-to-paginate UX is preserved when off.
+// Lives in global CSS (not the component SCSS) so the cascade reaches DOM
+// injected via [innerHTML] and beats Ionic v3's body-level `user-select: none`
+// + universal `-webkit-touch-callout: none`. !important is required because
+// Ionic's `* { -webkit-touch-callout: none }` matches every descendant.
+.allow-text-select,
+.allow-text-select *,
+.allow-text-select #slide-content,
+.allow-text-select #slide-content *,
+.allow-text-select .continuous-page-content,
+.allow-text-select .continuous-page-content * {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
 }

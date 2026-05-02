@@ -4,26 +4,17 @@ import { TranslateService } from '@ngx-translate/core';
 import { Storage } from '@ionic/storage';
 
 import { Stories, Settings, History, Series } from '../../providers/providers';
-import { summarizeSeries } from '../../providers/series';
+import { summarizeSeries, SeriesSummary } from '../../providers/series';
+import { RecentAuthor } from '../../providers/history';
 import { Story } from '../../models/story';
 
-interface SeriesCard {
+interface SeriesCard extends SeriesSummary {
   seriesId: string;
-  title: string;
-  representative?: Story;
-  authorName?: string;
-  chaptersCount: number;
-  totalViews: number;
-  totalComments: number;
-  totalFavorites: number;
-  totalLists: number;
-  categoryID?: number;
-  isHot: boolean;
   newChapters: Story[];
   expanded: boolean;
 }
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'history' })
 @Component({
   selector: 'page-history',
   templateUrl: 'history.html',
@@ -31,9 +22,10 @@ interface SeriesCard {
 export class HistoryPage {
   filteredStories: Story[] = [];
   followedSeriesView: SeriesCard[] = [];
+  recentAuthors: RecentAuthor[] = [];
   totalNewChapters: number = 0;
   sortMethod: string;
-  openSegment: 'history' | 'series' = 'history';
+  openSegment: 'history' | 'series' | 'authors' = 'history';
 
   @ViewChild(Content) content: Content;
 
@@ -63,6 +55,7 @@ export class HistoryPage {
       this.onlyDownloaded = this.settings.allSettings.offlineMode;
       this.buildList();
       this.refreshShelves();
+      this.recentAuthors = this.history.getRecentAuthors();
 
       if (this.settings.allSettings.offlineMode) return;
 
@@ -100,18 +93,9 @@ export class HistoryPage {
       const summary = summarizeSeries(seriesId, chapters);
       const newChapters = this.seriesFollow.getUnreadChapters(seriesId);
       cards.push({
+        ...summary,
         seriesId,
         newChapters,
-        title: summary.title,
-        representative: summary.representative,
-        authorName: summary.authorName,
-        chaptersCount: summary.chaptersCount,
-        totalViews: summary.totalViews,
-        totalComments: summary.totalComments,
-        totalFavorites: summary.totalFavorites,
-        totalLists: summary.totalLists,
-        categoryID: summary.categoryID,
-        isHot: summary.isHot,
         expanded: prevExpanded.has(seriesId) || newChapters.length > 0,
       });
     });
@@ -123,14 +107,6 @@ export class HistoryPage {
 
   toggleCard(card: SeriesCard) {
     card.expanded = !card.expanded;
-  }
-
-  formatCount(n: any): string {
-    const v = Number(n);
-    if (!v || isNaN(v)) return '0';
-    if (v >= 1000000) return `${Math.round(v / 100000) / 10}m`;
-    if (v >= 1000) return `${Math.round(v / 1000)}k`;
-    return String(v);
   }
 
   openCardSeries(card: SeriesCard) {
@@ -160,6 +136,7 @@ export class HistoryPage {
   }
 
   clearAll() {
+    const onAuthors = this.openSegment === 'authors' && !this.onlyDownloaded;
     this.alertCtrl
       .create({
         title: this.translations.HISTORY_TOOLTIP_CLEAR,
@@ -168,6 +145,12 @@ export class HistoryPage {
           {
             text: this.translations.OK_BUTTON,
             handler: () => {
+              if (onAuthors) {
+                this.history.resetAuthors().then(() => {
+                  this.recentAuthors = [];
+                });
+                return;
+              }
               this.onlyDownloaded = false;
               this.history.reset();
               this.buildList();
@@ -177,6 +160,10 @@ export class HistoryPage {
         ],
       })
       .present();
+  }
+
+  openAuthor(entry: RecentAuthor) {
+    this.navCtrl.push('AuthorPage', { author: { id: entry.id, name: entry.name, picture: entry.picture }, id: entry.id });
   }
 
   delete(story: Story) {

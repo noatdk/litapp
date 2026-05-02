@@ -1,0 +1,89 @@
+<ion-header>
+  <ion-navbar>
+    <button ion-button icon-only menuToggle>
+      <ion-icon name="menu"></ion-icon>
+    </button>
+    <ion-title>{{ 'MEMOS_TITLE' | translate }}</ion-title>
+  </ion-navbar>
+  <ion-toolbar>
+    <ion-segment [(ngModel)]="openSegment">
+      <ion-segment-button value="all">
+        {{ 'MEMOS_TAB_ALL' | translate }}
+        <small *ngIf="totalCount">({{ totalCount }})</small>
+      </ion-segment-button>
+      <ion-segment-button value="story">
+        {{ 'MEMOS_TAB_STORIES' | translate }}
+        <small *ngIf="storyMemos.length">({{ storyMemos.length }})</small>
+      </ion-segment-button>
+      <ion-segment-button value="author">
+        {{ 'MEMOS_TAB_AUTHORS' | translate }}
+        <small *ngIf="authorMemos.length">({{ authorMemos.length }})</small>
+      </ion-segment-button>
+      <ion-segment-button value="series">
+        {{ 'MEMOS_TAB_SERIES' | translate }}
+        <small *ngIf="seriesMemos.length">({{ seriesMemos.length }})</small>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      [placeholder]="'MEMOS_SEARCH_PLACEHOLDER' | translate"
+      (ionClear)="clearSearch()"
+      debounce="120"
+    ></ion-searchbar>
+    <ion-buttons end>
+      <ion-select [(ngModel)]="sortMode" interface="popover" class="memos-sort-select">
+        <ion-option value="updated">{{ 'MEMOS_SORT_UPDATED' | translate }}</ion-option>
+        <ion-option value="created">{{ 'MEMOS_SORT_CREATED' | translate }}</ion-option>
+        <ion-option value="title">{{ 'MEMOS_SORT_TITLE' | translate }}</ion-option>
+      </ion-select>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content padding>
+  <p *ngIf="!totalCount" class="empty-placeholder">
+    {{ 'MEMOS_EMPTY' | translate }}
+  </p>
+
+  <p *ngIf="totalCount && !visibleEntries.length" class="empty-placeholder">
+    {{ (searchTerm ? 'MEMOS_SEARCH_EMPTY' : 'MEMOS_TAB_EMPTY') | translate }}
+  </p>
+
+  <ion-list>
+    <button ion-item *ngFor="let entry of visibleEntries" (click)="open(entry)">
+      <h2>
+        <ion-icon [name]="iconFor(entry.kind)"></ion-icon>
+        {{ entry.title }}
+      </h2>
+
+      <p *ngIf="entry.subtitle"><em>{{ entry.subtitle }}</em></p>
+
+      <p class="memo-text">{{ entry.memo }}</p>
+
+      <p class="tags">
+        <ng-container *ngIf="entry.edited">
+          {{ entry.updatedAt | date:'medium' }} · {{ 'MEMOS_CREATED' | translate | lowercase }} {{ entry.createdAt | date:'mediumDate' }}
+        </ng-container>
+        <ng-container *ngIf="!entry.edited && entry.createdAt">
+          {{ entry.createdAt | date:'medium' }}
+        </ng-container>
+      </p>
+
+      <ion-note item-end (click)="$event.stopPropagation()">
+        <button
+          ion-button
+          icon-only
+          clear="true"
+          (click)="edit(entry, $event)"
+          [tooltip]="'MEMO_BUTTON' | translate"
+          event="press"
+          navTooltip
+        >
+          <ion-icon name="create"></ion-icon>
+        </button>
+      </ion-note>
+    </button>
+  </ion-list>
+</ion-content>

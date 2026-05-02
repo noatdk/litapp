@@ -50,13 +50,6 @@
       </button>
 
       <memo-button kind="story" [id]="story.id"></memo-button>
-      <memo-button *ngIf="story.series > 0" kind="series" [id]="story.series"></memo-button>
-
-      <series-follow-button
-        *ngIf="story.series > 0"
-        [seriesId]="story.series"
-        [story]="story"
-      ></series-follow-button>
 
       <button
         ion-button
@@ -78,63 +71,146 @@
 </ion-header>
 
 <ion-content padding>
-  <h2>{{story.title}}</h2>
-  <p>{{story.description}}</p>
+  <!--
+    Gate the body on story.title — for URL deep-link entry the local story
+    starts as just `{id}` and getRichById fills in title/author/category
+    asynchronously. Without this, the unguarded `story.author.name` etc.
+    crash the renderer before the rich fetch resolves.
+  -->
+  <div *ngIf="!story?.title" class="loading-placeholder">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+  <div class="story-body" *ngIf="story?.title">
+    <div class="lit-card card-header">
+      <h2 class="story-title">{{story.title}}</h2>
+      <p class="story-desc" *ngIf="story.description">{{story.description}}</p>
 
-  <p>
-    <button ion-button *ngIf="story.series > 0 && !settings.allSettings.offlineMode" (click)="showSeries()">
-      <ion-icon name="albums"></ion-icon>&nbsp; {{'STORYDETAIL_SERIES' | translate }}
-    </button>
-    <button ion-button *ngIf="!settings.allSettings.offlineMode" (click)="showRelated()">
-      <ion-icon name="pricetags"></ion-icon>&nbsp; {{'STORYDETAIL_RELATED' | translate }}
-    </button>
-  </p>
+      <div class="header-actions">
+        <button ion-button color="primary" (click)="readStory()">
+          <ion-icon name="book"></ion-icon>&nbsp; {{'STORYDETAIL_READ' | translate }}
+        </button>
+        <button ion-button *ngIf="story.series > 0 && !settings.allSettings.offlineMode" (click)="showSeries()">
+          <ion-icon name="albums"></ion-icon>&nbsp; {{'STORYDETAIL_SERIES' | translate }}
+        </button>
+        <button ion-button *ngIf="!settings.allSettings.offlineMode" (click)="showRelated()">
+          <ion-icon name="pricetags"></ion-icon>&nbsp; {{'STORYDETAIL_RELATED' | translate }}
+        </button>
+      </div>
+    </div>
 
-  <memo-preview kind="story" [id]="story.id"></memo-preview>
-  <memo-preview *ngIf="story.series > 0" kind="series" [id]="story.series"></memo-preview>
+    <memo-preview kind="story" [id]="story.id"></memo-preview>
 
-  <h2>{{'DETAILS' | translate}}</h2>
+    <div class="lit-card card-details">
+      <h2 class="lit-card__title">{{'DETAILS' | translate}}</h2>
 
-  <p>
-    <ion-badge *ngIf="story.iscontestwinner" color="blue">{{'WINNER_TAG' | translate}}</ion-badge>
-    <ion-badge *ngIf="story.ishot" color="red">{{'HOT_TAG' | translate}}</ion-badge>
-    <ion-badge *ngIf="story.iswriterspick" color="green">{{'WRITER_TAG' | translate}}</ion-badge>
-    <ion-badge *ngIf="story.isnew" color="yellow">{{'NEW_TAG' | translate}}</ion-badge>
-  </p>
+      <div class="badges" *ngIf="story.iscontestwinner || story.ishot || story.iswriterspick || story.isnew">
+        <ion-badge *ngIf="story.iscontestwinner" color="blue">{{'WINNER_TAG' | translate}}</ion-badge>
+        <ion-badge *ngIf="story.ishot" color="red">{{'HOT_TAG' | translate}}</ion-badge>
+        <ion-badge *ngIf="story.iswriterspick" color="green">{{'WRITER_TAG' | translate}}</ion-badge>
+        <ion-badge *ngIf="story.isnew" color="yellow">{{'NEW_TAG' | translate}}</ion-badge>
+      </div>
 
-  <p><strong>{{'AUTHOR' | translate}}: </strong> <a (click)="showAuthor(story.author)">{{story.author.name}}</a></p>
-  <p *ngIf="story.categoryID"><strong>{{'CATEGORY' | translate}}: </strong> <a (click)="category(story)">{{ story.categoryID | categoryName | async }}</a></p>
+      <dl class="details-grid">
+        <div class="row">
+          <ion-icon class="glyph" name="person"></ion-icon>
+          <dt>{{'AUTHOR' | translate}}</dt>
+          <dd><a (click)="showAuthor(story.author)">{{story.author.name}}</a></dd>
+        </div>
+        <div class="row" *ngIf="story.categoryID">
+          <ion-icon class="glyph" name="folder"></ion-icon>
+          <dt>{{'CATEGORY' | translate}}</dt>
+          <dd><a (click)="category(story)">{{ story.categoryID | categoryName | async }}</a></dd>
+        </div>
+        <div class="row" *ngIf="story.rating != null">
+          <ion-icon class="glyph" name="star"></ion-icon>
+          <dt>{{'RATING' | translate}}</dt>
+          <dd>{{story.rating}}</dd>
+        </div>
+        <div class="row" *ngIf="story.viewcount != null">
+          <ion-icon class="glyph" name="eye"></ion-icon>
+          <dt>{{'VIEWCOUNT' | translate}}</dt>
+          <dd>{{story.viewcount | number}}</dd>
+        </div>
+        <div class="row" *ngIf="story.length != null">
+          <ion-icon class="glyph" name="document"></ion-icon>
+          <dt>{{'LENGTH' | translate}}</dt>
+          <dd>{{story.length}} {{'PAGES' | translate}}</dd>
+        </div>
+        <div class="row" *ngIf="story.lang">
+          <ion-icon class="glyph" name="globe"></ion-icon>
+          <dt>{{'LANGUAGE' | translate}}</dt>
+          <dd>{{ story.lang | languageName }}</dd>
+        </div>
+        <div class="row" *ngIf="story.timestamp">
+          <ion-icon class="glyph" name="calendar"></ion-icon>
+          <dt>{{'TIMESTAMP' | translate}}</dt>
+          <dd>{{(story.timestamp*1000) | date:'yyyy-MM-dd' }}</dd>
+        </div>
+      </dl>
 
-  <p class="tags" *ngIf="story.tags && story.tags.length > 0">
-    <strong>{{'TAGS' | translate}}: </strong>
-    <a *ngFor="let tag of story.tags" (click)="search(tag)">#{{tag}} </a>
-  </p>
+      <div class="tags" *ngIf="story.tags && story.tags.length > 0">
+        <a *ngFor="let tag of story.tags" class="tag" (click)="search(tag)">#{{tag}}</a>
+      </div>
+    </div>
 
-  <p><strong>{{'RATING' | translate}}: </strong> <ion-icon name="star"></ion-icon> {{story.rating}}</p>
-  <p><strong>{{'VIEWCOUNT' | translate}}: </strong> {{story.viewcount}}</p>
-  <p><strong>{{'LENGTH' | translate}}: </strong> {{story.length}} {{'PAGES' | translate}}</p>
-  <p><strong>{{'LANGUAGE' | translate}}: </strong> {{story.lang}}</p>
-  <p><strong>{{'TIMESTAMP' | translate}}: </strong> {{(story.timestamp*1000) | date:'yyyy-MM-dd HH:mm' }}</p>
+    <div class="lit-card card-rate" *ngIf="user.isLoggedIn() && story.ratingenabled">
+      <h3 class="lit-card__title">
+        {{ (story.myrating ? 'STORYDETAIL_RATED' : 'STORYDETAIL_RATETITLE') | translate }}
+        <small *ngIf="story.myrating">— {{ story.myrating }}/5</small>
+      </h3>
+      <div class="rate-stars" [class.disabled]="rating">
+        <button type="button" *ngFor="let n of [1,2,3,4,5]" ion-button clear icon-only [disabled]="rating" (click)="rate(n)">
+          <ion-icon [name]="n <= (story.myrating || 0) ? 'star' : 'star-outline'"></ion-icon>
+        </button>
+      </div>
+    </div>
 
-  <ng-container *ngIf="user.isLoggedIn() && story.ratingenabled && !story.myrating">
-    <h3>{{'STORYDETAIL_RATETITLE' | translate }}</h3>
-    <form (submit)="rate($event)" class="rate">
-      <ion-range [(ngModel)]="myrating" name="myrating" snaps="true" step="1" min="0" max="5" pin="true"></ion-range>
-      <button ion-button outline>{{'STORYDETAIL_RATE' | translate }}</button>
-    </form>
-  </ng-container>
+    <div class="lit-card card-comments" *ngIf="story.commentsenabled && ((story.comments && story.comments.length > 0) || commentsLoading)">
+      <h2 class="lit-card__title">
+        {{'COMMENTS' | translate}}
+        <small *ngIf="commentsTotal">({{story.comments?.length || 0}}/{{commentsTotal}})</small>
+        <ion-spinner *ngIf="commentsLoading" name="crescent" class="comments-spinner"></ion-spinner>
+      </h2>
 
-  <ng-container *ngIf="story.comments && story.comments.length > 0 && story.commentsenabled">
-    <h2>{{'COMMENTS' | translate}} <small *ngIf="commentsTotal">({{story.comments.length}}/{{commentsTotal}})</small></h2>
-    <ion-list class="comments">
-      <ion-item *ngFor="let comment of story.comments">
-        <h3>{{comment.user}}</h3>
-        <h6>{{comment.timestamp | date:'medium'}}</h6>
-        <p>{{comment.text}}</p>
-      </ion-item>
-    </ion-list>
-    <button ion-button block clear *ngIf="hasMoreComments()" [disabled]="commentsLoading" (click)="loadComments(true)">
-      {{'COMMENTS_LOADMORE' | translate}}
-    </button>
-  </ng-container>
+      <div class="comments" *ngIf="story.comments?.length">
+        <article class="comment" *ngFor="let comment of story.comments">
+          <header class="comment__head">
+            <span class="comment__user">{{comment.user}}</span>
+            <span class="comment__date" *ngIf="comment.timestamp">{{comment.timestamp | date:'mediumDate'}}</span>
+            <button
+              *ngIf="comment.userId"
+              ion-button
+              icon-only
+              clear
+              class="comment__menu"
+              (click)="openCommenterMenu(comment, $event)"
+              [tooltip]="'STORYACTION_TOOLTIP' | translate"
+              event="press"
+              navTooltip
+            >
+              <ion-icon name="more"></ion-icon>
+            </button>
+          </header>
+          <p class="comment__body">{{comment.text}}</p>
+        </article>
+      </div>
+
+      <p *ngIf="commentsLoading && !story.comments?.length" class="comments-empty">
+        {{'COMMENTS_LOADING' | translate}}
+      </p>
+
+      <button
+        ion-button
+        block
+        clear
+        *ngIf="hasMoreComments()"
+        [disabled]="commentsLoading"
+        (click)="loadComments(true)"
+        class="comments-loadmore"
+      >
+        <ion-spinner *ngIf="commentsLoading" name="dots"></ion-spinner>
+        {{'COMMENTS_LOADMORE' | translate}}
+      </button>
+    </div>
+  </div>
 </ion-content>

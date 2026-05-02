@@ -1,10 +1,14 @@
-<div #rootElement>
+<div #rootElement [class.allow-text-select]="appSettings.allSettings.allowTextSelection">
   <ion-header #header no-border class="{{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}">
     <ion-navbar [style.color]="settings.color" [style.background]="settings.background">
       <ion-title>
         {{ story.title }}
       </ion-title>
       <ion-buttons end>
+        <button ion-button icon-only (click)="toggleSearch()" [tooltip]="'STORYVIEW_SEARCH' | translate" event="press" navTooltip>
+          <ion-icon name="search" [style.color]="settings.color"></ion-icon>
+        </button>
+
         <button
           ion-button
           icon-only
@@ -36,7 +40,38 @@
     </ion-navbar>
   </ion-header>
 
+  <div
+    *ngIf="searchOpen"
+    class="search-bar {{enableImmersive ? 'immersive' : ''}}"
+    [style.background]="settings.background"
+    [style.color]="settings.color"
+    [style.borderColor]="settings.color"
+  >
+    <input
+      type="search"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchInput()"
+      (keyup.enter)="nextMatch()"
+      [placeholder]="'STORYVIEW_SEARCH_PLACEHOLDER' | translate"
+      [style.color]="settings.color"
+    />
+    <span class="search-count">
+      <ng-container *ngIf="searchMatches.length > 0">{{ currentMatchIdx + 1 }} / {{ searchMatches.length }}</ng-container>
+      <ng-container *ngIf="searchMatches.length === 0 && searchQuery.length >= 2">0</ng-container>
+    </span>
+    <button ion-button icon-only clear (click)="prevMatch()" [disabled]="searchMatches.length === 0">
+      <ion-icon name="arrow-up" [style.color]="settings.color"></ion-icon>
+    </button>
+    <button ion-button icon-only clear (click)="nextMatch()" [disabled]="searchMatches.length === 0">
+      <ion-icon name="arrow-down" [style.color]="settings.color"></ion-icon>
+    </button>
+    <button ion-button icon-only clear (click)="closeSearch()">
+      <ion-icon name="close" [style.color]="settings.color"></ion-icon>
+    </button>
+  </div>
+
   <ion-content
+    *ngIf="!settings.continuousMode"
     [fullscreen]="enableImmersive ? true : undefined"
     class="{{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}"
   >
@@ -57,7 +92,7 @@
       <ion-slide *ngFor="let slide of slides; let i=index">
         <ng-container *ngIf="Math.abs(slidesElement.getActiveIndex() - i) < 5">
           <ng-scrollbar autoHide="true" [thumbClass]="settings.theme">
-            <p id="slide-content" [innerHTML]="slide.content"></p>
+            <div id="slide-content" [innerHTML]="slide.content"></div>
 
             <div *ngIf="alternatePagination" class="alternate-buttons">
               <button ion-button (click)="prevSlide($event)" [color]="settings.buttonStyle">
@@ -71,6 +106,39 @@
         </ng-container>
       </ion-slide>
     </ion-slides>
+  </ion-content>
+
+  <ion-content
+    *ngIf="settings.continuousMode"
+    [fullscreen]="enableImmersive ? true : undefined"
+    class="continuous-content {{inFullscreen ? 'fullscreen' : ''}} {{enableImmersive ? 'immersive': ''}}"
+    (click)="clickSlides($event)"
+    [style.background]="settings.background"
+    [style.color]="settings.color"
+  >
+    <div
+      class="continuous-stack"
+      [style.fontSize]="settings.fontsize + 'px'"
+      [style.lineHeight]="settings.lineheight + 'px'"
+      [style.fontFamily]="settings.font + ', sans-serif'"
+      [style.textAlign]="settings.textalign"
+    >
+      <div
+        #continuousPage
+        *ngFor="let slide of slides; let i=index"
+        class="continuous-page"
+        [attr.data-page]="i"
+        [style.minHeight.px]="pageHeights[i] || estimatedPageHeight"
+      >
+        <div
+          *ngIf="materialized[i]"
+          class="continuous-page-content"
+          [class.first]="i === 0"
+          [class.last]="i === slides.length - 1"
+          [innerHTML]="slide.content"
+        ></div>
+      </div>
+    </div>
   </ion-content>
 
   <div
@@ -93,6 +161,9 @@
       [max]="slides.length"
     ></ion-range>
 
-    <span class="count">{{Math.min(slides.length,slidesElement.getActiveIndex()+1)}} / {{slides.length}}</span>
+    <span class="count"
+      >{{Math.min(slides.length, (settings.continuousMode ? lastActivePage : (slidesElement?.getActiveIndex() || 0)) + 1)}} /
+      {{slides.length}}</span
+    >
   </div>
 </div>

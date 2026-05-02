@@ -5,13 +5,28 @@ import { TranslateService } from '@ngx-translate/core';
 import { AlertController } from 'ionic-angular';
 
 import { Story } from '../models/story';
-import { STORY_KEY } from './db';
+import { STORY_KEY, MYRATINGS_KEY } from './db';
 import { Authors } from './authors';
 import { Filters } from './filters';
 import { User } from './user';
 import { Globals } from './globals';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import { ENV } from '../app/env';
+import {
+  ApiActivityItem,
+  ApiActivityWhatStory,
+  ApiCommentV3,
+  ApiStoryV3,
+  CommentsAfterResponse,
+  SearchStoriesResponse,
+  StoryDetailResponse,
+  SubmissionsListResponse,
+  SubmissionsPagesResponse,
+  SubmissionsVoteResponse,
+  TagsportalByNameResponse,
+  TagsportalSearchResponse,
+} from '../models/api';
 
 /*
   Angular http typing doesn't seem to handle tuples well
@@ -20,10 +35,141 @@ import { UX } from './shared/ux';
 type ObservableSearchResult = Observable<(Story[] | number)[]>; // array, first param story, second number
 export type SearchResultType = [Story[], number];
 
+// Allowlist for story HTML coming back from `2/submissions/pages?raw=yes`.
+// raw=yes returns whatever the author submitted, so we narrow it to basic
+// formatting tags before it ever hits [innerHTML] downstream — Angular's
+// sanitizer would catch <script>/<iframe>/on*-handlers, but it still passes
+// through plenty we don't want in a reader (forms, embeds, inline styles,
+// arbitrary classes that could clash with our scss).
+const STORY_ALLOWED_TAGS = new Set([
+  'p',
+  'br',
+  'hr',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'em',
+  'i',
+  'strong',
+  'b',
+  'u',
+  'sub',
+  'sup',
+  's',
+  'small',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'code',
+  'pre',
+  'a',
+  'img',
+  'span',
+  'div',
+]);
+
+const STORY_ALLOWED_ATTRS: { [tag: string]: Set<string> } = {
+  a: new Set(['href', 'title']),
+  img: new Set(['src', 'alt', 'title']),
+};
+
+// Block-level tags. A <br> directly adjacent to one of these (with only
+// whitespace text in between) is the API's between-block spacer artifact —
+// each block in raw=yes mode is followed by `<br /><br />` which stacks on
+// top of the block's own margins. We only strip those; <br>s between inline
+// content (or in stories that use plain-text + <br> separators with no block
+// wrappers, like /s/threads-the-island) are preserved.
+const STORY_BLOCK_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'pre', 'hr', 'div', 'table']);
+
+function isBlockSibling(node: Node | null): boolean {
+  if (!node) return false;
+  if (node.nodeType === 1) {
+    const tag = (node as Element).tagName.toLowerCase();
+    if (tag === 'br') return false;
+    return STORY_BLOCK_TAGS.has(tag);
+  }
+  return false;
+}
+
+// Walk past whitespace-only text nodes and <br> tags to find the nearest
+// "real" sibling — used to decide whether a <br> sits between blocks.
+function nextMeaningfulSibling(node: Node, dir: 'prev' | 'next'): Node | null {
+  let cur = dir === 'prev' ? node.previousSibling : node.nextSibling;
+  while (cur) {
+    if (cur.nodeType === 3) {
+      if ((cur.textContent || '').trim().length > 0) return cur;
+    } else if (cur.nodeType === 1) {
+      return cur;
+    }
+    cur = dir === 'prev' ? cur.previousSibling : cur.nextSibling;
+  }
+  return null;
+}
+
+function sanitizeStoryHtml(html: string): string {
+  if (!html) return html;
+  // DOMParser keeps malformed HTML resilient — far safer than regex stripping.
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return '';
+
+  const walk = (node: Element) => {
+    // Snapshot children — we'll be mutating during the walk.
+    const children = Array.from(node.children);
+    for (const child of children) {
+      const tag = child.tagName.toLowerCase();
+      if (!STORY_ALLOWED_TAGS.has(tag)) {
+        // Replace the disallowed element with its text content so we don't
+        // silently drop story prose stuck inside an unexpected wrapper.
+        const text = doc.createTextNode(child.textContent || '');
+        if (child.parentNode) child.parentNode.replaceChild(text, child);
+        continue;
+      }
+
+      // Strip <br> only when it's a between-block spacer — i.e. the nearest
+      // non-whitespace neighbor on either side is a block element. Anywhere
+      // else (between inline runs, or in stories that use only text + <br>)
+      // it's a real line break the author intended.
+      if (tag === 'br') {
+        const prev = nextMeaningfulSibling(child, 'prev');
+        const next = nextMeaningfulSibling(child, 'next');
+        if (isBlockSibling(prev) || isBlockSibling(next)) {
+          if (child.parentNode) child.parentNode.removeChild(child);
+          continue;
+        }
+      }
+
+      const allowed = STORY_ALLOWED_ATTRS[tag] || new Set<string>();
+      for (const attr of Array.from(child.attributes)) {
+        if (!allowed.has(attr.name.toLowerCase())) {
+          child.removeAttribute(attr.name);
+          continue;
+        }
+        // Block javascript:/data: URLs on links and images.
+        if (attr.name === 'href' || attr.name === 'src') {
+          const v = (attr.value || '').trim().toLowerCase();
+          if (v.startsWith('javascript:') || v.startsWith('vbscript:') || v.startsWith('data:')) {
+            child.removeAttribute(attr.name);
+          }
+        }
+      }
+      walk(child);
+    }
+  };
+
+  walk(root);
+  return root.innerHTML;
+}
+
 @Injectable()
 export class Stories {
   private stories: Map<number, Story> = new Map<number, Story>();
-  private ready;
+  private myRatings: { [id: string]: number } = {};
+  private ready: Promise<void>;
 
   constructor(
     public api: Api,
@@ -55,12 +201,32 @@ export class Stories {
       });
     });
 
-    // Use this to see all of the in memory stories
-    (window as any).checkCachedStories = () => console.log(this.stories);
+    // Load locally-tracked ratings — the API doesn't return per-user vote
+    // state, so we cache what the user did themselves to keep stars filled
+    // across sessions.
+    this.storage.get(MYRATINGS_KEY).then((d: any) => {
+      if (d && typeof d === 'object') this.myRatings = d;
+    });
+
+    if (ENV.DEV) {
+      // Inspection helper for in-memory story map; dev builds only.
+      (window as any).checkCachedStories = () => console.log(this.stories);
+    }
   }
 
   onReady() {
     return this.ready;
+  }
+
+  // Synchronous cache lookup. Tolerates id passed as number or numeric string,
+  // matching the dual-typed key handling other call sites already rely on.
+  peekById(id: any): Story | undefined {
+    if (id == null) return undefined;
+    const direct = this.stories.get(id);
+    if (direct) return direct;
+    if (typeof id === 'string' && /^\d+$/.test(id)) return this.stories.get(Number(id));
+    if (typeof id === 'number') return this.stories.get(String(id) as any);
+    return undefined;
   }
 
   // Returns the canonical Story instance for `s`, registering it in the
@@ -159,6 +325,73 @@ export class Stories {
     return this.search(filter, page, null, null, '1/submissions') as Observable<SearchResultType>;
   }
 
+  // ----------------------------------------------------------------------
+  // Author / Series search (no public endpoint — extracted from story search)
+  // ----------------------------------------------------------------------
+  // The v3 API exposes story search at `3/search/stories`; each result includes
+  // user (author) + series_data. We piggyback on that to surface authors/series
+  // by name. Imperfect but works without docs.
+
+  searchAuthors(query: string): Observable<{ id: string; name: string; userpic?: string }[]> {
+    const q = (query || '').trim();
+    if (q.length < 2) return Observable.of([]);
+    const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
+    return this.api
+      .get<SearchStoriesResponse>('3/search/stories', params)
+      .map(data => {
+        const items = (data && data.data) || [];
+        const seen = new Set<string>();
+        const out: { id: string; name: string; userpic?: string }[] = [];
+        for (const it of items) {
+          const u: any = it && it.author;
+          const id = u && (u.userid != null ? u.userid : u.id);
+          if (id == null) continue;
+          const sid = String(id);
+          if (seen.has(sid)) continue;
+          seen.add(sid);
+          out.push({ id: sid, name: (u && u.username) || '', userpic: u && u.userpic });
+        }
+        return out;
+      })
+      .catch(error => {
+        console.error('stories.searchAuthors', [query], error);
+        return Observable.of([]);
+      });
+  }
+
+  searchSeries(query: string): Observable<{ id: string; name: string }[]> {
+    const q = (query || '').trim();
+    if (q.length < 2) return Observable.of([]);
+    const params = { params: JSON.stringify({ q, page: 1, sort: '', astags: false }) };
+    return this.api
+      .get<SearchStoriesResponse>('3/search/stories', params)
+      .map(data => {
+        // v3 search-stories embeds series under `series.meta` (with id, title,
+        // url, order). Stories not in a series have `series: []`. The legacy
+        // v1 shape used `series_data` — long gone in /3/search/stories
+        // responses (verified 2026), and the previous reading produced an
+        // empty list every time.
+        const items = (data && data.data) || [];
+        const seen = new Set<string>();
+        const out: { id: string; name: string }[] = [];
+        for (const it of items) {
+          const series: any = it && it.series;
+          const meta = series && series.meta;
+          const sid = meta && meta.id;
+          if (sid == null) continue;
+          const id = String(sid);
+          if (id === '0' || seen.has(id)) continue;
+          seen.add(id);
+          out.push({ id, name: (meta && meta.title) || '' });
+        }
+        return out;
+      })
+      .catch(error => {
+        console.error('stories.searchSeries', [query], error);
+        return Observable.of([]);
+      });
+  }
+
   // helper for similar requests
   private search(filter: any, page?: number, sort?: string, urlIndex?: number, path?: string): ObservableSearchResult {
     const params = {
@@ -172,8 +405,8 @@ export class Stories {
     }
 
     return this.api
-      .get(path ? path : '1/submissions', params, null, urlIndex)
-      .map((data: any) => {
+      .get<SubmissionsListResponse>(path ? path : '1/submissions', params, null, urlIndex)
+      .map(data => {
         if (loader) loader.dismiss();
 
         if (!data.success && !data.submissions) {
@@ -185,7 +418,7 @@ export class Stories {
         }
 
         const stories = !data.submissions ? [] : data.submissions.map(story => this.extractFromSearch(story));
-        return [this.filters.apply(stories), data.total as number];
+        return [this.filters.apply(stories), Number(data.total) || 0];
       })
       .catch(error => {
         if (loader) loader.dismiss();
@@ -220,13 +453,15 @@ export class Stories {
     }
 
     return this.api
-      .get(path ? path : '3/search/stories', params, null, urlIndex)
-      .map((data: any) => {
+      .get<SearchStoriesResponse | TagsportalSearchResponse>(path ? path : '3/search/stories', params, null, urlIndex)
+      .map(data => {
         if (loader) loader.dismiss();
 
         // tag portals uses new api but level 1 structure of old api :'(
-        const stories = tags ? data.submissions : data.data;
-        const total: number = tags ? data.meta.submissions_count : data.meta.total;
+        const stories: ApiStoryV3[] = tags ? (data as TagsportalSearchResponse).submissions : (data as SearchStoriesResponse).data;
+        const total: number = tags
+          ? Number((data as TagsportalSearchResponse).meta && (data as TagsportalSearchResponse).meta.submissions_count) || 0
+          : Number((data as SearchStoriesResponse).meta && (data as SearchStoriesResponse).meta.total) || 0;
 
         if (!stories) {
           if (!total) {
@@ -262,9 +497,9 @@ export class Stories {
 
     // first lookup tag ids
     return this.api
-      .get(path ? path : '3/tagsportal/by-name', lookup, null, urlIndex)
-      .map((data: any) => {
-        return data.map(t => t.id);
+      .get<TagsportalByNameResponse>(path ? path : '3/tagsportal/by-name', lookup, null, urlIndex)
+      .map(data => {
+        return (data || []).map(t => t.id);
       })
       .mergeMap(ids => {
         // then lookup results
@@ -294,8 +529,8 @@ export class Stories {
   // cached Story instance when one exists so subscribers update in place.
   getMetadata(id: any): Observable<Story | null> {
     return this.api
-      .get(`3/stories/${id}`)
-      .map((data: any) => {
+      .get<StoryDetailResponse>(`3/stories/${id}`)
+      .map(data => {
         const sub = data && data.submission;
         if (!sub || !sub.id) {
           console.error('stories.getMetadata', [id]);
@@ -316,7 +551,8 @@ export class Stories {
         cached.commentsenabled = sub.enable_comments > 0;
         cached.ratingenabled = sub.allow_vote > 0;
         cached.tags = !sub.tags ? [] : sub.tags.map(t => t.tag);
-        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        const ms = sub.series as any;
+        if (ms && ms.meta) cached.series = ms.meta.id;
         if (data.meta && data.meta.pages_count) cached.length = data.meta.pages_count;
 
         this.stories.set(cached.id, cached);
@@ -337,8 +573,8 @@ export class Stories {
 
     const params = { params: JSON.stringify({ after }) };
     return this.api
-      .get(`3/stories/${slug}/comments/after`, params)
-      .map((data: any) => {
+      .get<CommentsAfterResponse>(`3/stories/${slug}/comments/after`, params)
+      .map(data => {
         const items = (data && data.data) || [];
         return {
           comments: items.map(c => this.extractComment(c)),
@@ -353,6 +589,54 @@ export class Stories {
       });
   }
 
+  // Fetches a fully-populated Story by id (title + author + category + counts +
+  // tags + …) via the 1/submissions search endpoint. Used for URL deep-link
+  // entry where only the id is known and the regular `getById` content path
+  // doesn't carry author/category metadata. Caches the result so subsequent
+  // `getById(id)` reads see the rich Story instance and merge content into it.
+  getRichById(id: any): Observable<Story | null> {
+    return this.api
+      .get<StoryDetailResponse>(`3/stories/${id}`)
+      .map(data => {
+        const sub: any = data && data.submission;
+        if (!sub || !sub.id) return null;
+        const cached = this.stories.get(sub.id) || new Story({ id: String(sub.id) });
+        cached.title = sub.title || cached.title;
+        cached.description = sub.description || cached.description;
+        if (sub.category != null) cached.categoryID = sub.category;
+        if (sub.language) cached.lang = this.g.getLanguage(sub.language);
+        if (sub.rate_all != null) cached.rating = sub.rate_all;
+        if (sub.view_count != null) cached.viewcount = sub.view_count;
+        cached.ishot = sub.is_hot;
+        cached.isnew = sub.is_new;
+        cached.iswriterspick = sub.writers_pick;
+        cached.iscontestwinner = sub.contest_winner > 0;
+        cached.commentsenabled = sub.enable_comments > 0;
+        cached.ratingenabled = sub.allow_vote > 0;
+        if (sub.tags) cached.tags = sub.tags.map(t => t.tag || t.name || t);
+        if (sub.series && sub.series.meta) cached.seriesTitle = sub.series.meta.title;
+        if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
+        // Author field shape varies; we look at the most common ones.
+        const userish = sub.user || sub.author || sub.submitter || (sub.series && sub.series.user);
+        if (userish) {
+          cached.author = this.a.extractFromSearch(userish);
+        }
+        // Populate fields the comments / detail / share flows depend on.
+        // url is critical: getComments derives the slug from `/s/<slug>`.
+        if (sub.url) cached.url = sub.url;
+        if (sub.timestamp_published != null) cached.timestamp = sub.timestamp_published;
+        if (sub.comment_count != null) cached.commentscount = Number(sub.comment_count) || 0;
+        if (sub.favorite_count != null) cached.favoritescount = Number(sub.favorite_count) || 0;
+        if (sub.reading_lists_count != null) cached.listscount = Number(sub.reading_lists_count) || 0;
+        this.stories.set(cached.id, cached);
+        return cached;
+      })
+      .catch(error => {
+        console.error('stories.getRichById', [id], error);
+        return Observable.of(null);
+      });
+  }
+
   // Get a story by ID
   getById(id: any, force: boolean = false, noLoaderDismiss = false): Observable<Story | null> {
     const cached = this.stories.get(id);
@@ -362,13 +646,17 @@ export class Stories {
       }
     }
 
-    const filter = [{ property: 'submission_id', value: parseInt(id) }];
+    // raw=yes preserves the author's original HTML (h1-h6, p, ul, blockquote,
+    // code, …); without it the API flattens everything to <br />-separated
+    // text, losing all heading + list structure. It also restores the story's
+    // original page breaks (the default mode silently concatenates pages).
+    const filter = [{ property: 'submission_id', value: parseInt(id) }, { property: 'raw', value: 'yes' }];
     const params = { filter: JSON.stringify(filter).trim() };
 
     const loader = this.ux.showLoader();
     return this.api
-      .get('2/submissions/pages', params)
-      .map((data: any) => {
+      .get<SubmissionsPagesResponse>('2/submissions/pages', params)
+      .map(data => {
         if (loader && !noLoaderDismiss) loader.dismiss();
         if (!data.success) {
           console.error('stories.getById', [id]);
@@ -393,7 +681,7 @@ export class Stories {
         story.lang = data.pages[0].lang;
         story.length = data.total;
         story.tags = tags;
-        story.content = data.pages.map(p => p.content);
+        story.content = data.pages.map(p => sanitizeStoryHtml(p.content));
 
         this.stories.set(story.id, story);
         return story;
@@ -406,29 +694,59 @@ export class Stories {
       });
   }
 
-  rate(story: Story, rating: number): void {
+  // Mirrors the official mobile app's vote call:
+  // POST /api/2/submissions/vote?apikey&appid (form-data: filter,
+  // submission_id, lang, user_id, session_id, vote). session_id is captured
+  // at login from the v2 auth/login response. Returns Observable<boolean>.
+  // On success we also persist the rating locally so the UI keeps the stars
+  // filled across sessions (the API doesn't echo per-user vote state).
+  rate(story: Story, rating: number): Observable<boolean> {
+    if (!story || !story.id) return Observable.of(false);
+
+    const sessionId = this.user.getSession();
+    if (!sessionId) {
+      this.ux.showToast('INFO', 'SESSIONTIMEOUT_MSG');
+      console.error('stories.rate: no session_id — log out and log back in');
+      return Observable.of(false);
+    }
+
     const filter = [{ property: 'submission_id', value: parseInt(story.id) }];
     const data = new FormData();
-    data.append('user_id', this.user.getId());
-    // Authentication is now via the auth_token cookie set during login;
-    // session_id is no longer issued by the auth flow.
-    data.append('vote', String(rating));
     data.append('filter', JSON.stringify(filter));
+    data.append('lang', ((typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2));
+    data.append('user_id', String(this.user.getId()));
+    data.append('session_id', sessionId);
+    data.append('vote', String(rating));
 
-    this.api
-      .post('2/submissions/vote', data, undefined, true)
-      .catch(error => {
-        console.error('stories.rate', [story, rating], error);
-        return Observable.throw(error);
-      })
-      .subscribe(data => {
-        if (data.success) {
-          story.myrating = rating;
-        } else {
+    return this.api
+      .post<SubmissionsVoteResponse>('2/submissions/vote', data, undefined, true)
+      .map(res => {
+        if (!res || !res.success) {
           this.ux.showToast();
-          console.error('stories.rate', [story, rating], data.error);
+          console.error('stories.rate', [story.id, rating], res && res.error);
+          return false;
         }
+        story.myrating = rating;
+        this.myRatings[String(story.id)] = rating;
+        this.storage.set(MYRATINGS_KEY, this.myRatings);
+        return true;
+      })
+      .catch(error => {
+        this.ux.showToast();
+        console.error('stories.rate', [story.id, rating], error);
+        return Observable.of(false);
       });
+  }
+
+  getMyRating(id: any): number {
+    if (id == null) return 0;
+    return this.myRatings[String(id)] || 0;
+  }
+
+  hydrateMyRating(story: Story): void {
+    if (!story || story.id == null) return;
+    const r = this.getMyRating(story.id);
+    if (r && !story.myrating) story.myrating = r;
   }
 
   downloadSeries(series: Story[]): void {
@@ -455,15 +773,13 @@ export class Stories {
             this.ux.hideLoader();
             return;
           }
-          // tslint:disable-next-line: prefer-template
-          this.ux.updateLoader(Math.round(index + (1 / series.length) * 100) + '%');
+          this.ux.updateLoader(`${Math.round(index + (1 / series.length) * 100)}%`);
           loop(index + 1);
         });
         return;
       }
       this.download(series[index]);
-      // tslint:disable-next-line: prefer-template
-      this.ux.updateLoader(Math.round(index + (1 / series.length) * 100) + '%');
+      this.ux.updateLoader(`${Math.round(index + (1 / series.length) * 100)}%`);
       loop(index + 1);
     };
 
@@ -543,8 +859,11 @@ export class Stories {
     return !url.includes('//') ? `https://www.literotica.com/s/${url}` : url;
   }
 
-  extractFromFeed(item): Story {
-    const cached = this.stories.get(item.what.id);
+  // Caller (Feed.query) only invokes this for `published-story` activity
+  // items, where `what` carries the full ApiStoryV3 payload.
+  extractFromFeed(item: ApiActivityItem): Story {
+    const what = item.what as ApiActivityWhatStory;
+    const cached = this.stories.get(what.id);
     if (cached) {
       return cached;
     }
@@ -552,29 +871,29 @@ export class Stories {
     const author = this.a.extractFromFeed(item.who);
     const story = new Story({
       author,
-      id: item.what.id.toString(),
-      title: item.what.title,
-      description: item.what.description,
-      categoryID: item.what.category,
-      lang: this.g.getLanguage(item.what.language),
+      id: what.id.toString(),
+      title: what.title,
+      description: what.description,
+      categoryID: what.category,
+      lang: this.g.getLanguage(what.language),
       timestamp: item.when,
-      rating: item.what.rate_all,
-      viewcount: item.what.view_count,
-      url: this.parseUrl(item.what.url),
-      tags: !item.what.tags ? [] : item.what.tags.map(t => t.tag),
-      ishot: item.what.is_hot,
-      isnew: item.what.is_new,
-      iswriterspick: item.what.writers_pick,
-      iscontestwinner: item.what.contest_winner,
-      commentsenabled: item.what.enable_comments,
-      ratingenabled: item.what.allow_vote,
+      rating: what.rate_all,
+      viewcount: what.view_count,
+      url: this.parseUrl(what.url),
+      tags: !what.tags ? [] : what.tags.map(t => t.tag),
+      ishot: what.is_hot,
+      isnew: what.is_new,
+      iswriterspick: what.writers_pick,
+      iscontestwinner: what.contest_winner,
+      commentsenabled: what.enable_comments,
+      ratingenabled: what.allow_vote,
     });
 
     this.stories.set(story.id, story);
     return story;
   }
 
-  extactFromList(item): Story {
+  extractFromList(item: ApiStoryV3): Story {
     const cached = this.stories.get(item.id);
     if (cached) {
       return cached;
@@ -597,7 +916,7 @@ export class Stories {
       isnew: item.is_new,
       iswriterspick: item.writers_pick,
       iscontestwinner: item.contest_winner,
-      commentsenabled: item.enable_comments > 0 ? true : false,
+      commentsenabled: item.enable_comments > 0,
       ratingenabled: item.allow_vote,
     });
 
@@ -623,12 +942,12 @@ export class Stories {
       rating: item.rate,
       viewcount: item.view_count,
       url: this.parseUrl(item.url),
-      ishot: item.is_hot === 'no' ? false : true,
-      isnew: item.is_new === 'no' ? false : true,
-      iswriterspick: item.writers_pick === 'no' ? false : true,
-      iscontestwinner: item.contest_winner === 'no' ? false : true,
-      commentsenabled: item.enable_comments > 0 ? true : false,
-      ratingenabled: item.allow_vote > 0 ? true : false,
+      ishot: item.is_hot !== 'no',
+      isnew: item.is_new !== 'no',
+      iswriterspick: item.writers_pick !== 'no',
+      iscontestwinner: item.contest_winner !== 'no',
+      commentsenabled: item.enable_comments > 0,
+      ratingenabled: item.allow_vote > 0,
       series: item.series_id ? parseInt(item.series_id, 10) : undefined,
       seriesTitle: item.series_data && item.series_data.title,
       commentscount: Number(item.comment_count) || 0,
@@ -640,7 +959,7 @@ export class Stories {
     return story;
   }
 
-  extractFromNewSearch(item): Story {
+  extractFromNewSearch(item: ApiStoryV3): Story {
     const cached = this.stories.get(item.id);
     if (cached) {
       return cached;
@@ -663,9 +982,9 @@ export class Stories {
       ishot: item.is_hot,
       isnew: item.is_new,
       iswriterspick: item.writers_pick,
-      iscontestwinner: item.contest_winner > 0 ? true : false,
-      commentsenabled: item.enable_comments > 0 ? true : false,
-      ratingenabled: item.allow_vote > 0 ? true : false,
+      iscontestwinner: item.contest_winner > 0,
+      commentsenabled: item.enable_comments > 0,
+      ratingenabled: item.allow_vote > 0,
       commentscount: Number(item.comment_count) || 0,
       favoritescount: Number(item.favorite_count) || 0,
       listscount: Number(item.reading_lists_count) || 0,
@@ -675,9 +994,11 @@ export class Stories {
     return story;
   }
 
-  extractComment(item): { user: string; text: string; timestamp: string } {
+  extractComment(item: ApiCommentV3): { user: string; userId: string; text: string; timestamp: string } {
+    const userId = item.author && item.author.userid;
     return {
       user: item.author && item.author.username,
+      userId: userId != null ? String(userId) : '',
       text: item.text,
       // unix seconds → ISO string so the template's date pipe can format it
       timestamp: item.date ? new Date(item.date * 1000).toISOString() : '',

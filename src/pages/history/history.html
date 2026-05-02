@@ -10,7 +10,7 @@
       </button>
 
       <button
-        *ngIf="!onlyDownloaded && filteredStories.length > 0"
+        *ngIf="!onlyDownloaded && ((openSegment === 'history' && filteredStories.length > 0) || (openSegment === 'authors' && recentAuthors.length > 0))"
         end
         ion-button
         icon-only
@@ -46,6 +46,10 @@
         {{ 'HISTORY_TAB_SERIES' | translate }}
         <small *ngIf="followedSeriesView.length">({{ followedSeriesView.length }})</small>
         <ion-badge *ngIf="totalNewChapters" color="secondary">{{ totalNewChapters }}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="authors">
+        {{ 'HISTORY_TAB_AUTHORS' | translate }}
+        <small *ngIf="recentAuthors.length">({{ recentAuthors.length }})</small>
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
@@ -88,10 +92,10 @@
             <span *ngIf="card.chaptersCount"> · {{ card.chaptersCount }} {{ 'HISTORY_PARTS_LABEL' | translate }}</span>
           </p>
           <p class="series-card__stats">
-            <span *ngIf="card.totalViews"><ion-icon name="eye"></ion-icon> {{ formatCount(card.totalViews) }}</span>
-            <span *ngIf="card.totalFavorites"><ion-icon name="heart"></ion-icon> {{ formatCount(card.totalFavorites) }}</span>
-            <span *ngIf="card.totalComments"><ion-icon name="text"></ion-icon> {{ formatCount(card.totalComments) }}</span>
-            <span *ngIf="card.totalLists"><ion-icon name="bookmark"></ion-icon> {{ formatCount(card.totalLists) }}</span>
+            <span *ngIf="card.totalViews"><ion-icon name="eye"></ion-icon> {{ card.totalViews | compactNumber }}</span>
+            <span *ngIf="card.totalFavorites"><ion-icon name="heart"></ion-icon> {{ card.totalFavorites | compactNumber }}</span>
+            <span *ngIf="card.totalComments"><ion-icon name="text"></ion-icon> {{ card.totalComments | compactNumber }}</span>
+            <span *ngIf="card.totalLists"><ion-icon name="bookmark"></ion-icon> {{ card.totalLists | compactNumber }}</span>
           </p>
           <p class="tags" *ngIf="card.categoryID">
             <strong>{{ card.categoryID | categoryName | async }}</strong>
@@ -114,11 +118,7 @@
         </button>
 
         <div class="series-card__chapters" *ngIf="card.expanded">
-          <chapter-card
-            *ngFor="let chapter of card.newChapters; let i = index"
-            [story]="chapter"
-            [index]="i + 1"
-          ></chapter-card>
+          <chapter-card *ngFor="let chapter of card.newChapters; let i = index" [story]="chapter" [index]="i + 1"></chapter-card>
           <p *ngIf="!card.newChapters.length" class="series-card__empty">
             {{ 'HISTORY_SERIES_NO_NEW' | translate }}
           </p>
@@ -128,5 +128,12 @@
         </div>
       </div>
     </ion-list>
+  </ng-container>
+
+  <ng-container *ngIf="!onlyDownloaded && openSegment === 'authors'">
+    <p *ngIf="!recentAuthors.length" class="empty-placeholder">
+      {{ 'HISTORY_AUTHORS_EMPTY' | translate }}
+    </p>
+    <author-list [authors]="recentAuthors" (itemClick)="openAuthor($event)"></author-list>
   </ng-container>
 </ion-content>

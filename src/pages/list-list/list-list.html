@@ -21,13 +21,19 @@
   <ion-list>
     <ion-item-sliding (click)="openList(list)" *ngFor="let list of (lists | orderBy:'id')" #slidingItem>
       <button ion-item>
-        <ion-icon class="indicator" [name]="!list.visibility ? 'lock' : ''"></ion-icon>
-        <!-- Color and values here aim to represent the actual story count instead of the 
+        <!-- Derive the list-type icon from urlname/name so the My Lists
+             page matches the Author Lists section glyphs (paper/musical-
+             notes/image/game-controller-b, default bookmark). Both fields
+             are checked because Literotica's urlname conventions differ
+             across submission types (e.g. 'ink' for interactive). -->
+        <ion-icon item-start [name]="listIconFor(list)"></ion-icon>
+        <!-- Color and values here aim to represent the actual story count instead of the
         potentially incorrect count reported by the lists api. If the counts do not agree,
         the text is greyed out. -->
         <h2>
+          <ion-icon *ngIf="!list.visibility" name="lock" class="lock-inline"></ion-icon>
           {{list.name}}
-          <small [ngStyle]="{'color': list.stories && (list.stories.length != list.size) ? '#666' : 'white'}">
+          <small class="list-count" [class.list-count--stale]="list.stories && (list.stories.length != list.size)">
             ({{list.stories ? list.stories.length : list.size}})
           </small>
         </h2>

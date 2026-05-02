@@ -1,0 +1,36 @@
+@import '../../theme/tokens';
+
+page-user-list {
+  ion-searchbar {
+    padding: 0 0 $sp-2;
+  }
+
+  .hint {
+    margin: 0 $sp-1 $sp-2;
+    font-size: 0.85em;
+    color: $text-muted;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+  .hint--miss {
+    color: $text-secondary;
+    font-style: italic;
+  }
+
+  .empty-placeholder {
+    margin-top: 40px;
+    text-align: center;
+    color: $text-muted;
+  }
+
+  // Add the same top-spacing the inlined `.users-card` had, now that the
+  // card itself lives inside the shared <author-list> component.
+  author-list {
+    margin-top: $sp-4;
+  }
+}

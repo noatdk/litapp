@@ -3,61 +3,91 @@
 $font-path: '../assets/fonts';
 
 @import 'ionic.globals';
+@import 'tokens';
 
 // Shared Variables
 // --------------------------------------------------
-// To customize the look and feel of this app, you can override
-// the Sass variables found in Ionic's source scss files.
-// To view all the possible Ionic variables, see:
-// http://ionicframework.com/docs/v2/theming/overriding-ionic-variables/
+// Light theme. Source of truth for all hex values lives in `_tokens.scss`.
 
-$text-color: #fff;
-$background-color: #242424;
+$text-color: $text-primary;
+$background-color: $body-bg;
 
-$refresher-icon-color: #666;
+$refresher-icon-color: $text-muted;
 $refresher-border-color: transparent;
-$img-placeholder-background: #666;
+$img-placeholder-background: $divider;
 
 // Named Color Variables
 // --------------------------------------------------
-// Named colors makes it easy to reuse colors on various components.
-// It's highly recommended to change the default colors
-// to match your app's branding. Ionic uses a Sass map of
-// colors so you can add, rename and remove colors as needed.
-// The "primary" color is the only required color in the map.
+// Slot meanings retained for compatibility with existing `color="..."` template
+// attributes; values point at design tokens. See `_tokens.scss` for rationale.
+//
+// `red`, `yellow`, `danger` deliberately collapse onto $accent-hot — the single
+// non-monochrome+blue color in the system. `green` and `blue` collapse onto
+// $lit-blue. Until phase-03 reworks badge anatomy, NEW/WRITER will visually
+// match HOT/WINNER respectively — accepted because phase-03 follows immediately
+// in the same plan.
+//
+// `light: $surface-alt` (not $surface-bg per plan): subtle off-white needed so
+// `<ion-item-divider color="light">` reads against `$body-bg`. Documented
+// deviation, not drift.
 
 $colors: (
-  red: #f44336,
-  blue: #3f51b5,
-  yellow: #ffeb3b,
-  green: #388e3c,
-  primary: #2196f3,
-  secondary: #3f51b5,
-  danger: #f44336,
-  light: #222,
-  lighter: #111,
-  dark: #f4f4f4,
-  darker: #fff,
+  red: $accent-hot,
+  blue: $lit-blue,
+  yellow: $accent-hot,
+  green: $lit-blue,
+  primary: $lit-blue,
+  secondary: $lit-blue-hover,
+  danger: $accent-hot,
+  light: $surface-alt,
+  lighter: $surface-bg,
+  dark: $sidebar-bg,
+  darker: $text-primary,
 );
 
 // App iOS Variables
 // --------------------------------------------------
-// iOS only Sass variables can go here
+// iOS not visually QA'd in this iteration (see phase-05). Vars defined
+// symmetrically to avoid regressing upstream iOS users.
+
+$toolbar-ios-background: $surface-bg;
+$toolbar-ios-text-color: $text-primary;
+$tabs-ios-background: $surface-bg;
+$tabs-ios-tab-color-active: $lit-blue;
+$content-ios-background-color: $page-bg;
+$list-ios-background-color: $page-bg;
+$item-ios-background: $surface-bg;
+$item-ios-divider-color: $divider;
+$card-ios-background-color: $surface-bg;
+$card-ios-header-color: $text-primary;
+$card-ios-text-color: $text-secondary;
+
+$spinner-ios-crescent-color: $lit-blue;
+$spinner-ios-bubbles-color: $lit-blue;
+$spinner-ios-circles-color: $lit-blue;
+$spinner-ios-dots-color: $lit-blue;
+$spinner-ios-ios-color: $lit-blue;
 
 // App Material Design Variables
 // --------------------------------------------------
-// Material Design only Sass variables can go here
 
-$spinner-md-crescent-color: #3f51b5;
-$spinner-md-ios-color: #3f51b5;
-$spinner-md-bubbles-color: #3f51b5;
-$spinner-md-circles-color: #3f51b5;
-$spinner-md-crescent-color: #3f51b5;
-$spinner-md-dots-color: #3f51b5;
+$spinner-md-crescent-color: $lit-blue;
+$spinner-md-bubbles-color: $lit-blue;
+$spinner-md-circles-color: $lit-blue;
+$spinner-md-dots-color: $lit-blue;
+$spinner-md-ios-color: $lit-blue;
 
-$card-md-background-color: #2a2a2a;
-$card-md-header-color: #fff;
-$card-md-text-color: #ddd;
+$toolbar-md-background: $surface-bg;
+$toolbar-md-text-color: $text-primary;
+$tabs-md-background: $surface-bg;
+$tabs-md-tab-color-active: $lit-blue;
+$content-md-background-color: $page-bg;
+$list-md-background-color: $page-bg;
+$item-md-background: $surface-bg;
+$item-md-divider-color: $divider;
+$card-md-background-color: $surface-bg;
+$card-md-header-color: $text-primary;
+$card-md-text-color: $text-secondary;
 
 // App Windows Variables
 // --------------------------------------------------
@@ -65,22 +95,19 @@ $card-md-text-color: #ddd;
 
 // App Theme
 // --------------------------------------------------
-// Ionic apps can have different themes applied, which can
-// then be future customized. This import comes last
-// so that the above variables are used and Ionic's
-// default are overridden.
+// Light theme — overrides above flow into Ionic component defaults.
 
-@import 'ionic.theme.dark';
+@import 'ionic.theme.default';
 
 // Ionicons
 // --------------------------------------------------
-// The premium icon font for Ionic. For more info, please see:
-// http://ionicframework.com/docs/v2/ionicons/
 
 @import 'ionic.ionicons';
 
 // Fonts
 // --------------------------------------------------
+// Note: Mulish (variable font, weight 1-1000) is loaded via @font-face in
+// `src/app/app.scss` and is the wordmark/system sans (see $font-sans token).
 
 @import 'roboto';
 @import 'noto-sans';

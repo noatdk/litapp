@@ -5,9 +5,17 @@ import { TranslateModule } from '@ngx-translate/core';
 import { TooltipsModule } from 'ionic-tooltips';
 import { NgPipesModule } from 'ngx-pipes';
 import { ExportPopoverModule } from '../../parts/export-popover/export-popover.module';
+import { AuthorListItemModule } from '../../parts/author-list-item/author-list-item.module';
 
 @NgModule({
   declarations: [FollowingPage],
-  imports: [IonicPageModule.forChild(FollowingPage), TranslateModule.forChild(), TooltipsModule, NgPipesModule, ExportPopoverModule],
+  imports: [
+    IonicPageModule.forChild(FollowingPage),
+    TranslateModule.forChild(),
+    TooltipsModule,
+    NgPipesModule,
+    ExportPopoverModule,
+    AuthorListItemModule,
+  ],
 })
 export class FollowingPageModule {}

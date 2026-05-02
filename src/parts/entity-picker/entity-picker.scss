@@ -1,0 +1,108 @@
+@import '../../theme/tokens';
+
+// Picker host — sits inside .entity-picker-popover (the popover-content
+// wrapper styled in app.scss). The wrapper provides the card chrome
+// (rounded corners, shadow, surface bg, fixed dimensions); this file
+// styles the picker's internal layout: title bar, search input, results
+// list, and footer actions.
+.entity-picker {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: $surface-bg;
+  color: $text-primary;
+
+  // Title bar — sits at the top of the picker like a sheet header.
+  .picker-title {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: $sp-3 $sp-4;
+    color: $text-primary;
+    font-size: $fs-section;
+    font-weight: 700;
+    background: $surface-bg;
+    border-bottom: 1px solid $divider;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  // Search input row. Make the ion-item read like a single input field
+  // (no inner divider line) and apply the new toolbar token surface.
+  .picker-search {
+    flex: 0 0 auto;
+    background: $surface-bg;
+    border-bottom: 1px solid $divider;
+
+    .item-inner {
+      border-bottom: 0 !important;
+      padding-right: $sp-3;
+    }
+
+    ion-input input {
+      color: $text-primary;
+      font-size: 15px;
+    }
+
+    ion-input input::placeholder {
+      color: $text-muted;
+    }
+  }
+
+  // Results list — fills the remaining space; rows look like compact list
+  // entries, not card-bordered items.
+  .picker-results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background: $surface-bg;
+    margin: 0;
+
+    .item {
+      background: $surface-bg;
+      color: $text-primary;
+    }
+
+    .item-inner {
+      border-bottom: 1px solid $divider !important;
+    }
+
+    h3 {
+      color: $text-primary;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    p {
+      color: $text-muted;
+      font-size: 12px;
+      margin: 2px 0 0;
+    }
+
+    // Empty / hint / no-results placeholder rows.
+    .placeholder {
+      color: $text-muted;
+      text-align: center;
+      font-style: italic;
+
+      .item-inner {
+        border-bottom: 0 !important;
+      }
+    }
+  }
+
+  // Footer with action buttons — right-aligned, separated by a divider.
+  .picker-actions {
+    flex: 0 0 auto;
+    background: $surface-bg;
+    border-top: 1px solid $divider;
+    padding: $sp-1 $sp-2;
+    text-align: right;
+
+    button {
+      color: $lit-blue;
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+}

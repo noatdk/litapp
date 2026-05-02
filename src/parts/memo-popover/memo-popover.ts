@@ -5,7 +5,7 @@ import { Memos } from '../../providers/providers';
 
 // Tiny editor surfaced from story-detail / author / series pages. Receives `kind`
 // ('story' | 'author' | 'series') and `id` via NavParams; persists via Memos provider.
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'high' })
 @Component({
   selector: 'memo-popover',
   templateUrl: 'memo-popover.html',
@@ -17,6 +17,10 @@ export class MemoPopover {
 
   get memoHeaderKey(): string {
     return this.kind === 'series' ? 'MEMO_SERIES_TITLE' : 'MEMO_TITLE';
+  }
+
+  get iconName(): string {
+    return this.kind === 'series' ? 'albums' : 'paper';
   }
 
   constructor(navParams: NavParams, public viewCtrl: ViewController, public memos: Memos) {

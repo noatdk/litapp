@@ -10,6 +10,16 @@ import { User } from './user';
 import { Api } from './shared/api';
 import { LIST_KEY } from './db';
 import { UX } from './shared/ux';
+import {
+  AddStoryToListResponse,
+  ApiUserList,
+  CreateListResponse,
+  DeleteListResponse,
+  MyListsResponse,
+  RemoveStoryFromListResponse,
+  UpdateListResponse,
+  UserListDetailResponse,
+} from '../models/api';
 
 // Persisted lists are revalidated against the server in the background once
 // they age past this. Local mutations (add/remove story, edit, delete) bump
@@ -25,7 +35,7 @@ interface CachedLists {
 export class Lists {
   private lists: List[];
   private cachedAt: number = 0;
-  private ready;
+  private ready: Promise<void>;
 
   constructor(public api: Api, public s: Stories, public settings: Settings, public user: User, public storage: Storage, public ux: UX) {
     this.ready = new Promise((resolve, reject) => {
@@ -70,6 +80,25 @@ export class Lists {
     return this.ready;
   }
 
+  // Common mapping from the server's ApiUserList shape onto the local List
+  // model. Used by every code path that materialises a list — query,
+  // revalidate, getListPage, add — so the field translation stays in one place.
+  private listFromApi(l: ApiUserList, lastPage?: number): List {
+    const base: any = {
+      id: l.id,
+      urlname: l.urlname,
+      name: l.title,
+      description: l.description,
+      visibility: !l.is_private,
+      size: l.stories_count,
+      isdeletable: l.is_deletable,
+      createtimestamp: l.created_at,
+      updatetimestamp: l.updated_at,
+    };
+    if (lastPage !== undefined) base.lastPage = lastPage;
+    return new List(base);
+  }
+
   // Pulls a possibly-legacy storage payload back into memory. Older builds
   // wrote a bare List[] under LIST_KEY; we now wrap it as { at, lists }.
   private restoreCache(raw: any) {
@@ -107,39 +136,30 @@ export class Lists {
   // Background re-fetch of list metadata. Patches existing List instances in
   // place so consumers holding references keep working. If a list's `size`
   // changed server-side, drop its `stories` so the next access re-pages it.
+  //
+  // Uses /3/my/lists rather than /3/users/{id}/lists — same payload, but the
+  // /my/ alias doesn't require threading the numeric user id and works under
+  // session contexts where getId() may not yet be populated.
   private revalidate() {
     this.api
-      .get(`3/users/${this.user.getId()}/lists`)
-      .map((d: any) => {
-        if (!d || d.error || !Array.isArray(d)) return null;
+      .get<MyListsResponse>('3/my/lists')
+      .map(d => {
+        if (!d || (d as any).error || !Array.isArray(d)) return null;
 
         const seen = new Set<number>();
-        d.forEach((l: any) => {
+        d.forEach(l => {
           seen.add(l.id);
           const existing = this.lists && this.lists.find(x => x.id === l.id);
           if (!existing) {
-            this.lists.push(
-              new List({
-                id: l.id,
-                urlname: l.urlname,
-                name: l.title,
-                description: l.description,
-                visibility: !l.is_private,
-                size: l.stories_count,
-                isdeletable: l.is_deletable,
-                createtimestamp: l.created_at,
-                updatetimestamp: l.updated_at,
-                lastPage: -1,
-              }),
-            );
+            this.lists.push(this.listFromApi(l, -1));
             return;
           }
           // Patch metadata. If size changed, drop cached stories.
           existing.name = l.title;
           existing.description = l.description;
           existing.visibility = !l.is_private;
-          existing.isdeletable = l.is_deletable;
-          existing.updatetimestamp = l.updated_at;
+          existing.isdeletable = !!l.is_deletable;
+          existing.updatetimestamp = l.updated_at || '';
           if (existing.size !== l.stories_count) {
             existing.size = l.stories_count;
             existing.stories = undefined;
@@ -182,32 +202,19 @@ export class Lists {
       loader = this.ux.showLoader();
     }
 
-    // https://literotica.com/3/users/3507980/lists
+    // /3/my/lists is the logged-in alias of /3/users/{id}/lists — same shape,
+    // no need to thread the numeric user id. See `revalidate` for the same.
     return this.api
-      .get(`3/users/${this.user.getId()}/lists`)
-      .map((d: any) => {
+      .get<MyListsResponse>('3/my/lists')
+      .map(d => {
         if (loader) loader.dismiss();
-        if (d.error) {
+        if ((d as any).error) {
           this.ux.showToast();
-          console.error('lists.query', d.error);
+          console.error('lists.query', (d as any).error);
           return [];
         }
 
-        this.lists = d.map(
-          l =>
-            new List({
-              id: l.id,
-              urlname: l.urlname,
-              name: l.title,
-              description: l.description,
-              visibility: !l.is_private,
-              size: l.stories_count,
-              isdeletable: l.is_deletable,
-              createtimestamp: l.created_at,
-              updatetimestamp: l.updated_at,
-              lastPage: -1,
-            }),
-        );
+        this.lists = d.map(l => this.listFromApi(l, -1));
         this.persist();
 
         return this.lists;
@@ -246,8 +253,7 @@ export class Lists {
 
           if (l.size > newPartialList.stories.length && page < newPartialList.lastPage) {
             const next = page + 1;
-            // tslint:disable-next-line: prefer-template
-            this.ux.updateLoader(Math.round((newPartialList.stories.length / l.size) * 100) + '%');
+            this.ux.updateLoader(`${Math.round((newPartialList.stories.length / l.size) * 100)}%`);
             loop(next, newPartialList);
           } else {
             this.lists[this.lists.indexOf(list)] = newPartialList;
@@ -270,8 +276,8 @@ export class Lists {
     };
 
     return this.api
-      .get(`3/users/${this.user.getId()}/lists/${urlname}`, { params: JSON.stringify(params) })
-      .map((d: any) => {
+      .get<UserListDetailResponse>(`3/users/${this.user.getId()}/lists/${urlname}`, { params: JSON.stringify(params) })
+      .map(d => {
         if (!d.works.data) {
           this.ux.showToast();
           console.error('lists.getListPage', [urlname, list, i]);
@@ -280,23 +286,13 @@ export class Lists {
 
         let newList = list;
         if (!list) {
-          newList = new List({
-            id: d.list.id,
-            urlname: d.list.urlname,
-            name: d.list.title,
-            description: d.list.description,
-            visibility: !d.list.is_private,
-            size: d.list.stories_count,
-            isdeletable: d.list.is_deletable,
-            createtimestamp: d.list.created_at,
-            updatetimestamp: d.list.updated_at,
-          });
+          newList = this.listFromApi(d.list);
         }
 
         // Update page numbers (work around for "inconsistent story count" bug)
         newList.lastPage = d.works.meta.last_page;
 
-        newList.stories = d.works.data.map(story => this.s.extactFromList(story));
+        newList.stories = d.works.data.map(story => this.s.extractFromList(story));
 
         return newList;
       })
@@ -310,8 +306,8 @@ export class Lists {
 
   addStory(list: List, story: Story) {
     return this.api
-      .put(`3/stories/${story.id}/lists/${list.id}`, {})
-      .map((res: any) => res.success)
+      .put<AddStoryToListResponse>(`3/stories/${story.id}/lists/${list.id}`, {})
+      .map(res => res && res.success)
       .catch(error => {
         this.ux.showToast();
         console.error('lists.addStory', [list, story], error);
@@ -335,8 +331,8 @@ export class Lists {
 
   removeStory(list: List, story: Story) {
     return this.api
-      .delete(`3/stories/${story.id}/lists/${list.id}`)
-      .map((res: any) => res.success)
+      .delete<RemoveStoryFromListResponse>(`3/stories/${story.id}/lists/${list.id}`)
+      .map(res => res && res.success)
       .catch(error => {
         this.ux.showToast();
         console.error('lists.removeStory', [list, story], error);
@@ -367,26 +363,15 @@ export class Lists {
     };
 
     return this.api
-      .post(`3/users/${this.user.getId()}/lists`, data, undefined, false)
-      .map((res: any) => {
-        if (!res.success) {
+      .post<CreateListResponse>(`3/users/${this.user.getId()}/lists`, data, undefined, false)
+      .map(res => {
+        if (!res || !res.success || !res.list) {
           this.ux.showToast();
           console.error('lists.add', [list]);
           return false;
         }
 
-        this.lists.push(
-          new List({
-            id: res.list.id,
-            urlname: res.list.urlname,
-            name: res.list.title,
-            description: res.list.description,
-            visibility: !res.list.is_private,
-            size: res.list.stories_count,
-            isdeletable: res.list.is_deletable,
-            createtimestamp: res.list.created_at,
-          }),
-        );
+        this.lists.push(this.listFromApi(res.list));
         this.persist();
 
         return true;
@@ -406,19 +391,20 @@ export class Lists {
     };
 
     return this.api
-      .patch(`3/lists/${list.id}`, data)
-      .map((res: any) => {
-        if (!res.success) {
+      .patch<UpdateListResponse>(`3/lists/${list.id}`, data)
+      .map(res => {
+        if (!res || !res.success || !res.list) {
           this.ux.showToast();
           console.error('lists.edit', [list]);
           return false;
         }
 
+        const updated = res.list;
         this.lists.forEach(l => {
           if (l.id === list.id) {
-            l.name = res.list.title;
-            l.description = res.list.description;
-            l.visibility = !res.list.is_private;
+            l.name = updated.title;
+            l.description = updated.description;
+            l.visibility = !updated.is_private;
           }
         });
         this.persist();
@@ -434,9 +420,9 @@ export class Lists {
 
   delete(list: List) {
     return this.api
-      .delete(`3/lists/${list.id}`)
-      .map((res: any) => {
-        if (!res.success) {
+      .delete<DeleteListResponse>(`3/lists/${list.id}`)
+      .map(res => {
+        if (!res || !res.success) {
           this.ux.showToast();
           console.error('lists.delete', [list]);
           return false;

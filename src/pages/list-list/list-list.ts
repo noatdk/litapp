@@ -4,7 +4,7 @@ import { IonicPage, NavController } from 'ionic-angular';
 import { List } from '../../models/list';
 import { Lists } from '../../providers/providers';
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'lists' })
 @Component({
   selector: 'page-list-list',
   templateUrl: 'list-list.html',
@@ -50,23 +50,35 @@ export class ListListPage {
     });
   }
 
+  // Pick a glyph that matches the Author Lists section. Checks urlname AND
+  // name because Literotica uses different urlname conventions per type
+  // (e.g. 'interactive' / 'ink' for story games), so name is a reliable
+  // English fallback for the default-list catalogue.
+  listIconFor(list: List): string {
+    const haystack = `${(list && list.urlname) || ''} ${(list && list.name) || ''}`.toLowerCase();
+    if (haystack.indexOf('poem') >= 0) return 'paper';
+    if (haystack.indexOf('audio') >= 0) return 'musical-notes';
+    if (haystack.indexOf('artwork') >= 0) return 'image';
+    if (haystack.indexOf('illustra') >= 0) return 'image';
+    if (haystack.indexOf('game') >= 0) return 'game-controller-b';
+    if (haystack.indexOf('ink') >= 0) return 'game-controller-b';
+    if (haystack.indexOf('interactive') >= 0) return 'game-controller-b';
+    return 'bookmark';
+  }
+
   private refreshLists(force: boolean = false) {
-    const callback = data => {
+    const callback = (data: List[] | null | undefined) => {
       if (data) {
         this.lists = [];
-        data.forEach((d: any) => this.lists.push(d));
+        data.forEach(d => this.lists.push(d));
         this.showLoader = false;
       }
     };
 
     if (force) {
-      this.l.refresh().subscribe((data: any) => {
-        callback(data);
-      });
+      this.l.refresh().subscribe(callback);
     } else {
-      this.l.query(true).subscribe((data: any) => {
-        callback(data);
-      });
+      this.l.query(true).subscribe(callback);
     }
   }
 }

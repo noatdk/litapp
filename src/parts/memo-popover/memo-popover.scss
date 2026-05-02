@@ -1,18 +1,129 @@
+@import '../../theme/tokens';
+
 memo-popover {
-  .memo-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: $surface-bg;
+}
+
+// Memo editor body — sits inside the .memo-popover sheet (sized & positioned
+// in app.scss). We rebuild the chrome from scratch instead of riding ion-list
+// because the latter dropped a tinted page-bg on the modal interior and the
+// underline-on-focus textarea didn't fit the design language.
+.memo-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: $sp-4;
+  gap: $sp-3;
+  background: $surface-bg;
+  box-sizing: border-box;
+}
+
+.memo-editor__head {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding-bottom: $sp-2;
+  border-bottom: 1px solid $divider;
+
+  ion-icon {
+    font-size: 22px;
+    color: $lit-blue;
+  }
+
+  h2 {
     margin: 0;
-    min-width: 280px;
+    font-size: $fs-section;
+    font-weight: $fw-section;
+    line-height: $lh-section;
+    color: $text-primary;
   }
+}
 
-  .memo-actions {
-    text-align: right;
+.memo-editor__textarea {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: 1px solid $divider;
+  border-radius: $radius-md;
+  padding: $sp-3;
+  font-family: $font-sans;
+  font-size: $fs-row-title;
+  line-height: 1.5;
+  color: $text-primary;
+  background: $surface-bg;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  box-sizing: border-box;
 
-    button {
-      margin: 0 4px;
-    }
+  &::placeholder {
+    color: $text-muted;
   }
+  &:focus {
+    border-color: $lit-blue;
+    box-shadow: 0 0 0 3px $lit-blue-active;
+  }
+}
 
-  ion-textarea textarea {
-    min-height: 120px;
+.memo-editor__actions {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding-top: $sp-2;
+  border-top: 1px solid $divider;
+}
+
+.memo-editor__spacer {
+  flex: 1;
+}
+
+// Buttons — purpose-built so we don't fight Ionic's `<button ion-button>`
+// chrome (which forces uppercase + a non-trivial min-height that doesn't sit
+// well in a tight modal footer).
+.memo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 $sp-3;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  font-family: $font-sans;
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: transparent;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.memo-btn--primary {
+  background: $lit-blue;
+  color: $text-inverse;
+  &:active {
+    background: $lit-blue-hover;
+  }
+}
+
+.memo-btn--ghost {
+  color: $text-secondary;
+  border-color: $divider;
+  &:active {
+    background: $surface-alt;
+  }
+}
+
+.memo-btn--danger {
+  color: $accent-hot;
+  border-color: transparent;
+  background: transparent;
+  &:active {
+    background: rgba(255, 59, 48, 0.08);
   }
 }

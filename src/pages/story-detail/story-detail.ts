@@ -1,16 +1,16 @@
 import { Component } from '@angular/core';
-import { IonicPage, NavController, NavParams, PopoverController, AlertController } from 'ionic-angular';
+import { IonicPage, NavController, NavParams, PopoverController, AlertController, ActionSheetController } from 'ionic-angular';
 import { SocialSharing } from '@ionic-native/social-sharing';
 import { BrowserTab } from '@ionic-native/browser-tab';
 import { TranslateService } from '@ngx-translate/core';
 
 import { Story } from '../../models/story';
 import { Author } from '../../models/author';
-import { Stories, Settings, User, Categories, Files } from '../../providers/providers';
+import { Stories, Settings, User, Categories, Files, Filters, UX } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 import { Category } from '../../models/category';
 
-@IonicPage({ priority: 'low' })
+@IonicPage({ priority: 'low', segment: 'story/:id' })
 @Component({
   selector: 'page-story-detail',
   templateUrl: 'story-detail.html',
@@ -18,6 +18,7 @@ import { Category } from '../../models/category';
 export class StoryDetailPage {
   story: Story;
   myrating: number;
+  rating: boolean = false;
   commentsTotal: number = 0;
   commentsCursor: number = 0;
   commentsLoading: boolean = false;
@@ -35,28 +36,59 @@ export class StoryDetailPage {
     private socialSharing: SocialSharing,
     private browser: BrowserTab,
     public files: Files,
+    public filters: Filters,
+    public ux: UX,
+    public actionSheetCtrl: ActionSheetController,
   ) {
     this.story = navParams.get('story');
+    if (!this.story) {
+      // Deep-link entry: only the id is in the URL. Stub a placeholder so the
+      // refetch path below populates it. If the id is missing too, bail out.
+      const idParam = navParams.get('id');
+      if (idParam == null) {
+        this.navCtrl.pop();
+        return;
+      }
+      this.story = { id: String(idParam), cached: false } as Story;
+    }
+    this.stories.hydrateMyRating(this.story);
+    this.myrating = this.story && this.story.myrating;
 
-    // load data when directly view details
-    if (!this.story.cached) {
+    // URL deep-link entry: nav params carry only `{id}` so title/author/
+    // category etc. are missing. Fetch rich metadata first; the regular
+    // getById content path doesn't include those fields.
+    const needsRichMetadata = !this.story.title;
+
+    const loadRest = () => {
+      if (this.story.cached) {
+        this.loadComments();
+        return;
+      }
       this.stories.getById(this.story.id).subscribe(story => {
         if (!story) {
           this.navCtrl.pop();
           return;
         }
-
+        this.stories.hydrateMyRating(story);
         this.myrating = story.myrating;
-
-        // add details & content to db
         this.story.series = story.series;
         this.story.length = story.length;
         this.story.lang = story.lang;
-
         this.loadComments();
       });
+    };
+
+    if (needsRichMetadata) {
+      this.stories.getRichById(this.story.id).subscribe(rich => {
+        if (rich) {
+          Object.assign(this.story, rich);
+          this.stories.hydrateMyRating(this.story);
+          this.myrating = this.story.myrating;
+        }
+        loadRest();
+      });
     } else {
-      this.loadComments();
+      loadRest();
     }
   }
 
@@ -68,11 +100,55 @@ export class StoryDetailPage {
     this.commentsLoading = true;
     const after = append ? this.commentsCursor : 0;
     this.stories.getComments(this.story, after).subscribe(res => {
-      this.story.comments = append ? (this.story.comments || []).concat(res.comments) : res.comments;
+      // Hide comments by blocked authors. Total stays as the API total so the
+      // user can still pull the next page; the visible count just goes down.
+      const visible = (res.comments || []).filter(c => !this.filters.isAuthorBlocked(c.userId));
+      this.story.comments = append ? (this.story.comments || []).concat(visible) : visible;
       this.commentsTotal = res.total;
       this.commentsCursor = res.lastId;
       this.commentsLoading = false;
     });
+  }
+
+  openCommenterMenu(comment: { user: string; userId: string }, ev: UIEvent) {
+    if (ev) ev.stopPropagation();
+    if (!comment || !comment.userId) return;
+
+    this.translate.get(['COMMENTACTION_VIEW_PROFILE', 'STORYACTION_BLOCK_AUTHOR', 'CANCEL_BUTTON']).subscribe(t => {
+      this.actionSheetCtrl
+        .create({
+          title: comment.user || '',
+          buttons: [
+            {
+              text: t.COMMENTACTION_VIEW_PROFILE,
+              icon: 'person',
+              handler: () => this.viewCommenter(comment),
+            },
+            {
+              text: t.STORYACTION_BLOCK_AUTHOR,
+              role: 'destructive',
+              icon: 'eye-off',
+              handler: () => this.blockCommenter(comment),
+            },
+            { text: t.CANCEL_BUTTON, role: 'cancel' },
+          ],
+        })
+        .present();
+    });
+  }
+
+  private viewCommenter(comment: { user: string; userId: string }) {
+    if (this.settings.allSettings.offlineMode) return;
+    const author = new Author({ id: comment.userId, name: comment.user || '' });
+    this.navCtrl.push('AuthorPage', { author, id: author && author.id });
+  }
+
+  private blockCommenter(comment: { user: string; userId: string }) {
+    this.filters.addBlockedAuthor(comment.userId, comment.user || '');
+    this.ux.showToast('INFO', 'AUTHOR_BLOCKED');
+    if (this.story && this.story.comments) {
+      this.story.comments = this.story.comments.filter(c => !this.filters.isAuthorBlocked(c.userId));
+    }
   }
 
   hasMoreComments(): boolean {
@@ -83,12 +159,22 @@ export class StoryDetailPage {
     if (this.settings.allSettings.offlineMode) return;
     this.navCtrl.push('AuthorPage', {
       author,
+      id: author && author.id,
+    });
+  }
+
+  readStory() {
+    if (!this.story || !this.story.id) return;
+    this.navCtrl.push('StoryViewPage', {
+      story: this.story,
+      id: this.story.id,
     });
   }
 
   showSeries() {
     this.navCtrl.push('StorySeriesPage', {
       story: this.story,
+      seriesId: this.story && this.story.series,
     });
   }
 
@@ -98,9 +184,14 @@ export class StoryDetailPage {
     });
   }
 
-  rate(event) {
-    event.preventDefault();
-    this.stories.rate(this.story, this.myrating);
+  rate(n: number) {
+    if (!this.story || this.rating || !n || n < 1 || n > 5) return;
+    if (this.story.myrating === n) return;
+    this.rating = true;
+    this.stories.rate(this.story, n).subscribe(ok => {
+      this.rating = false;
+      if (ok) this.myrating = this.story.myrating;
+    });
   }
 
   search(query: string | number) {
@@ -144,9 +235,13 @@ export class StoryDetailPage {
   }
 
   openListPicker(ev: UIEvent) {
-    const popover = this.popoverCtrl.create('BookmarkPopover', {
-      story: this.story,
-    });
+    const popover = this.popoverCtrl.create(
+      'BookmarkPopover',
+      {
+        story: this.story,
+      },
+      { cssClass: 'bookmark-popover' },
+    );
 
     popover.present({
       ev,
@@ -162,8 +257,7 @@ export class StoryDetailPage {
   }
 
   export() {
-    // tslint:disable-next-line: prefer-template
-    const filename = 'litapp-story-' + this.story.url + '-' + Math.round(new Date().getTime() / 1000) + '.html';
+    const filename = `litapp-story-${this.story.url}-${Math.round(new Date().getTime() / 1000)}.html`;
     const data = `
 <html>
 <body>
@@ -221,12 +315,11 @@ export class StoryDetailPage {
 
   // quick and dirty fix
   private updateValues(story: Story) {
-    const fields = Object.assign({}, story);
+    const fields: any = Object.assign({}, story);
     const blackListedKeys = ['downloaded', 'cached', 'currentpage'];
     for (const f in this.story) {
       if (!blackListedKeys.includes(f) && fields[f] !== undefined) {
-        // @ts-ignore
-        this.story[f] = fields[f];
+        (this.story as any)[f] = fields[f];
       }
     }
   }

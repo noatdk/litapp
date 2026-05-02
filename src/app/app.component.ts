@@ -1,19 +1,23 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, NgZone, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Config, Nav, Platform, App, AlertController } from 'ionic-angular';
+import { Config, Nav, Platform, App, AlertController, Menu } from 'ionic-angular';
 import { WebIntent } from '@ionic-native/web-intent';
 
-import { Globals, Analytics, UX, Stories, Lists, Feed, Settings } from '../providers/providers';
+import { Globals, Analytics, UX, Stories, Lists, Feed, Settings, User, Api } from '../providers/providers';
+import { AuthorByIdResponse, ApiUserProfile } from '../models/api';
 import { FingerprintAIO } from '@ionic-native/fingerprint-aio';
 import { StatusBar } from '@ionic-native/status-bar';
 
 @Component({
   template: `
     <ng-container *ngIf="loggedIn">
-      <ion-menu [content]="content">
+      <ion-menu [content]="content" (ionOpen)="onMenuOpen()" (ionClose)="onMenuClose()">
         <ion-header>
           <ion-toolbar>
-            <ion-title>Literotica <small>(unofficial)</small></ion-title>
+            <ion-title class="brand-wordmark" [style.font-family]="brandFont"
+              ><span class="brand-bracket">[</span> literotica
+              <span class="brand-bracket brand-bracket--close">]<span class="brand-unofficial">(Unofficial)</span></span></ion-title
+            >
           </ion-toolbar>
         </ion-header>
 
@@ -27,8 +31,8 @@ import { StatusBar } from '@ionic-native/status-bar';
               {{ 'MENU_OPENLINK' | translate }}
             </button>
 
-            <button menuClose ion-item (click)="openPage('AccountPage')" *ngIf="!settings.allSettings.offlineMode">
-              {{ 'MENU_ACCOUNT' | translate }}
+            <button menuClose ion-item (click)="openPage('MemosPage')">
+              {{ 'MENU_MEMOS' | translate }}
             </button>
 
             <button menuClose ion-item (click)="openPage('SettingsPage')">
@@ -36,15 +40,95 @@ import { StatusBar } from '@ionic-native/status-bar';
             </button>
           </ion-list>
         </ion-content>
+
+        <ion-footer class="account-footer" *ngIf="!settings.allSettings.offlineMode">
+          <div *ngIf="!user.isLoggedIn()" class="signed-out">
+            <p class="muted">{{ 'ACCOUNT_SIGNED_OUT_TITLE' | translate }}</p>
+            <button menuClose ion-button block small (click)="login()">
+              <ion-icon name="log-in"></ion-icon>&nbsp; {{ 'LOGIN' | translate }}
+            </button>
+          </div>
+
+          <div *ngIf="user.isLoggedIn()" class="signed-in">
+            <button menuClose class="identity" (click)="openAuthorPage()" title="{{ 'ACCOUNT_OPEN_AUTHOR_PAGE' | translate }}">
+              <span class="avatar" [class.has-image]="!!avatarUrl">
+                <img *ngIf="avatarUrl" [src]="avatarUrl" (error)="avatarUrl = ''" alt="" />
+                <span *ngIf="!avatarUrl">{{ avatarLetter() }}</span>
+              </span>
+              <span class="user-info">
+                <span class="username">{{ user.getDetails().username }}</span>
+                <span
+                  class="status"
+                  [class.muted]="jwtStateLabel === 'fresh' || jwtStateLabel === 'unknown'"
+                  [class.warn]="jwtStateLabel === 'stale'"
+                  [class.error]="jwtStateLabel === 'expired'"
+                >
+                  <ng-container [ngSwitch]="jwtStateLabel">
+                    <ng-container *ngSwitchCase="'fresh'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemainingLabel }}</ng-container>
+                    <ng-container *ngSwitchCase="'stale'">{{ 'ACCOUNT_JWT_REFRESH_IN' | translate }} {{ jwtRemainingLabel }}</ng-container>
+                    <ng-container *ngSwitchCase="'expired'">{{
+                      (needsRelogin() ? 'ACCOUNT_JWT_RELOGIN_REQUIRED' : 'ACCOUNT_JWT_EXPIRED') | translate
+                    }}</ng-container>
+                    <ng-container *ngSwitchDefault>id #{{ user.getDetails().id }}</ng-container>
+                  </ng-container>
+                </span>
+              </span>
+            </button>
+            <div class="actions">
+              <button
+                *ngIf="!needsRelogin()"
+                class="icon-btn"
+                (click)="refreshJwt()"
+                [disabled]="refreshing"
+                title="{{ 'ACCOUNT_JWT_REFRESH_NOW' | translate }}"
+              >
+                <ion-icon name="refresh"></ion-icon>
+              </button>
+              <button
+                *ngIf="needsRelogin()"
+                menuClose
+                class="icon-btn warn"
+                (click)="relogin()"
+                title="{{ 'ACCOUNT_RELOGIN' | translate }}"
+              >
+                <ion-icon name="log-in"></ion-icon>
+              </button>
+              <button class="icon-btn danger" (click)="logout()" title="{{ 'LOGOUT' | translate }}">
+                <ion-icon name="log-out"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </ion-footer>
       </ion-menu>
       <ion-nav #content root="TabsPage"></ion-nav>
+      <div class="lit-progress-bar" *ngIf="ux.loaderVisible" role="status" aria-live="polite">
+        <div class="lit-progress-bar__track">
+          <div class="lit-progress-bar__indicator" (animationiteration)="ux.onLoaderTick()"></div>
+        </div>
+        <span class="lit-progress-bar__label" *ngIf="ux.loaderLabel">{{ ux.loaderLabel }}</span>
+      </div>
     </ng-container>
   `,
 })
 export class MyApp {
   @ViewChild(Nav) nav: Nav;
+  @ViewChild(Menu) menu: Menu;
 
   loggedIn: boolean = false;
+  refreshing = false;
+  avatarUrl: string = '';
+  // Cached JWT-clock values. Recomputing live in template getters caused
+  // ExpressionChangedAfterItHasBeenCheckedError when the second crossed during
+  // Angular's dev-mode double check-pass. Refreshed once per tick instead.
+  jwtRemainingLabel: string = '—';
+  jwtStateLabel: 'fresh' | 'stale' | 'expired' | 'unknown' = 'unknown';
+  private tick: any;
+  private avatarFetchedFor: any = null;
+
+  // Packaged font families used by the wordmark — picked at random whenever
+  // the drawer opens so the brand reads slightly different each time.
+  private readonly brandFonts = ['Mulish', 'OpenDyslexic', 'DejaVu Sans'];
+  brandFont: string = 'Mulish';
 
   constructor(
     public platform: Platform,
@@ -60,10 +144,17 @@ export class MyApp {
     public s: Stories,
     public l: Lists,
     public f: Feed,
+    public user: User,
+    public api: Api,
     public faio: FingerprintAIO,
     public statusBar: StatusBar,
+    private zone: NgZone,
   ) {
     this.initTranslate();
+    this.user.onReady().then(() => {
+      const d = this.user.getDetails();
+      if (d && d.userpic) this.avatarUrl = d.userpic;
+    });
     this.settings.load().then(() => {
       if (this.settings.allSettings.enableLock && !this.loggedIn && !this.g.isWebApp()) {
         this.showLockScreen();
@@ -75,15 +166,8 @@ export class MyApp {
         this.g.checkForUpdates();
       }
 
-      if (this.settings.allSettings.amoledBlackTheme) {
-        const styleSheet = document.createElement('link');
-        styleSheet.setAttribute('href', './assets/black-theme.css');
-        styleSheet.setAttribute('rel', 'stylesheet');
-        document.head.appendChild(styleSheet);
-        this.statusBar.backgroundColorByHexString('#000');
-      } else {
-        this.statusBar.backgroundColorByHexString('#111');
-      }
+      this.statusBar.backgroundColorByHexString('#ffffff');
+      this.statusBar.styleDefault();
     });
 
     this.catchShareIntent();
@@ -156,11 +240,134 @@ export class MyApp {
   }
 
   openPage(page) {
-    if (page.title === 'TabsPage') {
-      this.nav.setRoot(page);
-    } else {
-      this.nav.push(page);
+    if (page === 'TabsPage') {
+      // Root menu item: collapse any pushed pages and return to the tabs root.
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.popToRoot().catch(() => {});
+      return;
     }
+    // Push on the active (tab) nav so the DeepLinker URL updates. Pushing on
+    // the root <ion-nav> bypasses the linker because it tracks the leaf nav.
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push(page);
+  }
+
+  // --- Account footer (Discord-style bottom-of-sidebar panel) ---
+
+  onMenuOpen() {
+    this.brandFont = this.brandFonts[Math.floor(Math.random() * this.brandFonts.length)];
+    if (!this.user.isLoggedIn()) return;
+    this.user.checkIfEverythingIsFucked().then(answer => {
+      if (answer) this.user.logout();
+    });
+    this.fetchAvatar();
+    this.refreshJwtLabels();
+    this.zone.runOutsideAngular(() => {
+      if (this.tick) return;
+      this.tick = setInterval(() => {
+        // Refresh cached values outside the zone, then re-enter zone for CD.
+        this.refreshJwtLabels();
+        this.zone.run(() => {});
+      }, 1000);
+    });
+  }
+
+  onMenuClose() {
+    if (this.tick) clearInterval(this.tick);
+    this.tick = null;
+  }
+
+  login() {
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push('LoginPage');
+  }
+
+  logout() {
+    this.user.logout();
+  }
+
+  relogin() {
+    this.user.removeStoredUser().then(() => {
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('LoginPage');
+    });
+  }
+
+  refreshJwt() {
+    if (this.refreshing) return;
+    this.refreshing = true;
+    this.user.refreshJwt().then(ok => {
+      this.refreshing = false;
+      this.ux.showToast(ok ? 'INFO' : 'ERROR', ok ? 'ACCOUNT_JWT_REFRESHED' : 'ACCOUNT_JWT_REFRESH_FAILED');
+    });
+  }
+
+  avatarLetter(): string {
+    const d = this.user.getDetails();
+    const name = (d && d.username) || '';
+    return name ? name.charAt(0).toUpperCase() : '?';
+  }
+
+  // Fetch the logged-in user's profile picture from /3/authors/{id} and
+  // persist it via user.setAvatar so subsequent cold starts render synchronously
+  // from storage. Called on every menu open but no-ops after the first success.
+  private fetchAvatar() {
+    const d = this.user.getDetails();
+    if (!d || d.id == null) return;
+    if (this.avatarFetchedFor === d.id && this.avatarUrl) return;
+    this.avatarFetchedFor = d.id;
+    this.api.get<AuthorByIdResponse | ApiUserProfile>(`3/authors/${d.id}`).subscribe(
+      data => {
+        const profile: ApiUserProfile | undefined = Array.isArray(data) ? data[0] : (data as ApiUserProfile);
+        const pic = profile && profile.userpic;
+        if (pic && pic !== 'https://www.literotica.com/imagesv2/da') {
+          this.avatarUrl = pic;
+          this.user.setAvatar(pic);
+        }
+      },
+      () => {
+        this.avatarFetchedFor = null;
+      },
+    );
+  }
+
+  openAuthorPage() {
+    const details = this.user.getDetails();
+    if (!details || details.id == null) return;
+    const author = { id: details.id, name: details.username };
+    const activeNav = this.app.getActiveNavs()[0] || this.nav;
+    activeNav.push('AuthorPage', { author, id: author.id });
+  }
+
+  private refreshJwtLabels() {
+    const ms = this.user.jwtRemainingMs();
+    this.jwtRemainingLabel = ms == null ? '—' : this.formatDuration(ms);
+    if (this.user.jwtNeedsRelogin()) {
+      this.jwtStateLabel = 'expired';
+    } else if (ms == null) {
+      this.jwtStateLabel = this.user.jwtLastError() ? 'expired' : 'unknown';
+    } else if (ms <= 0) {
+      this.jwtStateLabel = 'expired';
+    } else if (ms < 5 * 60 * 1000) {
+      this.jwtStateLabel = 'stale';
+    } else {
+      this.jwtStateLabel = 'fresh';
+    }
+  }
+
+  needsRelogin(): boolean {
+    return this.user.jwtNeedsRelogin();
+  }
+
+  private formatDuration(ms: number): string {
+    const sign = ms < 0 ? '-' : '';
+    const total = Math.abs(Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h) return `${sign}${h}h ${m}m`;
+    if (m) return `${sign}${m}m ${s}s`;
+    return `${sign}${s}s`;
   }
 
   openLinkDialog(url?) {
@@ -195,7 +402,8 @@ export class MyApp {
     const storyRegex = /literotica\.com\/(beta\/)?s\/([-a-zA-Z0-9._+]*)/g;
     const storyMatch = storyRegex.exec(url);
     if (storyMatch) {
-      this.nav.push('SearchPage', {
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('SearchPage', {
         storyurl: storyMatch[storyMatch.length - 1],
       });
 
@@ -208,8 +416,10 @@ export class MyApp {
     const authorMatch = authorRegex.exec(url);
     if (authorMatch) {
       const author = { id: authorMatch[1] };
-      this.nav.push('AuthorPage', {
+      const activeNav = this.app.getActiveNavs()[0] || this.nav;
+      activeNav.push('AuthorPage', {
         author,
+        id: author.id,
       });
       return;
     }

@@ -1,27 +1,261 @@
+@import '../../theme/tokens';
+@import '../../theme/card';
+
 page-story-detail {
-  h2 {
-    margin-top: 1.6rem !important;
+  // Deep-link cold load: detail body starts hidden and fades in once
+  // getRichById fills in title/author/etc., so content doesn't pop in
+  // abruptly. The placeholder spinner fades in similarly so the spinner
+  // itself doesn't snap on either.
+  .loading-placeholder {
+    text-align: center;
+    padding: 2em;
+    animation: story-detail-fade-in 220ms ease-out both;
+  }
+  .story-body {
+    animation: story-detail-fade-in 320ms ease-out both;
+  }
+  @keyframes story-detail-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
-  .comments p {
-    white-space: pre-wrap;
+  // First card sits below the toolbar with breathing room.
+  .card-header {
+    margin-top: $sp-4;
   }
 
-  .rate {
-    padding: 0 10px;
+  .story-title {
+    margin: 0 0 $sp-2;
+    font-size: $fs-page-title;
+    font-weight: $fw-page-title;
+    line-height: $lh-page-title;
+    color: $text-primary;
+  }
+  .story-desc {
+    margin: 0 0 $sp-3;
+    color: $text-secondary;
+    line-height: 1.45;
+  }
+  .header-actions {
     display: flex;
-    flex-flow: row no-wrap;
-    justify-content: space-around;
-    align-items: center;
-    align-content: center;
+    flex-wrap: wrap;
+    gap: $sp-2;
+    margin: 0;
 
-    .range {
-      flex-grow: 1;
-      padding: 0 20px 0 0;
+    button {
+      margin: 0;
+    }
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-1;
+    margin: 0 0 $sp-3;
+
+    ion-badge {
+      border-radius: $radius-pill;
+      padding: 4px 10px;
+      font-size: 0.72em;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+  }
+
+  // Icon-glyph metadata table — replaces the old `<strong>label:</strong> value`
+  // paragraph stack. Each `.row` is a 2-col flex: glyph + (label-stack-value).
+  .details-grid {
+    margin: 0 0 $sp-3;
+    padding: 0;
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: $sp-3;
+      padding: $sp-2 0;
+      border-bottom: 1px solid $divider;
+
+      &:last-child {
+        border-bottom: none;
+      }
     }
 
-    .range-md .range-pin {
-      z-index: 9999;
+    .glyph {
+      flex: 0 0 24px;
+      font-size: 18px;
+      color: $text-muted;
+    }
+
+    dt {
+      flex: 0 0 88px;
+      font-size: $fs-meta;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0;
+    }
+
+    dd {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      font-size: $fs-row-title;
+      color: $text-primary;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+
+      a {
+        color: $lit-blue;
+        text-decoration: none;
+      }
+    }
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-1 $sp-2;
+    padding-top: $sp-2;
+    border-top: 1px solid $divider;
+
+    .tag {
+      color: $lit-blue;
+      font-size: $fs-meta;
+      text-decoration: none;
+
+      &:active {
+        color: $lit-blue-hover;
+      }
+    }
+  }
+
+  .rate-stars {
+    display: flex;
+    gap: 4px;
+    padding: 0;
+
+    button {
+      flex: 1;
+      max-width: 56px;
+      margin: 0;
+
+      ion-icon {
+        font-size: 28px;
+        color: $lit-blue;
+      }
+    }
+
+    &.disabled {
+      opacity: 0.5;
+    }
+  }
+
+  .card-comments {
+    padding: $sp-4;
+
+    .lit-card__title {
+      display: flex;
+      align-items: center;
+      gap: $sp-2;
+
+      small {
+        color: $text-muted;
+        font-weight: 400;
+      }
+    }
+
+    // Inline crescent spinner next to the section title — non-obstructive
+    // signal that a fetch is in flight (initial load or "load more"). Replaces
+    // the previously silent network round-trip.
+    .comments-spinner {
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      color: $lit-blue;
+    }
+
+    .comments-empty {
+      margin: $sp-3 0 0;
+      color: $text-muted;
+      font-size: $fs-meta;
+      text-align: center;
+    }
+
+    .comments {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .comment {
+      padding: $sp-3 0;
+      border-bottom: 1px solid $divider;
+
+      &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      &:first-child {
+        padding-top: $sp-2;
+      }
+    }
+
+    .comment__head {
+      display: flex;
+      align-items: center;
+      gap: $sp-2;
+      margin: 0 0 $sp-1;
+    }
+
+    .comment__user {
+      font-size: $fs-row-title;
+      font-weight: $fw-row-title;
+      color: $lit-blue;
+      line-height: 1.2;
+    }
+
+    .comment__date {
+      font-size: 12px;
+      color: $text-muted;
+      // Pill-style date chip — visually offsets it from the username so the
+      // two read as distinct fields, not a single run-on header.
+      padding: 2px 8px;
+      border-radius: $radius-pill;
+      background: $surface-alt;
+      line-height: 1.4;
+    }
+
+    .comment__menu {
+      margin-left: auto;
+      min-height: 0;
+      height: 28px;
+      ion-icon {
+        font-size: 18px;
+        color: $text-muted;
+      }
+    }
+
+    .comment__body {
+      margin: 0;
+      color: $text-primary;
+      font-size: $fs-meta;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .comments-loadmore {
+      margin-top: $sp-3;
+      ion-spinner {
+        margin-right: $sp-2;
+        width: 18px;
+        height: 18px;
+      }
     }
   }
 }

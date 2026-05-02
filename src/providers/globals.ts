@@ -9,11 +9,12 @@ import { User } from './user';
 import { GLOBALS_KEY, VERSION_KEY } from './db';
 import { ENV } from '../app/env';
 import { UX } from './shared/ux';
+import { ApiLanguage, AppJsonResponse, ConstantsResponse, TagsportalTopResponse } from '../models/api';
 
 @Injectable()
 export class Globals {
-  private globals;
-  private ready;
+  private globals: ConstantsResponse;
+  private ready: Promise<void>;
   private version = 36; // just increase number, unrelated to version number
 
   constructor(
@@ -56,30 +57,20 @@ export class Globals {
 
   // these getters assume globals has already been cached and loaded
 
-  getLanguage(id: number) {
-    if (this.globals.languages) {
-      return Object.keys(this.globals.languages).filter(i => {
-        const lang = this.globals.languages[i];
-        if (parseInt(lang.id) === id) {
-          return lang.shortname;
-        }
-      })[0];
-    }
-    return null;
+  getLanguage(id: number): string | null {
+    if (!this.globals || !this.globals.languages) return null;
+    const langs = this.globals.languages as { [shortname: string]: ApiLanguage };
+    const match = Object.keys(langs).find(k => Number(langs[k].id) === id);
+    return match ? langs[match].shortname : null;
   }
 
   getSearchableLanguages(): { id: string; name: string }[] {
-    if (this.globals.languages) {
-      return Object.entries(this.globals.languages)
-        .filter(lang => !!lang[1].domain)
-        .map((lang: any) => {
-          return {
-            id: lang[1].id,
-            name: lang[1].longname,
-          };
-        });
-    }
-    return [];
+    if (!this.globals || !this.globals.languages) return [];
+    const langs = this.globals.languages as { [shortname: string]: ApiLanguage };
+    return Object.keys(langs)
+      .map(k => langs[k])
+      .filter(lang => !!lang.domain)
+      .map(lang => ({ id: String(lang.id), name: lang.longname }));
   }
 
   getPopularTags() {
@@ -88,7 +79,7 @@ export class Globals {
       periodCheck: false,
       period: 'all',
     };
-    return this.api.get('3/tagsportal/top', params);
+    return this.api.get<TagsportalTopResponse>('3/tagsportal/top', params);
   }
 
   getVersion() {
@@ -110,12 +101,12 @@ export class Globals {
     // check for updates
     if (manual) this.ux.showToast('INFO', 'UPDATE_STARTED', 2000);
     this.api
-      .get('app.json', undefined, undefined, 3)
+      .get<AppJsonResponse>('app.json', undefined, undefined, 3)
       .catch(error => {
         console.error('globals.checkForUpdates', error);
-        return Observable.of(false);
+        return Observable.of(null as AppJsonResponse | null);
       })
-      .subscribe((d: any) => {
+      .subscribe(d => {
         if (d) {
           if (d.appid !== this.api.appid) {
             this.api.appid = d.appid;
@@ -142,8 +133,8 @@ export class Globals {
 
     const loader = this.ux.showLoader();
     return this.api
-      .get('3/constants', null, null, null, 10000)
-      .map((d: any) => {
+      .get<ConstantsResponse>('3/constants', null, null, null, 10000)
+      .map(d => {
         if (loader) loader.dismiss();
         if (!d) {
           this.ux.showToast();

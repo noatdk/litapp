@@ -6,6 +6,7 @@ import { NgPipesModule } from 'ngx-pipes';
 
 import { StoryListItem } from './story-list-item';
 import { BookmarkPopoverModule } from '../bookmark-popover/bookmark-popover.module';
+import { MemoPopoverModule } from '../memo-popover/memo-popover.module';
 import { PipesModule } from '../../pipes/pipes.module';
 
 @NgModule({
@@ -16,6 +17,7 @@ import { PipesModule } from '../../pipes/pipes.module';
     TooltipsModule,
     NgPipesModule,
     BookmarkPopoverModule,
+    MemoPopoverModule,
     PipesModule,
   ],
   exports: [StoryListItem],

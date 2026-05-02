@@ -1,0 +1,38 @@
+@import '../../theme/tokens';
+@import '../../theme/card';
+
+// White card on tinted page-bg, hosting a stack of author rows. Mirrors the
+// `.users-card` block previously inlined on user-list — moved here so the
+// history Authors tab shares the exact anatomy.
+author-list {
+  display: block;
+
+  .author-list-card {
+    @extend %lit-card;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  // Ionic v3's global $list-md-background-color tints each row by default.
+  // Force transparent so the card surface shows through.
+  ion-list,
+  ion-list .list-md,
+  ion-list .list-ios {
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  author-list-item ion-item,
+  author-list-item .item-inner,
+  author-list-item .item-block,
+  author-list-item button[ion-item] {
+    background: transparent !important;
+  }
+
+  // Last row drops its bottom border so the stack ends flush with the card
+  // edge instead of double-stacking against the card border.
+  author-list-item:last-child ion-item .item-inner {
+    border-bottom: none !important;
+  }
+}

@@ -1,33 +1,77 @@
 import { Injectable } from '@angular/core';
-import { LoadingController, ToastController, Loading, Toast } from 'ionic-angular';
+import { ToastController, Toast } from 'ionic-angular';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 
+// Token returned by `showLoader()`. Callers .dismiss() when their request
+// resolves; the previous implementation returned an Ionic `Loading` overlay,
+// so the surface here mirrors its `.dismiss()` shape — no callsite changes.
+export interface LoaderToken {
+  dismiss(): void;
+}
+
 @Injectable()
 export class UX {
-  loader: Loading;
+  // Reactive state read by the global progress bar (see MyApp template).
+  // We track a count rather than a flag so overlapping requests don't blink
+  // the bar off the moment the first one resolves.
+  //
+  // `loaderVisible` is decoupled from `loaderCount` so the bar can finish its
+  // current slide-out cycle after the last loader dismisses — yanking the
+  // indicator mid-stride feels jittery. The animationiteration handler on
+  // the indicator hides the bar at the end of the next cycle when the count
+  // is back to 0.
+  loaderCount: number = 0;
+  loaderLabel: string = '';
+  loaderVisible: boolean = false;
+
   activeToasts: Toast[] = [];
   offlineModeErrorCount = 0;
 
-  constructor(public translate: TranslateService, public loadingCtrl: LoadingController, public toastCtrl: ToastController) {}
+  constructor(public translate: TranslateService, public toastCtrl: ToastController) {}
 
-  showLoader() {
-    if (this.loader) return this.loader;
-    this.loader = this.loadingCtrl.create({ spinner: 'crescent' });
-    this.loader.present();
-    this.loader.onDidDismiss(() => {
-      this.loader = undefined;
-    });
-    return this.loader;
+  // Replaces the modal Ionic `LoadingController` overlay with a small,
+  // non-obstructive progress indicator rendered globally by MyApp. The user
+  // can keep tapping during the request — only the visual cue changes.
+  //
+  // Returns a token whose `.dismiss()` decrements the in-flight count. Calling
+  // it more than once is a no-op so the global error handler / API error path
+  // / success path can all dismiss without double-decrementing.
+  showLoader(): LoaderToken {
+    this.loaderCount += 1;
+    this.loaderVisible = true;
+    let dismissed = false;
+    return {
+      dismiss: () => {
+        if (dismissed) return;
+        dismissed = true;
+        this.loaderCount = Math.max(0, this.loaderCount - 1);
+        if (this.loaderCount === 0) this.loaderLabel = '';
+        // Don't clear `loaderVisible` here — the indicator's animationiteration
+        // handler does it on the next slide-out so the bar exits gracefully.
+      },
+    };
   }
 
+  // Bound to the indicator's `(animationiteration)` event. Each iteration
+  // ends with the indicator translated fully off the right edge, so hiding
+  // here is the cleanest exit — no fade, no snap-back.
+  onLoaderTick() {
+    if (this.loaderCount === 0) this.loaderVisible = false;
+  }
+
+  // Optional textual hint shown next to the bar — used by series-download
+  // progress reporting. Becomes a no-op when no loader is active.
   updateLoader(content: string) {
-    if (!this.loader) return;
-    this.loader.setContent(content);
+    if (this.loaderCount > 0) this.loaderLabel = content || '';
   }
 
+  // Hard reset — used by the global error handler and offline-mode guard so a
+  // crashed request can't leave the bar wedged on.
   hideLoader() {
-    if (this.loader) this.loader.dismiss().catch(() => {});
+    this.loaderCount = 0;
+    this.loaderLabel = '';
+    this.loaderVisible = false;
   }
 
   // label and buttonLabel can still contain a string just cast to any when needed

@@ -1,6 +1,24 @@
+@import '../../theme/tokens';
+
 page-tabs {
+  .tabbar {
+    background-color: $surface-bg;
+    border-top: 1px solid $divider;
+  }
+
   .tabs-md .tab-button,
   .tabs-md .tab-button-icon {
-    color: rgba(255, 255, 255, 0.5);
+    color: $text-secondary;
+  }
+
+  .tabs-md .tab-button[aria-selected='true'],
+  .tabs-md .tab-button[aria-selected='true'] .tab-button-icon,
+  .tabs-md .tab-button.tab-selected,
+  .tabs-md .tab-button.tab-selected .tab-button-icon {
+    color: $lit-blue;
+  }
+
+  .tabs-md .tab-highlight {
+    background-color: $lit-blue;
   }
 }

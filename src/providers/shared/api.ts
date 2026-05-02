@@ -1,11 +1,14 @@
-/* tslint:disable */
-// disabled because prefer-template and shorthand properties shorthand
 import { HttpClient, HttpParams, HttpParameterCodec, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ENV } from '../../app/env';
 import { Settings } from '../settings';
 import { UX } from './ux';
 import { Observable } from 'rxjs/Observable';
+
+// Index of auth.literotica.com in Api.urls — exported so callers (User,
+// JwtRefreshInterceptor) don't hardcode the position. Keep in sync with
+// Api.getUrls() below; inserting/reordering entries means updating this.
+export const AUTH_URL_INDEX = 6;
 
 // Source: https://github.com/angular/angular/issues/11058#issuecomment-351864976
 export class WebHttpUrlEncodingCodec implements HttpParameterCodec {
@@ -35,12 +38,10 @@ export class Api {
     try {
       const search = location.search.substring(1);
       const queryParams = JSON.parse(
-        '{"' +
-          decodeURI(search)
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"') +
-          '"}',
+        `{"${decodeURI(search)
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
       );
       if (queryParams.proxy) {
         this.corsProxy = queryParams.proxy;
@@ -51,24 +52,28 @@ export class Api {
 
   getUrls() {
     return [
-      this.corsProxy + 'https://literotica.com/api',
-      this.corsProxy + 'https://search.literotica.com/api',
-      this.corsProxy + 'https://www.literotica.com',
-      this.corsProxy + ENV.APP_JSON_RAW_BASE,
-      this.corsProxy + 'https://literotica.com',
-      this.corsProxy + 'https://api.github.com',
-      this.corsProxy + 'https://auth.literotica.com',
+      `${this.corsProxy}https://literotica.com/api`,
+      `${this.corsProxy}https://search.literotica.com/api`,
+      `${this.corsProxy}https://www.literotica.com`,
+      `${this.corsProxy}${ENV.APP_JSON_RAW_BASE}`,
+      `${this.corsProxy}https://literotica.com`,
+      `${this.corsProxy}https://api.github.com`,
+      `${this.corsProxy}https://auth.literotica.com`,
     ];
   }
 
-  handleAPIError(error: HttpErrorResponse, url: string, data: any, method: string): any {
+  handleAPIError<T = any>(error: HttpErrorResponse, url: string, data: any, method: string): Observable<T> {
     console.error({
-      type: 'API_Error',
       url,
       method,
       data,
+      type: 'API_Error',
       ...error,
     });
+
+    // Always dismiss any active spinner — callers using showLoader() rely on a
+    // success callback to hide it, which never fires when the request errors.
+    this.ux.hideLoader();
 
     if (error.status === 404) {
       this.ux.showToast('ERROR', 'LITEROTICA_NOTFOUND', 5000);
@@ -78,11 +83,11 @@ export class Api {
       this.ux.showToast('ERROR', 'LITEROTICA_TEMPOFFLINE', 5000);
     }
 
-    return Observable.of();
+    return Observable.of() as Observable<T>;
   }
 
-  get(endpoint: string, params?: any, reqOpts?: any, urlIndex?: number, timeout?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  get<T = any>(endpoint: string, params?: any, reqOpts?: any, urlIndex?: number, timeout?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     let newReqOpts = reqOpts;
     if (!reqOpts) {
       newReqOpts = {
@@ -99,48 +104,47 @@ export class Api {
     }
 
     // disable api keys for github requests and the auth service
-    if (urlIndex !== 3 && urlIndex !== 5 && urlIndex !== 6) {
+    if (urlIndex !== 3 && urlIndex !== 5 && urlIndex !== AUTH_URL_INDEX) {
       newReqOpts.withCredentials = true;
       newReqOpts.params = newReqOpts.params.set('apikey', this.apikey);
       newReqOpts.params = newReqOpts.params.set('appid', this.appid);
     }
 
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
-    const req = this.http.get(url, newReqOpts).catch(err => this.handleAPIError(err, url, newReqOpts.params, 'GET'));
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${endpoint}`;
+    const req = ((this.http.get<T>(url, newReqOpts) as any) as Observable<T>).catch(err =>
+      this.handleAPIError<T>(err, url, newReqOpts.params, 'GET'),
+    );
     if (timeout) return req.timeout(timeout);
     return req;
   }
 
-  post(endpoint: string, body: any, reqOpts?: any, addIDs?: boolean, urlIndex?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
+  post<T = any>(endpoint: string, body: any, reqOpts?: any, addIDs?: boolean, urlIndex?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
     let newEndpoint = endpoint;
     if (addIDs) {
-      if (endpoint.indexOf('?') > -1) {
-        newEndpoint += '&apikey=' + this.apikey + '&appid=' + this.appid;
-      } else {
-        newEndpoint += '?apikey=' + this.apikey + '&appid=' + this.appid;
-      }
+      const sep = endpoint.indexOf('?') > -1 ? '&' : '?';
+      newEndpoint += `${sep}apikey=${this.apikey}&appid=${this.appid}`;
     }
 
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + newEndpoint;
-    return this.http.post(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'POST'));
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${newEndpoint}`;
+    return ((this.http.post<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'POST'));
   }
 
-  put(endpoint: string, body: any, reqOpts?: any) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
-    const url = this.urls[0] + '/' + endpoint;
-    return this.http.put(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'PUT'));
+  put<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
+    const url = `${this.urls[0]}/${endpoint}`;
+    return ((this.http.put<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PUT'));
   }
 
-  delete(endpoint: string, reqOpts?: any, urlIndex?: number) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
-    const url = this.urls[urlIndex ? urlIndex : 0] + '/' + endpoint;
-    return this.http.delete(url, reqOpts).catch(err => this.handleAPIError(err, url, {}, 'DELETE'));
+  delete<T = any>(endpoint: string, reqOpts?: any, urlIndex?: number): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
+    const url = `${this.urls[urlIndex ? urlIndex : 0]}/${endpoint}`;
+    return ((this.http.delete<T>(url, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, {}, 'DELETE'));
   }
 
-  patch(endpoint: string, body: any, reqOpts?: any) {
-    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError();
-    const url = this.urls[0] + '/' + endpoint;
-    return this.http.patch(url, body, reqOpts).catch(err => this.handleAPIError(err, url, body, 'PATCH'));
+  patch<T = any>(endpoint: string, body: any, reqOpts?: any): Observable<T> {
+    if (this.settings.allSettings.offlineMode) return this.ux.showOfflineModeError() as Observable<T>;
+    const url = `${this.urls[0]}/${endpoint}`;
+    return ((this.http.patch<T>(url, body, reqOpts) as any) as Observable<T>).catch(err => this.handleAPIError<T>(err, url, body, 'PATCH'));
   }
 }
