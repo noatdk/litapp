@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { ConnectableObservable } from 'rxjs/observable/ConnectableObservable';
 import { EmptyObservable } from 'rxjs/observable/EmptyObservable';
 import 'rxjs/add/operator/publishReplay';
 
@@ -9,7 +10,7 @@ import { TagsportalCategoriesResponse } from '../models/api';
 
 @Injectable()
 export class Categories {
-  private categories: any = [];
+  private categories: ConnectableObservable<Category[]>;
   // Sorts first by 'master', 'story', 'poem', respectively, then by name
   private sortMap: Map<string, number> = new Map<string, number>();
   // id → name, populated from the same source as `categories` for sync access.

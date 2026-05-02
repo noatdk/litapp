@@ -22,7 +22,7 @@ export interface RecentAuthor {
 
 @Injectable()
 export class History {
-  private ready;
+  private ready: Promise<boolean>;
   private history: Story[] = []; // ordered from old to new
   private recentAuthors: RecentAuthor[] = []; // ordered most-recent-first
 
@@ -30,7 +30,7 @@ export class History {
   static RECENT_AUTHORS_LIMIT = 100;
 
   constructor(public stories: Stories, public storage: Storage) {
-    this.ready = new Promise((resolve, reject) => {
+    this.ready = new Promise(resolve => {
       Promise.all([
         this.stories.onReady(),
         this.storage.get(RECENT_AUTHORS_KEY).then(list => {
@@ -38,32 +38,26 @@ export class History {
         }),
       ]).then(() => {
         this.storage.get(HISTORY_KEY).then(idList => {
-          let loadedIndex = 0;
-          if (idList) {
-            const temp = [];
-            idList.forEach((id, index) => {
-              this.stories.getById(id).subscribe(story => {
-                if (story) {
-                  temp[index] = story;
-                }
-
-                loadedIndex += 1;
-                if (loadedIndex === idList.length) {
-                  this.history = temp;
-                  this.clean().then(() => resolve(true));
-                }
-              });
-            });
-          } else {
+          if (!idList || !idList.length) {
             this.history = [];
             resolve(true);
+            return;
           }
+          // forkJoin preserves order, so we don't need a temp[index] dance
+          // to keep the old→new ordering Stories provider promises. The
+          // Stories cache is already warm at this point (we awaited
+          // stories.onReady above), so each getById is a synchronous cache
+          // hit — no parallel network thrash.
+          Observable.forkJoin(idList.map(id => this.stories.getById(id))).subscribe((stories: (Story | null)[]) => {
+            this.history = stories.filter((s): s is Story => !!s);
+            this.clean().then(() => resolve(true));
+          });
         });
       });
     });
   }
 
-  onReady(): boolean {
+  onReady(): Promise<boolean> {
     return this.ready;
   }
 

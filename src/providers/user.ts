@@ -16,10 +16,21 @@ import { JwtCheckResponse, JwtLoginResponse, SessionResponse, V2LoginResponse } 
 // and surface a countdown from there.
 const JWT_TTL_MS = 60 * 60 * 1000;
 
+// Shape of the cached user record persisted under USER_KEY. Populated by
+// `login` and read sync via `getId/getName/getSession`. Optional fields are
+// either set later (userpic via setAvatar) or carried over from older shapes.
+interface UserRecord {
+  id: number;
+  username: string;
+  sessionId: string;
+  date: number;
+  userpic?: string;
+}
+
 @Injectable()
 export class User {
-  private user: any;
-  private ready;
+  private user: UserRecord | null;
+  private ready: Promise<void>;
   // Wall-clock ms when the JWT was last successfully minted/refreshed. Not
   // persisted — resets on each app launch (we always re-mint at boot anyway).
   private jwtRefreshedAt: number = 0;
@@ -182,14 +193,14 @@ export class User {
   }
 
   isLoggedIn(): boolean {
-    return this.user && !this.settings.allSettings.offlineMode;
+    return !!this.user && !this.settings.allSettings.offlineMode;
   }
 
-  getId() {
+  getId(): number {
     return this.user.id;
   }
 
-  getName() {
+  getName(): string {
     return this.user.username;
   }
 

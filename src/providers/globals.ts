@@ -9,12 +9,12 @@ import { User } from './user';
 import { GLOBALS_KEY, VERSION_KEY } from './db';
 import { ENV } from '../app/env';
 import { UX } from './shared/ux';
-import { AppJsonResponse, ConstantsResponse, TagsportalTopResponse } from '../models/api';
+import { ApiLanguage, AppJsonResponse, ConstantsResponse, TagsportalTopResponse } from '../models/api';
 
 @Injectable()
 export class Globals {
-  private globals;
-  private ready;
+  private globals: ConstantsResponse;
+  private ready: Promise<void>;
   private version = 25; // just increase number, unrelated to version number
 
   constructor(
@@ -57,30 +57,20 @@ export class Globals {
 
   // these getters assume globals has already been cached and loaded
 
-  getLanguage(id: number) {
-    if (this.globals.languages) {
-      return Object.keys(this.globals.languages).filter(i => {
-        const lang = this.globals.languages[i];
-        if (parseInt(lang.id) === id) {
-          return lang.shortname;
-        }
-      })[0];
-    }
-    return null;
+  getLanguage(id: number): string | null {
+    if (!this.globals || !this.globals.languages) return null;
+    const langs = this.globals.languages as { [shortname: string]: ApiLanguage };
+    const match = Object.keys(langs).find(k => Number(langs[k].id) === id);
+    return match ? langs[match].shortname : null;
   }
 
   getSearchableLanguages(): { id: string; name: string }[] {
-    if (this.globals.languages) {
-      return Object.entries(this.globals.languages)
-        .filter(lang => !!lang[1].domain)
-        .map((lang: any) => {
-          return {
-            id: lang[1].id,
-            name: lang[1].longname,
-          };
-        });
-    }
-    return [];
+    if (!this.globals || !this.globals.languages) return [];
+    const langs = this.globals.languages as { [shortname: string]: ApiLanguage };
+    return Object.keys(langs)
+      .map(k => langs[k])
+      .filter(lang => !!lang.domain)
+      .map(lang => ({ id: String(lang.id), name: lang.longname }));
   }
 
   getPopularTags() {

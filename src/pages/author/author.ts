@@ -108,15 +108,27 @@ export class AuthorPage {
     });
   }
 
+  private bioCheckLoop: any;
+
   ionViewDidEnter() {
-    const loop = setInterval(() => {
+    this.bioCheckLoop = setInterval(() => {
       if (this.loaded) {
         if (this.biotext && this.biotext.nativeElement) {
           this.showArrow = this.biotext.nativeElement.scrollHeight > this.biotext.nativeElement.clientHeight;
         }
-        clearInterval(loop);
+        clearInterval(this.bioCheckLoop);
+        this.bioCheckLoop = null;
       }
     }, 50);
+  }
+
+  ionViewWillLeave() {
+    // Guard against the interval running past the page's lifetime — happens
+    // if the user backs out before getDetails resolves and `loaded` flips.
+    if (this.bioCheckLoop) {
+      clearInterval(this.bioCheckLoop);
+      this.bioCheckLoop = null;
+    }
   }
 
   loadSubmissions() {
@@ -323,14 +335,14 @@ export class AuthorPage {
   // Hides the breakdown row entirely for legacy /3/authors/{id} responses
   // (which never populate these fields).
   hasBreakdown(): boolean {
-    const a = this.author as any;
+    const a = this.author;
     if (!a) return false;
     return !!(a.storiesCount || a.poemsCount || a.audiosCount || a.illustrationsCount || a.sgsCount || a.seriesCount);
   }
 
   // True iff the Links card has anything to render.
   hasLinks(): boolean {
-    const a = this.author as any;
+    const a = this.author;
     if (!a) return false;
     if (a.supportMeLink || a.homepage) return true;
     return this.socialEntries().length > 0;
@@ -357,7 +369,7 @@ export class AuthorPage {
   };
 
   socialEntries(): { key: string; handle: string; url: string; label: string; icon: string }[] {
-    const socials = (this.author as any) && (this.author as any).socials;
+    const socials = this.author && this.author.socials;
     if (!socials) return [];
     const out: { key: string; handle: string; url: string; label: string; icon: string }[] = [];
     for (const k of Object.keys(AuthorPage.SOCIAL_META)) {
@@ -447,7 +459,7 @@ export class AuthorPage {
     const key = `${field}:${code}`;
     if (AuthorPage.reportedMissing.has(key)) return;
     AuthorPage.reportedMissing.add(key);
-    if (this.ux && (this.ux as any).showToast) {
+    if (this.ux && this.ux.showToast) {
       try {
         this.ux.showToast('INFO', `Unknown ${field} code “${code}”`, 3500);
       } catch (e) {
@@ -460,7 +472,7 @@ export class AuthorPage {
   // Build the list of fact rows that have a value, in the canonical display
   // order. Empty fields are skipped so the card collapses for sparse profiles.
   factEntries(): { label: string; value: string }[] {
-    const a = this.author as any;
+    const a = this.author;
     if (!a) return [];
     const rows: { field: string; label: string; raw: string }[] = [
       { field: 'sex', label: 'Sex', raw: a.factSex },
@@ -595,7 +607,7 @@ export class AuthorPage {
             {
               text: this.translations.OK_BUTTON,
               handler: () => {
-                this.a.unfollow(this.author);
+                this.a.unfollow(this.author).subscribe();
               },
             },
           ],
@@ -603,7 +615,7 @@ export class AuthorPage {
         .present();
       return;
     }
-    this.a.follow(this.author);
+    this.a.follow(this.author).subscribe();
   }
 
   share() {

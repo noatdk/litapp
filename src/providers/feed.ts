@@ -16,7 +16,7 @@ import { ActivityWallResponse, ApiActivityItem } from '../models/api';
 
 @Injectable()
 export class Feed {
-  private ready;
+  private ready: Promise<void>;
   private timeout = 1000 * 60 * 10;
   private feed;
   private feedtimeout = new Date().getTime() + this.timeout;

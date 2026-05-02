@@ -30,9 +30,9 @@ export class FollowingPage {
     $event.stopPropagation();
 
     if (author.following) {
-      this.a.unfollow(author);
+      this.a.unfollow(author).subscribe();
     } else {
-      this.a.follow(author);
+      this.a.follow(author).subscribe();
     }
   }
 

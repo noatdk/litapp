@@ -12,6 +12,7 @@ import { LIST_KEY } from './db';
 import { UX } from './shared/ux';
 import {
   AddStoryToListResponse,
+  ApiUserList,
   CreateListResponse,
   DeleteListResponse,
   MyListsResponse,
@@ -34,7 +35,7 @@ interface CachedLists {
 export class Lists {
   private lists: List[];
   private cachedAt: number = 0;
-  private ready;
+  private ready: Promise<void>;
 
   constructor(public api: Api, public s: Stories, public settings: Settings, public user: User, public storage: Storage, public ux: UX) {
     this.ready = new Promise((resolve, reject) => {
@@ -77,6 +78,25 @@ export class Lists {
 
   onReady() {
     return this.ready;
+  }
+
+  // Common mapping from the server's ApiUserList shape onto the local List
+  // model. Used by every code path that materialises a list — query,
+  // revalidate, getListPage, add — so the field translation stays in one place.
+  private listFromApi(l: ApiUserList, lastPage?: number): List {
+    const base: any = {
+      id: l.id,
+      urlname: l.urlname,
+      name: l.title,
+      description: l.description,
+      visibility: !l.is_private,
+      size: l.stories_count,
+      isdeletable: l.is_deletable,
+      createtimestamp: l.created_at,
+      updatetimestamp: l.updated_at,
+    };
+    if (lastPage !== undefined) base.lastPage = lastPage;
+    return new List(base);
   }
 
   // Pulls a possibly-legacy storage payload back into memory. Older builds
@@ -131,20 +151,7 @@ export class Lists {
           seen.add(l.id);
           const existing = this.lists && this.lists.find(x => x.id === l.id);
           if (!existing) {
-            this.lists.push(
-              new List({
-                id: l.id,
-                urlname: l.urlname,
-                name: l.title,
-                description: l.description,
-                visibility: !l.is_private,
-                size: l.stories_count,
-                isdeletable: l.is_deletable,
-                createtimestamp: l.created_at,
-                updatetimestamp: l.updated_at,
-                lastPage: -1,
-              }),
-            );
+            this.lists.push(this.listFromApi(l, -1));
             return;
           }
           // Patch metadata. If size changed, drop cached stories.
@@ -207,21 +214,7 @@ export class Lists {
           return [];
         }
 
-        this.lists = d.map(
-          l =>
-            new List({
-              id: l.id,
-              urlname: l.urlname,
-              name: l.title,
-              description: l.description,
-              visibility: !l.is_private,
-              size: l.stories_count,
-              isdeletable: l.is_deletable,
-              createtimestamp: l.created_at,
-              updatetimestamp: l.updated_at,
-              lastPage: -1,
-            }),
-        );
+        this.lists = d.map(l => this.listFromApi(l, -1));
         this.persist();
 
         return this.lists;
@@ -293,23 +286,13 @@ export class Lists {
 
         let newList = list;
         if (!list) {
-          newList = new List({
-            id: d.list.id,
-            urlname: d.list.urlname,
-            name: d.list.title,
-            description: d.list.description,
-            visibility: !d.list.is_private,
-            size: d.list.stories_count,
-            isdeletable: d.list.is_deletable,
-            createtimestamp: d.list.created_at,
-            updatetimestamp: d.list.updated_at,
-          });
+          newList = this.listFromApi(d.list);
         }
 
         // Update page numbers (work around for "inconsistent story count" bug)
         newList.lastPage = d.works.meta.last_page;
 
-        newList.stories = d.works.data.map(story => this.s.extactFromList(story));
+        newList.stories = d.works.data.map(story => this.s.extractFromList(story));
 
         return newList;
       })
@@ -388,18 +371,7 @@ export class Lists {
           return false;
         }
 
-        this.lists.push(
-          new List({
-            id: res.list.id,
-            urlname: res.list.urlname,
-            name: res.list.title,
-            description: res.list.description,
-            visibility: !res.list.is_private,
-            size: res.list.stories_count,
-            isdeletable: res.list.is_deletable,
-            createtimestamp: res.list.created_at,
-          }),
-        );
+        this.lists.push(this.listFromApi(res.list));
         this.persist();
 
         return true;

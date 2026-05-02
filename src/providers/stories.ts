@@ -12,6 +12,7 @@ import { User } from './user';
 import { Globals } from './globals';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import { ENV } from '../app/env';
 import {
   ApiActivityItem,
   ApiActivityWhatStory,
@@ -168,7 +169,7 @@ function sanitizeStoryHtml(html: string): string {
 export class Stories {
   private stories: Map<number, Story> = new Map<number, Story>();
   private myRatings: { [id: string]: number } = {};
-  private ready;
+  private ready: Promise<void>;
 
   constructor(
     public api: Api,
@@ -207,8 +208,10 @@ export class Stories {
       if (d && typeof d === 'object') this.myRatings = d;
     });
 
-    // Use this to see all of the in memory stories
-    (window as any).checkCachedStories = () => console.log(this.stories);
+    if (ENV.DEV) {
+      // Inspection helper for in-memory story map; dev builds only.
+      (window as any).checkCachedStories = () => console.log(this.stories);
+    }
   }
 
   onReady() {
@@ -879,7 +882,7 @@ export class Stories {
     return story;
   }
 
-  extactFromList(item: ApiStoryV3): Story {
+  extractFromList(item: ApiStoryV3): Story {
     const cached = this.stories.get(item.id);
     if (cached) {
       return cached;
@@ -902,7 +905,7 @@ export class Stories {
       isnew: item.is_new,
       iswriterspick: item.writers_pick,
       iscontestwinner: item.contest_winner,
-      commentsenabled: item.enable_comments > 0 ? true : false,
+      commentsenabled: item.enable_comments > 0,
       ratingenabled: item.allow_vote,
     });
 
@@ -928,12 +931,12 @@ export class Stories {
       rating: item.rate,
       viewcount: item.view_count,
       url: this.parseUrl(item.url),
-      ishot: item.is_hot === 'no' ? false : true,
-      isnew: item.is_new === 'no' ? false : true,
-      iswriterspick: item.writers_pick === 'no' ? false : true,
-      iscontestwinner: item.contest_winner === 'no' ? false : true,
-      commentsenabled: item.enable_comments > 0 ? true : false,
-      ratingenabled: item.allow_vote > 0 ? true : false,
+      ishot: item.is_hot !== 'no',
+      isnew: item.is_new !== 'no',
+      iswriterspick: item.writers_pick !== 'no',
+      iscontestwinner: item.contest_winner !== 'no',
+      commentsenabled: item.enable_comments > 0,
+      ratingenabled: item.allow_vote > 0,
       series: item.series_id ? parseInt(item.series_id, 10) : undefined,
       seriesTitle: item.series_data && item.series_data.title,
       commentscount: Number(item.comment_count) || 0,
@@ -968,9 +971,9 @@ export class Stories {
       ishot: item.is_hot,
       isnew: item.is_new,
       iswriterspick: item.writers_pick,
-      iscontestwinner: item.contest_winner > 0 ? true : false,
-      commentsenabled: item.enable_comments > 0 ? true : false,
-      ratingenabled: item.allow_vote > 0 ? true : false,
+      iscontestwinner: item.contest_winner > 0,
+      commentsenabled: item.enable_comments > 0,
+      ratingenabled: item.allow_vote > 0,
       commentscount: Number(item.comment_count) || 0,
       favoritescount: Number(item.favorite_count) || 0,
       listscount: Number(item.reading_lists_count) || 0,

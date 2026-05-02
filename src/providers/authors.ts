@@ -358,7 +358,10 @@ export class Authors {
       .get<FavoriteAuthorsFlatResponse>(`3/users/${this.user.getId()}/favorite/authors?params={%22nocache%22:true}`)
       .map(data => {
         if (loader) loader.dismiss();
-        if (!data.length) {
+        // The flat endpoint returns an array; an empty array is a legitimate
+        // "you follow nobody" state. Only treat a non-array (error envelope,
+        // null, undefined) as a failure.
+        if (!Array.isArray(data)) {
           this.ux.showToast();
           console.error('author.getFollowing');
           return [];
@@ -374,45 +377,45 @@ export class Authors {
       });
   }
 
-  follow(author: Author) {
-    const data = new FormData();
-    data.append('type', 'member');
-    data.append('id', author.id);
-
+  // Return an Observable rather than a Subscription so the caller can chain
+  // off the result (e.g. revert an optimistic UI flag on failure). On success
+  // we still mutate `author.following` so existing callers that just kick the
+  // call and forget keep working as long as they subscribe.
+  follow(author: Author): Observable<boolean> {
     return this.api
       .post<FollowAuthorResponse>(`3/users/follow/${author.id}`, {})
-      .map((res: any) => res && res.success)
-      .catch(error => {
-        this.ux.showToast();
-        console.error('author.follow', [author], error);
-        return Observable.of(false);
-      })
-      .subscribe(d => {
-        if (d) {
+      .map((res: any) => !!(res && res.success))
+      .do(success => {
+        if (success) {
           author.following = true;
         } else {
           this.ux.showToast();
           console.error('author.follow', [author]);
         }
+      })
+      .catch(error => {
+        this.ux.showToast();
+        console.error('author.follow', [author], error);
+        return Observable.of(false);
       });
   }
 
-  unfollow(author: Author) {
+  unfollow(author: Author): Observable<boolean> {
     return this.api
       .delete<UnfollowAuthorResponse>(`3/users/follow/${author.id}`)
-      .map((res: any) => res && res.success)
-      .catch(error => {
-        this.ux.showToast();
-        console.error('author.unfollow', [author], error);
-        return Observable.of(false);
-      })
-      .subscribe(d => {
-        if (d) {
+      .map((res: any) => !!(res && res.success))
+      .do(success => {
+        if (success) {
           author.following = false;
         } else {
           this.ux.showToast();
           console.error('author.unfollow', [author]);
         }
+      })
+      .catch(error => {
+        this.ux.showToast();
+        console.error('author.unfollow', [author], error);
+        return Observable.of(false);
       });
   }
 
@@ -431,7 +434,7 @@ export class Authors {
   // Accepts either the rich profile (favorite/authors flat) or the activity
   // wall's `who` shape (just userid/username/userpic).
   extractFromFeed(item: ApiUserProfile | { userid: number; username: string; userpic?: string; joindate?: string }): Author {
-    const id = (item as any).userid;
+    const id = item.userid;
     let cached = this.authors.get(id);
     if (!cached) {
       cached = new Author({
@@ -461,7 +464,7 @@ export class Authors {
   // extractFromFeed so a story search visit doesn't downgrade a previously
   // hydrated author profile.
   extractFromSearch(item: ApiUserProfile | { userid: number; username?: string; userpic?: string }): Author {
-    const id = (item as any).userid;
+    const id = item.userid;
     let cached = this.authors.get(id);
     if (!cached) {
       cached = new Author({
@@ -477,20 +480,12 @@ export class Authors {
     return cached;
   }
 
+  // Alias kept for symmetry with stories.extractFromNewSearch — the new and
+  // legacy search responses carry the same author shape, so a single
+  // extractor is enough. Previously the new-search variant skipped the
+  // oldDefaultUserPic rewrite; consolidating means new-search results now
+  // benefit from that fix-up too.
   extractFromNewSearch(item: ApiUserProfile | { userid: number; username?: string; userpic?: string }): Author {
-    const id = (item as any).userid;
-    let cached = this.authors.get(id);
-    if (!cached) {
-      cached = new Author({
-        id,
-        name: item.username,
-        picture: item.userpic,
-      });
-      this.authors.set(id, cached);
-    } else {
-      if (!cached.name && item.username) cached.name = item.username;
-      if (!cached.picture && item.userpic) cached.picture = item.userpic;
-    }
-    return cached;
+    return this.extractFromSearch(item);
   }
 }
