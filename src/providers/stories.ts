@@ -561,12 +561,6 @@ export class Stories {
     return this.api
       .get(`3/stories/${id}`)
       .map((data: any) => {
-        console.info(
-          '[getRichById] /3/stories/%s response keys=%o submission keys=%o',
-          id,
-          data && Object.keys(data),
-          data && data.submission && Object.keys(data.submission),
-        );
         const sub = data && data.submission;
         if (!sub || !sub.id) return null;
         const cached = this.stories.get(sub.id) || new Story({ id: String(sub.id) });
@@ -585,11 +579,18 @@ export class Stories {
         if (sub.tags) cached.tags = sub.tags.map(t => t.tag || t.name || t);
         if (sub.series && sub.series.meta) cached.seriesTitle = sub.series.meta.title;
         if (sub.series && sub.series.meta) cached.series = sub.series.meta.id;
-        // Try a few common author field shapes — log so we can verify which is present.
+        // Author field shape varies; we look at the most common ones.
         const userish = sub.user || sub.author || sub.submitter || (sub.series && sub.series.user);
         if (userish) {
           cached.author = this.a.extractFromSearch(userish);
         }
+        // Populate fields the comments / detail / share flows depend on.
+        // url is critical: getComments derives the slug from `/s/<slug>`.
+        if (sub.url) cached.url = sub.url;
+        if (sub.timestamp_published != null) cached.timestamp = sub.timestamp_published;
+        if (sub.comment_count != null) cached.commentscount = Number(sub.comment_count) || 0;
+        if (sub.favorite_count != null) cached.favoritescount = Number(sub.favorite_count) || 0;
+        if (sub.reading_lists_count != null) cached.listscount = Number(sub.reading_lists_count) || 0;
         this.stories.set(cached.id, cached);
         return cached;
       })
