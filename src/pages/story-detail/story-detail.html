@@ -50,13 +50,6 @@
       </button>
 
       <memo-button kind="story" [id]="story.id"></memo-button>
-      <memo-button *ngIf="story.series > 0" kind="series" [id]="story.series"></memo-button>
-
-      <series-follow-button
-        *ngIf="story.series > 0"
-        [seriesId]="story.series"
-        [story]="story"
-      ></series-follow-button>
 
       <button
         ion-button
@@ -91,7 +84,6 @@
   </p>
 
   <memo-preview kind="story" [id]="story.id"></memo-preview>
-  <memo-preview *ngIf="story.series > 0" kind="series" [id]="story.series"></memo-preview>
 
   <h2>{{'DETAILS' | translate}}</h2>
 

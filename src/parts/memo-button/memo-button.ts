@@ -49,6 +49,8 @@ export class MemoButton implements AfterViewInit {
 
   open(ev: UIEvent) {
     if (this.id == null) return;
-    this.popoverCtrl.create('MemoPopover', { kind: this.kind, id: this.id }).present({ ev });
+    this.popoverCtrl
+      .create('MemoPopover', { kind: this.kind, id: this.id }, { cssClass: 'memo-popover' })
+      .present({ ev });
   }
 }

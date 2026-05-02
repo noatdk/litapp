@@ -267,6 +267,32 @@ ion-item-options.icons button {
   }
 }
 
+// Memo editor popover — center on screen with a comfortable width instead of
+// anchoring to the click event (which clipped the sheet against the viewport).
+// Memo editor — near-fullscreen sheet like the entity picker so it never clips
+// against the viewport regardless of where the trigger button sat.
+.memo-popover .popover-content {
+  width: 94vw;
+  max-width: 94vw;
+  height: 85vh;
+  max-height: 85vh;
+  top: 7.5vh !important;
+  left: 3vw !important;
+  border-radius: 8px;
+  transform-origin: center !important;
+  display: flex;
+  flex-direction: column;
+}
+.memo-popover .popover-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.memo-popover .popover-arrow {
+  display: none;
+}
+
 // In-story search highlights — global so they reach DOM injected via
 // [innerHTML] inside the reader (component-scoped ::ng-deep does not).
 // Yellow for all matches, orange for the active one.

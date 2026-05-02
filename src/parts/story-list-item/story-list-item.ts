@@ -116,6 +116,13 @@ export class StoryListItem {
     });
   }
 
+  openMemo(kind: 'story' | 'series', id: any) {
+    if (id == null) return;
+    this.popoverCtrl
+      .create('MemoPopover', { kind, id }, { cssClass: 'memo-popover' })
+      .present();
+  }
+
   openActionsMenu(story: Story, ev: UIEvent) {
     ev.stopPropagation();
     if (!story) return;
@@ -141,10 +148,28 @@ export class StoryListItem {
         'SERIES_UNBLOCKED',
         'CATEGORY_BLOCKED',
         'CATEGORY_UNBLOCKED',
+        'MEMO_BUTTON',
+        'MEMO_SERIES_BUTTON',
         'CANCEL_BUTTON',
       ])
       .subscribe(t => {
         const buttons: any[] = [];
+
+        if (story.id != null) {
+          buttons.push({
+            text: t.MEMO_BUTTON,
+            icon: 'paper',
+            handler: () => this.openMemo('story', story.id),
+          });
+        }
+
+        if (hasSeries) {
+          buttons.push({
+            text: t.MEMO_SERIES_BUTTON,
+            icon: 'albums',
+            handler: () => this.openMemo('series', story.series),
+          });
+        }
 
         if (hasAuthor) {
           buttons.push({
