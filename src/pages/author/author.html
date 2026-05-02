@@ -254,8 +254,9 @@
 
   <!-- Sticky tab bar — segment plus a sort button (mirrors the History
        page's sort funnel). Clings to the top of the scroll viewport once
-       the user scrolls past the profile header. -->
-  <div class="tab-bar">
+       the user scrolls past the profile header. Hidden until the rich
+       profile arrives so the bar doesn't render alone over a blank page. -->
+  <div class="tab-bar" *ngIf="author">
     <ion-segment [(ngModel)]="openSegment" class="tab-bar__segment">
       <ion-segment-button value="stories" (click)="loadSubmissions()">
         {{ 'SUBMISSIONS' | translate }} ({{author?.storycount}})

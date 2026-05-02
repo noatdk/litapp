@@ -9,6 +9,26 @@ page-author {
     padding-top: 0 !important;
   }
 
+  // Smooth fade + slight rise as deferred content (profile card, stats,
+  // links, facts, memo, lists, tab bar, story rows) lands once the API
+  // resolves. Each `*ngIf="author"` insertion runs the animation once on
+  // mount; using `both` holds the end state so nothing snaps back.
+  > ion-content > .scroll-content > .lit-card,
+  > ion-content > .scroll-content > .tab-bar,
+  > ion-content > .scroll-content > memo-preview,
+  > ion-content > .scroll-content > .submissions-list,
+  > ion-content > .scroll-content > story-list-normal {
+    animation: author-content-fade-in 320ms ease both;
+  }
+
+  @keyframes author-content-fade-in {
+    // Don't set `transform` in the `to` step — leaving it default means the
+    // animation ends with no transform applied, so a sticky descendant
+    // (`.tab-bar`) regains its position: sticky containing block.
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; }
+  }
+
   // First card sits below the toolbar with breathing room. Profile card
   // hosts a hero banner that bleeds to the card edges, so we kill the default
   // card padding and re-inset the bio block below.

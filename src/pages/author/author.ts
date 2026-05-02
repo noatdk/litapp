@@ -545,7 +545,7 @@ export class AuthorPage {
           message: this.translations.AUTHOR_UNFOLLOW_CONFIRM_MSG.replace('{name}', this.author.name || ''),
           buttons: [
             { text: this.translations.CANCEL_BUTTON, role: 'cancel' },
-            { text: this.translations.OK_BUTTON, handler: () => this.a.unfollow(this.author) },
+            { text: this.translations.OK_BUTTON, handler: () => { this.a.unfollow(this.author); } },
           ],
         })
         .present();
