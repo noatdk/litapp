@@ -428,6 +428,187 @@ ion-item-options.icons button {
   opacity: 0.4;
 }
 
+// ---------------------------------------------------------------------------
+// Action sheets — Ionic's MD default ships flush-bottom and visually flat.
+// Reskin to match the rest of the app: rounded card, soft elevation, lit-blue
+// accent on icons, separated cancel row that reads as a secondary action.
+// ---------------------------------------------------------------------------
+ion-action-sheet {
+  .action-sheet-wrapper {
+    padding: $sp-3;
+  }
+
+  .action-sheet-container {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .action-sheet-group {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+    margin-bottom: $sp-2;
+    padding: 0 !important;
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  .action-sheet-title {
+    padding: $sp-3 $sp-4 $sp-2 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    border-bottom: 1px solid $divider;
+    background: $surface-bg;
+    line-height: 1.35 !important;
+  }
+
+  .action-sheet-button {
+    color: $text-primary !important;
+    background: $surface-bg !important;
+    border: 0 !important;
+    height: auto !important;
+    min-height: 48px;
+    padding: 0 $sp-4 !important;
+    font-size: 15px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+
+    + .action-sheet-button {
+      border-top: 1px solid $divider !important;
+    }
+
+    .button-inner {
+      justify-content: flex-start !important;
+      color: inherit;
+    }
+
+    .action-sheet-icon {
+      color: $lit-blue !important;
+      font-size: 20px !important;
+      margin-right: $sp-3 !important;
+      min-width: 22px;
+    }
+
+    &.activated,
+    &:active {
+      background: $lit-blue-tint !important;
+    }
+  }
+
+  // Cancel sits in its own group at the bottom — render it as a quieter
+  // standalone tile so it reads as a secondary affordance.
+  .action-sheet-cancel {
+    color: $text-secondary !important;
+    font-weight: 600 !important;
+    justify-content: center !important;
+    .button-inner { justify-content: center !important; }
+  }
+
+  // Destructive entry (role: 'destructive') — re-tint the row in $accent-hot
+  // so "Delete" / "Remove" don't look identical to neutral actions.
+  .action-sheet-destructive {
+    color: $accent-hot !important;
+    .action-sheet-icon { color: $accent-hot !important; }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Alert dialogs (confirm / prompt) — match the action-sheet polish so a
+// confirmation prompt in the same flow doesn't look like a different app.
+// ---------------------------------------------------------------------------
+ion-alert {
+  .alert-wrapper {
+    background: $surface-bg !important;
+    border-radius: $radius-md !important;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+  }
+
+  .alert-head {
+    padding: $sp-4 $sp-4 $sp-2;
+    text-align: left;
+  }
+
+  .alert-title {
+    color: $text-primary !important;
+    font-size: $fs-section !important;
+    font-weight: $fw-section !important;
+    line-height: $lh-section !important;
+    margin: 0;
+  }
+
+  .alert-sub-title {
+    color: $text-secondary !important;
+    margin-top: $sp-1;
+  }
+
+  .alert-message {
+    padding: 0 $sp-4 $sp-3 !important;
+    color: $text-secondary !important;
+    font-size: $fs-meta !important;
+    line-height: 1.5 !important;
+    text-align: left !important;
+  }
+
+  .alert-input-group {
+    padding: 0 $sp-4 $sp-3 !important;
+  }
+  .alert-input {
+    color: $text-primary !important;
+    border-bottom: 1px solid $divider !important;
+    padding: $sp-2 0 !important;
+    &:focus { border-color: $lit-blue !important; }
+  }
+
+  .alert-radio-group,
+  .alert-checkbox-group {
+    border-top: 1px solid $divider;
+    border-bottom: 1px solid $divider;
+    max-height: 60vh;
+
+    .alert-radio-label,
+    .alert-checkbox-label {
+      color: $text-primary !important;
+    }
+    .alert-radio-icon,
+    .alert-checkbox-icon {
+      border-color: $lit-blue !important;
+    }
+    [aria-checked="true"] .alert-radio-icon,
+    [aria-checked="true"] .alert-radio-label,
+    [aria-checked="true"] .alert-checkbox-label {
+      color: $lit-blue !important;
+    }
+  }
+
+  .alert-button-group {
+    padding: $sp-2 !important;
+    border-top: 1px solid $divider;
+    justify-content: flex-end !important;
+  }
+
+  .alert-button {
+    color: $lit-blue !important;
+    background: transparent !important;
+    border-radius: $radius-sm !important;
+    padding: $sp-2 $sp-3 !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    min-width: 64px;
+
+    &:active,
+    &.activated {
+      background: $lit-blue-tint !important;
+    }
+  }
+}
+
 .empty-placeholder {
   text-align: center;
   border-top: none;
