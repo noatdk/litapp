@@ -1,33 +1,59 @@
 import { Injectable } from '@angular/core';
-import { LoadingController, ToastController, Loading, Toast } from 'ionic-angular';
+import { ToastController, Toast } from 'ionic-angular';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 
+// Token returned by `showLoader()`. Callers .dismiss() when their request
+// resolves; the previous implementation returned an Ionic `Loading` overlay,
+// so the surface here mirrors its `.dismiss()` shape — no callsite changes.
+export interface LoaderToken {
+  dismiss(): void;
+}
+
 @Injectable()
 export class UX {
-  loader: Loading;
+  // Reactive state read by the global progress bar (see MyApp template).
+  // We track a count rather than a flag so overlapping requests don't blink
+  // the bar off the moment the first one resolves.
+  loaderCount: number = 0;
+  loaderLabel: string = '';
+
   activeToasts: Toast[] = [];
   offlineModeErrorCount = 0;
 
-  constructor(public translate: TranslateService, public loadingCtrl: LoadingController, public toastCtrl: ToastController) {}
+  constructor(public translate: TranslateService, public toastCtrl: ToastController) {}
 
-  showLoader() {
-    if (this.loader) return this.loader;
-    this.loader = this.loadingCtrl.create({ spinner: 'crescent' });
-    this.loader.present();
-    this.loader.onDidDismiss(() => {
-      this.loader = undefined;
-    });
-    return this.loader;
+  // Replaces the modal Ionic `LoadingController` overlay with a small,
+  // non-obstructive progress indicator rendered globally by MyApp. The user
+  // can keep tapping during the request — only the visual cue changes.
+  //
+  // Returns a token whose `.dismiss()` decrements the in-flight count. Calling
+  // it more than once is a no-op so the global error handler / API error path
+  // / success path can all dismiss without double-decrementing.
+  showLoader(): LoaderToken {
+    this.loaderCount += 1;
+    let dismissed = false;
+    return {
+      dismiss: () => {
+        if (dismissed) return;
+        dismissed = true;
+        this.loaderCount = Math.max(0, this.loaderCount - 1);
+        if (this.loaderCount === 0) this.loaderLabel = '';
+      },
+    };
   }
 
+  // Optional textual hint shown next to the bar — used by series-download
+  // progress reporting. Becomes a no-op when no loader is active.
   updateLoader(content: string) {
-    if (!this.loader) return;
-    this.loader.setContent(content);
+    if (this.loaderCount > 0) this.loaderLabel = content || '';
   }
 
+  // Hard reset — used by the global error handler and offline-mode guard so a
+  // crashed request can't leave the bar wedged on.
   hideLoader() {
-    if (this.loader) this.loader.dismiss().catch(() => {});
+    this.loaderCount = 0;
+    this.loaderLabel = '';
   }
 
   // label and buttonLabel can still contain a string just cast to any when needed

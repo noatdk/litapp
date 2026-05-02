@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { NavController, PopoverController, LoadingController, ActionSheetController } from 'ionic-angular';
+import { NavController, PopoverController, ActionSheetController } from 'ionic-angular';
 import { TranslateService } from '@ngx-translate/core';
 
 import { Lists, Memos, User, Filters, UX, Categories } from '../../providers/providers';
@@ -22,7 +22,6 @@ export class StoryListItem {
   constructor(
     public navCtrl: NavController,
     private popoverCtrl: PopoverController,
-    private loadingCtrl: LoadingController,
     public user: User,
     public lists: Lists,
     public memos: Memos,
@@ -76,11 +75,9 @@ export class StoryListItem {
   openStory(story: Story) {
     const minSizeForLoader = 35;
 
-    let loader;
-    if (story.length > minSizeForLoader) {
-      loader = this.loadingCtrl.create({ spinner: 'crescent' });
-      loader.present();
-    }
+    // For long stories, show the global progress bar while the reader page
+    // is mounting. story-view dismisses it once it has the story in hand.
+    const loader = story.length > minSizeForLoader ? this.ux.showLoader() : null;
 
     setTimeout(
       () => {

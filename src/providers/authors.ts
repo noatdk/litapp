@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { LoadingController } from 'ionic-angular';
 
 import { Observable } from 'rxjs/Rx';
 
@@ -19,7 +18,7 @@ export class Authors {
   // exactly (Map.get is === based) — see the dual-typed lookup in getDetails.
   private authors: Map<any, Author> = new Map<any, Author>();
 
-  constructor(public api: Api, public user: User, public loadingCtrl: LoadingController, public ux: UX) {}
+  constructor(public api: Api, public user: User, public ux: UX) {}
 
   // Get an author's full profile.
   //
