@@ -31,6 +31,103 @@
   margin: 0 5px;
 }
 
+// ---------------------------------------------------------------------------
+// Toolbar / header — keep Ionic's default absolute positioning (required by
+// ion-tabs for proper tab-page sizing) but make the toolbar fully opaque
+// with a clear shadow so any content scrolling under it is hidden cleanly.
+// page-story-view is excluded because immersive mode WANTS the toolbar to
+// overlay / fade as the user scrolls.
+// ---------------------------------------------------------------------------
+.ion-page:not(page-story-view) {
+  ion-header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+  }
+
+  ion-header .toolbar-background,
+  ion-header .toolbar-md .toolbar-background-md,
+  ion-header .toolbar-ios .toolbar-background-ios {
+    background: $surface-bg !important;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Global Ionic-component overrides for the light theme. Centralized here so
+// segment bars / searchbars / toggles / inputs read consistently across
+// every page (search, history, top-list, settings, list-create, etc.).
+// ---------------------------------------------------------------------------
+
+// Search bar — light surface, dark text. Ionic's MD default ships with a
+// shaded backdrop that looks washed out on the new tinted page bg.
+ion-searchbar {
+  .searchbar-input {
+    background: $surface-bg !important;
+    color: $text-primary !important;
+    border: 1px solid $divider !important;
+    border-radius: $radius-md !important;
+    box-shadow: none !important;
+  }
+
+  .searchbar-search-icon,
+  .searchbar-md .searchbar-search-icon {
+    color: $text-muted !important;
+  }
+
+  input::placeholder {
+    color: $text-muted;
+  }
+}
+
+// Segment bar — light bg, blue active. Used by search-popover, history,
+// top-list, author, etc.
+ion-segment {
+  .segment-button {
+    color: $text-secondary;
+    border-color: $divider;
+    opacity: 1;
+
+    &.segment-activated {
+      color: $lit-blue;
+      border-color: $lit-blue;
+    }
+  }
+}
+
+// Form controls — toggle, radio, checkbox all flip blue when active so the
+// settings + list-create + filter screens feel coherent with the row links.
+ion-toggle .toggle-checked .toggle-icon {
+  background-color: $lit-blue !important;
+}
+ion-toggle .toggle-checked .toggle-inner {
+  background-color: $lit-blue-hover !important;
+}
+ion-radio .radio-checked,
+ion-radio .radio-icon.radio-checked {
+  border-color: $lit-blue !important;
+}
+ion-radio .radio-inner {
+  background-color: $lit-blue !important;
+}
+ion-checkbox .checkbox-checked {
+  background-color: $lit-blue !important;
+  border-color: $lit-blue !important;
+}
+
+// Inputs / labels in floating-label items keep dark text on the new white
+// surfaces (Ionic's MD default fades labels heavily, which on light bg
+// reads as washed-out gray).
+ion-item .label-md {
+  color: $text-secondary;
+}
+ion-item.item-input.input-has-focus .label-md,
+ion-item.item-input.item-input-has-focus .label-md {
+  color: $lit-blue;
+}
+ion-input input,
+ion-textarea textarea {
+  color: $text-primary;
+}
+
 // All list items (drawer + page) inherit Ionic's default left padding so menu
 // rows align with the wordmark and story rows breathe against the row bg.
 
@@ -302,7 +399,8 @@ ion-item-options.icons button {
 }
 
 // Reusable entity picker — popover styled to act like a near-fullscreen sheet
-// with a fixed header (title + search input) and a scrollable results list.
+// card. Internal layout (title, search, results, actions) lives in
+// `src/parts/entity-picker/entity-picker.scss`.
 .entity-picker-popover .popover-content {
   width: 94vw;
   max-width: 94vw;
@@ -310,15 +408,41 @@ ion-item-options.icons button {
   max-height: 85vh;
   top: 7.5vh !important;
   left: 3vw !important;
-  border-radius: 8px;
+  border-radius: $radius-md;
+  background: $surface-bg;
+  box-shadow: $shadow-md;
+  border: 1px solid $divider;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .entity-picker-popover .popover-viewport {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  background: $surface-bg;
+}
+.entity-picker-popover .popover-viewport > .ion-page,
+.entity-picker-popover .popover-viewport > .ion-page > .scroll-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: $surface-bg !important;
+}
+
+// Popover content ALWAYS sits on $surface-bg, never the tinted $page-bg
+// content background — phase-03's $content-md-background-color: $page-bg
+// override would otherwise bleed into popovers (entity-picker, memo editor,
+// alert sheets, etc.).
+ion-popover ion-content,
+ion-popover .scroll-content,
+.entity-picker-popover ion-content,
+.entity-picker-popover .scroll-content,
+.memo-popover ion-content,
+.memo-popover .scroll-content {
+  background: $surface-bg !important;
 }
 .entity-picker-popover .entity-picker {
   flex: 1;
@@ -356,16 +480,18 @@ ion-item-options.icons button {
   max-height: 85vh;
   top: 7.5vh !important;
   left: 3vw !important;
-  border-radius: 8px;
+  border-radius: $radius-md;
   transform-origin: center !important;
   display: flex;
   flex-direction: column;
+  background: $surface-bg;
 }
 .memo-popover .popover-viewport {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  background: $surface-bg;
 }
 .memo-popover .popover-arrow {
   display: none;

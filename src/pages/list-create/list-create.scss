@@ -1,5 +1,16 @@
+@import '../../theme/tokens';
+
 page-list-create {
   h4 {
     margin-top: 40px;
+    color: $text-primary;
+  }
+
+  ion-item {
+    color: $text-primary;
+  }
+
+  .label-md {
+    color: $text-secondary;
   }
 }

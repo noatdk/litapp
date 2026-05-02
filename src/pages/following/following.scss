@@ -1,5 +1,7 @@
+@import '../../theme/tokens';
+
 page-following {
   .list-md .item-block .item-inner {
-    border-color: #666;
+    border-color: $divider;
   }
 }

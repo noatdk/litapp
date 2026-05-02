@@ -1,10 +1,44 @@
+@import '../../theme/tokens';
+
 page-list-list {
-  .list-md .item-block .item-inner {
-    border-color: #666;
+  // Wrap the lists in a card group so My Lists reads as a single coherent
+  // card on the tinted page bg rather than flat divider rows.
+  ion-list {
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-radius: $radius-md;
+    margin: $sp-3 0;
+    overflow: hidden;
   }
 
-  .indicator {
-    float: left;
-    margin-right: 10px;
+  .list-md .item-block .item-inner {
+    border-color: $divider;
+  }
+
+  // Item-start bookmark icon — mirrors the Author Lists row glyph so the
+  // Lists page reads the same as the inline author-lists section.
+  ion-icon[item-start] {
+    color: $lit-blue;
+    font-size: 22px;
+    margin-right: $sp-3;
+  }
+
+  // Inline lock badge next to private list titles.
+  .lock-inline {
+    color: $text-secondary;
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  // Item-count badge that turns muted when the cached count diverges from
+  // the live size (style hook for the inline ngStyle replacement in
+  // list-list.html and list-view.html).
+  .list-count {
+    color: inherit;
+
+    &.list-count--stale {
+      color: $text-muted;
+    }
   }
 }

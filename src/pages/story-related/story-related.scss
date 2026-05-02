@@ -1,2 +1,7 @@
+@import '../../theme/tokens';
+
 page-story-related {
+  .empty-placeholder {
+    color: $text-muted;
+  }
 }

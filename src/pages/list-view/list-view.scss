@@ -1,3 +1,5 @@
+@import '../../theme/tokens';
+
 page-list-view {
   .toolbar-title {
     padding: 0;
@@ -5,5 +7,15 @@ page-list-view {
 
   .toolbar-title ion-icon {
     margin-right: 10px;
+  }
+
+  // Item-count chip in the toolbar — fades when the cached size disagrees
+  // with the live story count (was inline `'#666' : 'white'` ngStyle).
+  .list-count {
+    color: inherit;
+
+    &.list-count--stale {
+      color: $text-muted;
+    }
   }
 }

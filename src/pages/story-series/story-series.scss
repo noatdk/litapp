@@ -1,5 +1,18 @@
+@import '../../theme/tokens';
+
 page-story-series {
   .checkbox {
     padding-left: 0;
+  }
+
+  // Section header in the chapter list — keep tokenized so it doesn't look
+  // washed out against the white card surface.
+  .item-divider {
+    color: $text-secondary;
+    background: $surface-alt;
+  }
+
+  .empty-placeholder {
+    color: $text-muted;
   }
 }

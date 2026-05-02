@@ -1,2 +1,38 @@
+@import '../../theme/tokens';
+
 page-login {
+  // Center the form vertically with breathing room above and below.
+  .scroll-content {
+    background: $page-bg;
+  }
+
+  // Brand wordmark above the form. Inserted via class hook below; wired in
+  // login.html so an unauthenticated user sees the brand on first paint.
+  .login-brand {
+    text-align: center;
+    margin: $sp-6 0 $sp-5;
+    font-family: $font-wordmark;
+    font-weight: $fw-wordmark;
+    font-size: $fs-page-title;
+    letter-spacing: 0.04em;
+    color: $text-primary;
+  }
+
+  ion-list {
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-radius: $radius-md;
+    padding: $sp-2 $sp-4;
+    margin: 0 $sp-3;
+  }
+
+  ion-item {
+    background: $surface-bg;
+    color: $text-primary;
+  }
+
+  // Form button breathing room.
+  [padding] {
+    margin: $sp-3 0;
+  }
 }
