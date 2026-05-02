@@ -11,6 +11,7 @@ import { Settings } from './settings';
 import { FEED_KEY } from './db';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
+import { Activity } from './activity';
 
 @Injectable()
 export class Feed {
@@ -30,6 +31,7 @@ export class Feed {
     public storage: Storage,
     public ux: UX,
     public filters: Filters,
+    public activity: Activity,
   ) {
     this.ready = new Promise((resolve, reject) => {
       Promise.all([this.settings.load(), this.user.onReady()]).then(() => {
@@ -39,6 +41,16 @@ export class Feed {
         }
 
         this.feedbadge = '·';
+
+        // Prefer the server's authoritative wall counter when available — it
+        // reflects items not yet acknowledged on this account, across devices.
+        // Falls back silently to the local "items since last viewed id" count
+        // computed below if counters can't be fetched (no wall_id, network).
+        this.activity.getCounters().subscribe(c => {
+          if (c && typeof c.wall === 'number' && c.wall > 0) {
+            this.feedbadge = c.wall > 15 ? '15+' : String(c.wall);
+          }
+        });
 
         this.query().subscribe(d => {
           if (d) {

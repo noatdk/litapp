@@ -43,6 +43,7 @@ import {
   Filters,
   Memos,
   Series,
+  Activity,
 } from '../providers/providers';
 import { MyApp } from './app.component';
 import { UpdatePopoverModule } from '../pages/settings/update-popover.module';
@@ -115,6 +116,7 @@ export function provideSettings(storage: Storage) {
     Filters,
     Memos,
     Series,
+    Activity,
     // packages
     AndroidFullScreen,
     BrowserTab,

@@ -158,6 +158,10 @@ export class User {
           id: res.userid,
           username: res.username,
           sessionId: sessionId || '',
+          // wall_id is the row id of the user's activity wall — required by
+          // /3/activity/counters. The session response is the only place it
+          // surfaces, so we capture it here for the Activity provider.
+          wallId: Number(res.wall_id) || 0,
           date: new Date().getTime(),
         };
         this.storage.set(USER_KEY, this.user);
@@ -182,6 +186,23 @@ export class User {
 
   getDetails() {
     return this.user;
+  }
+
+  // Lazily fetch /3/users/session and persist `wall_id` onto the user record.
+  // Existing user records minted before wall_id was captured won't have it,
+  // and the Activity counters endpoint can't be called without it. Resolves
+  // to the stored wall_id (0 if still unavailable).
+  ensureWallId(): Promise<number> {
+    if (!this.user) return Promise.resolve(0);
+    if (this.user.wallId) return Promise.resolve(this.user.wallId);
+    return this.api.get('3/users/session').toPromise().then((res: any) => {
+      const id = Number(res && res.wall_id) || 0;
+      if (id) {
+        this.user.wallId = id;
+        this.storage.set(USER_KEY, this.user);
+      }
+      return id;
+    }).catch(() => 0);
   }
 
   // Persist the avatar URL on the user record so the sidebar can render it
