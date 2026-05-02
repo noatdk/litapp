@@ -176,7 +176,7 @@ export class StoryViewPage {
     const richFetch$ = needsRichMetadata ? this.stories.getRichById(this.story.id) : null;
 
     const fetchContent = () => {
-      if (this.story.cached) {
+      if (this.story.cached && Array.isArray(this.story.content) && this.story.content.length) {
         this.addSlides();
         this.history.add(this.story);
         return;

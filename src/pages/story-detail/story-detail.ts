@@ -163,6 +163,14 @@ export class StoryDetailPage {
     });
   }
 
+  readStory() {
+    if (!this.story || !this.story.id) return;
+    this.navCtrl.push('StoryViewPage', {
+      story: this.story,
+      id: this.story.id,
+    });
+  }
+
   showSeries() {
     this.navCtrl.push('StorySeriesPage', {
       story: this.story,
