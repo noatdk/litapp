@@ -67,8 +67,12 @@ export class Authors {
 
     const loader = this.ux.showLoader();
     const name = (cached && cached.name) || nameHint;
+    // `withProfile:true` is the only param that adds value over the bare
+    // /3/users/{name} response — it appends the `profile_header` block (cover
+    // banner urls). All other speculative `with*` flags were verified no-ops.
+    const profileParams = encodeURIComponent(JSON.stringify({ withProfile: true }));
     const url = name
-      ? `3/users/${encodeURIComponent(name)}`
+      ? `3/users/${encodeURIComponent(name)}?params=${profileParams}`
       : `3/authors/${id}`;
 
     return this.api
@@ -174,6 +178,18 @@ export class Authors {
                 storiesCount: Number(l.stories_count) || 0,
               }))
           : [];
+        // `profile_header` only appears when ?params={"withProfile":true} is sent.
+        // The shape is { d1, d2, m1, m2 } — desktop/mobile @1x/@2x. Store as-is
+        // so the template can pick the right size and emit srcset 2x.
+        const ph = profile.profile_header;
+        if (ph && (ph.m1 || ph.d1)) {
+          cached.coverPicture = {
+            m1: ph.m1 || '',
+            m2: ph.m2 || '',
+            d1: ph.d1 || '',
+            d2: ph.d2 || '',
+          };
+        }
         // The endpoint includes `following` only when the request is authenticated.
         // Don't clobber an existing value if it isn't returned.
         if (typeof profile.following === 'boolean') cached.following = profile.following;
@@ -204,8 +220,9 @@ export class Authors {
   getByUsername(name: string): Observable<Author | null> {
     const trimmed = (name || '').trim();
     if (!trimmed) return Observable.of(null);
+    const profileParams = encodeURIComponent(JSON.stringify({ withProfile: true }));
     return this.api
-      .get(`3/users/${encodeURIComponent(trimmed)}`)
+      .get(`3/users/${encodeURIComponent(trimmed)}?params=${profileParams}`)
       .map((data: any) => {
         const profile = (data && data.user) || data;
         if (!profile || profile.userid == null) return null;
@@ -226,6 +243,15 @@ export class Authors {
         cached.usertitle = (profile.usertitle || '').trim();
         cached.followersCount = Number(profile.followers_count) || 0;
         cached.followingsCount = Number(profile.followings_count) || 0;
+        const ph2 = profile.profile_header;
+        if (ph2 && (ph2.m1 || ph2.d1)) {
+          cached.coverPicture = {
+            m1: ph2.m1 || '',
+            m2: ph2.m2 || '',
+            d1: ph2.d1 || '',
+            d2: ph2.d2 || '',
+          };
+        }
         (cached as any)._fullProfile = true;
         this.authors.set(id, cached);
         return cached;

@@ -73,6 +73,14 @@ export interface Author {
   factInterests: string;        // free-text
   factFetishes: string;         // free-text
   factDob: string;              // raw "MM/DD/YYYY" string from /3/users/{name}
+  // Cover banner urls returned only with ?params={"withProfile":true}.
+  // Mobile sizes drive the in-app hero; desktop sizes kept for completeness.
+  coverPicture?: {
+    m1: string;
+    m2: string;
+    d1: string;
+    d2: string;
+  };
   // Social handles. Most are bare usernames/URLs — author.html linkifies them
   // by mapping the field key to the appropriate base URL.
   socials: {

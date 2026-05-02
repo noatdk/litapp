@@ -62,8 +62,20 @@
 
 <ion-content padding>
   <div class="lit-card card-profile" *ngIf="author">
-    <div class="profile-hero">
-      <img *ngIf="author?.picture" class="profile-hero__bg" [src]="author.picture" aria-hidden="true" />
+    <div class="profile-hero" [class.profile-hero--has-cover]="author?.coverPicture?.m1">
+      <img
+        *ngIf="author?.coverPicture?.m1"
+        class="profile-hero__bg profile-hero__bg--cover"
+        [src]="author.coverPicture.m1"
+        [attr.srcset]="author.coverPicture.m2 ? (author.coverPicture.m1 + ' 1x, ' + author.coverPicture.m2 + ' 2x') : null"
+        aria-hidden="true"
+      />
+      <img
+        *ngIf="!author?.coverPicture?.m1 && author?.picture"
+        class="profile-hero__bg"
+        [src]="author.picture"
+        aria-hidden="true"
+      />
       <div class="profile-hero__shade"></div>
 
       <div class="profile-header">

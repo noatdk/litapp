@@ -41,6 +41,15 @@ page-author {
     z-index: 0;
     pointer-events: none;
   }
+  // Real cover banner — no blur/scale, render crisp. Slightly taller hero so
+  // the banner art has room to breathe before the avatar+name overlay.
+  .profile-hero--has-cover {
+    min-height: 200px;
+  }
+  .profile-hero__bg--cover {
+    filter: none;
+    transform: none;
+  }
   .profile-hero__shade {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
