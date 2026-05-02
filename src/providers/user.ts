@@ -184,6 +184,15 @@ export class User {
     return this.user;
   }
 
+  // Persist the avatar URL on the user record so the sidebar can render it
+  // synchronously on the next cold start, skipping the /3/authors/{id} refetch.
+  // The image bytes themselves ride the webview's HTTP cache.
+  setAvatar(url: string): void {
+    if (!this.user || !url || this.user.userpic === url) return;
+    this.user.userpic = url;
+    this.storage.set(USER_KEY, this.user);
+  }
+
   checkIfEverythingIsFucked() {
     return new Promise(resolve => {
       this.storage.get(USER_KEY).then(user => {

@@ -114,6 +114,10 @@ export class MyApp {
     private zone: NgZone,
   ) {
     this.initTranslate();
+    this.user.onReady().then(() => {
+      const d = this.user.getDetails();
+      if (d && d.userpic) this.avatarUrl = d.userpic;
+    });
     this.settings.load().then(() => {
       if (this.settings.allSettings.enableLock && !this.loggedIn && !this.g.isWebApp()) {
         this.showLockScreen();
@@ -263,9 +267,9 @@ export class MyApp {
     return name ? name.charAt(0).toUpperCase() : '?';
   }
 
-  // Fetch the logged-in user's profile picture from /3/authors/{id}.
-  // Cached per user id; called on every menu open but no-ops after the first
-  // successful fetch. Falls back to the initial-letter avatar on failure.
+  // Fetch the logged-in user's profile picture from /3/authors/{id} and
+  // persist it via user.setAvatar so subsequent cold starts render synchronously
+  // from storage. Called on every menu open but no-ops after the first success.
   private fetchAvatar() {
     const d = this.user.getDetails();
     if (!d || d.id == null) return;
@@ -277,6 +281,7 @@ export class MyApp {
         const pic = profile && profile.userpic;
         if (pic && pic !== 'https://www.literotica.com/imagesv2/da') {
           this.avatarUrl = pic;
+          this.user.setAvatar(pic);
         }
       },
       () => { this.avatarFetchedFor = null; },
