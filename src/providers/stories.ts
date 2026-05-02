@@ -218,6 +218,17 @@ export class Stories {
     return this.ready;
   }
 
+  // Synchronous cache lookup. Tolerates id passed as number or numeric string,
+  // matching the dual-typed key handling other call sites already rely on.
+  peekById(id: any): Story | undefined {
+    if (id == null) return undefined;
+    const direct = this.stories.get(id);
+    if (direct) return direct;
+    if (typeof id === 'string' && /^\d+$/.test(id)) return this.stories.get(Number(id));
+    if (typeof id === 'number') return this.stories.get(String(id) as any);
+    return undefined;
+  }
+
   // Returns the canonical Story instance for `s`, registering it in the
   // in-memory map if absent. Used by other providers (Lists) to deduplicate
   // story references after a storage roundtrip — JSON.parse'd plain objects

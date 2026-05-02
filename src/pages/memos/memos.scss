@@ -1,0 +1,49 @@
+@import '../../theme/row';
+
+page-memos {
+  @extend %lit-row-base;
+
+  // Mirror story-list-item's leading status icon styling so the memo kind
+  // glyph reads like the eye/download/paper indicators on story rows.
+  .item h2 ion-icon {
+    font-size: 0.9em;
+    margin: -2px 4px 0 0;
+    color: $text-muted;
+  }
+
+  // Italic byline matches story-list-item.
+  .item h2 + p {
+    font-style: italic;
+    color: $text-secondary;
+  }
+
+  // Memo body — same paragraph treatment as story description, just with
+  // wrap preserved and clamped to 3 lines so a long note can't dominate
+  // the row. No card chrome / accent stripe.
+  .memo-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: $text-primary;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .empty-placeholder {
+    text-align: center;
+    margin-top: 56px;
+    padding: 0 $sp-4;
+    color: $text-muted;
+    font-size: $fs-meta;
+  }
+
+  .memos-sort-select {
+    max-width: 160px;
+    color: $lit-blue;
+  }
+
+  ion-toolbar ion-searchbar {
+    padding: 0 $sp-2;
+  }
+}

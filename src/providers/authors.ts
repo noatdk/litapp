@@ -30,6 +30,17 @@ export class Authors {
 
   constructor(public api: Api, public user: User, public ux: UX) {}
 
+  // Synchronous cache lookup, mirroring the dual-typed key handling in
+  // getDetails. Returns undefined when nothing has populated the cache for
+  // this id yet (cold start, never-visited author).
+  peek(id: any): Author | undefined {
+    if (id == null) return undefined;
+    let cached = this.authors.get(id);
+    if (!cached && typeof id === 'string' && /^\d+$/.test(id)) cached = this.authors.get(Number(id));
+    else if (!cached && typeof id === 'number') cached = this.authors.get(String(id));
+    return cached;
+  }
+
   // Get an author's full profile.
   //
   // Endpoint preference: when we know the author's username (typical — almost

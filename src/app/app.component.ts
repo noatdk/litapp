@@ -28,6 +28,10 @@ import { StatusBar } from '@ionic-native/status-bar';
               {{ 'MENU_OPENLINK' | translate }}
             </button>
 
+            <button menuClose ion-item (click)="openPage('MemosPage')">
+              {{ 'MENU_MEMOS' | translate }}
+            </button>
+
             <button menuClose ion-item (click)="openPage('SettingsPage')">
               {{ 'MENU_SETTINGS' | translate }}
             </button>
