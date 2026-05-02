@@ -31,6 +31,18 @@
                 <button ion-button outline item-end (click)="openCategory(cat, 'random')">
                   {{ 'EXPLORE_RANDOM' | translate }}
                 </button>
+                <button
+                  *ngIf="cat.type !== 'master'"
+                  ion-button
+                  outline
+                  icon-only
+                  color="danger"
+                  item-end
+                  (click)="blockCategory(cat, $event)"
+                  [attr.aria-label]="'STORYACTION_BLOCK_CATEGORY' | translate"
+                >
+                  <ion-icon name="eye-off"></ion-icon>
+                </button>
               </div>
             </div>
           </div>
@@ -50,9 +62,20 @@
       <ion-spinner name="crescent" *ngIf="!popularTags.length"></ion-spinner>
 
       <ion-list [class.folded]="foldTags">
-        <button ion-item *ngFor="let tag of popularTags" (click)="openTag(tag.tag)">
-          <h2>{{ tag.tag }} <small>({{ tag.cnt }})</small></h2>
-        </button>
+        <ion-item *ngFor="let tag of popularTags">
+          <h2 (click)="openTag(tag.tag)" tappable>{{ tag.tag }} <small>({{ tag.cnt }})</small></h2>
+          <button
+            ion-button
+            icon-only
+            clear
+            color="danger"
+            item-end
+            (click)="blockTag(tag, $event)"
+            [attr.aria-label]="'STORYACTION_BLOCK_TAG' | translate"
+          >
+            <ion-icon name="eye-off"></ion-icon>
+          </button>
+        </ion-item>
       </ion-list>
     </ion-card-content>
   </ion-card>
