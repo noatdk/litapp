@@ -160,29 +160,42 @@
     </div>
   </div>
 
-  <div class="lit-card card-comments" *ngIf="story.comments && story.comments.length > 0 && story.commentsenabled">
-    <h2 class="lit-card__title">{{'COMMENTS' | translate}} <small *ngIf="commentsTotal">({{story.comments.length}}/{{commentsTotal}})</small></h2>
-    <ion-list class="comments">
-      <ion-item *ngFor="let comment of story.comments">
-        <h3>{{comment.user}}</h3>
-        <h6>{{comment.timestamp | date:'medium'}}</h6>
-        <p>{{comment.text}}</p>
-        <button
-          *ngIf="comment.userId"
-          ion-button
-          item-end
-          icon-only
-          clear
-          (click)="openCommenterMenu(comment, $event)"
-          [tooltip]="'STORYACTION_TOOLTIP' | translate"
-          event="press"
-          navTooltip
-        >
-          <ion-icon name="more"></ion-icon>
-        </button>
-      </ion-item>
-    </ion-list>
-    <button ion-button block clear *ngIf="hasMoreComments()" [disabled]="commentsLoading" (click)="loadComments(true)">
+  <div class="lit-card card-comments" *ngIf="story.commentsenabled && ((story.comments && story.comments.length > 0) || commentsLoading)">
+    <h2 class="lit-card__title">
+      {{'COMMENTS' | translate}}
+      <small *ngIf="commentsTotal">({{story.comments?.length || 0}}/{{commentsTotal}})</small>
+      <ion-spinner *ngIf="commentsLoading" name="crescent" class="comments-spinner"></ion-spinner>
+    </h2>
+
+    <div class="comments" *ngIf="story.comments?.length">
+      <article class="comment" *ngFor="let comment of story.comments">
+        <header class="comment__head">
+          <span class="comment__user">{{comment.user}}</span>
+          <span class="comment__date" *ngIf="comment.timestamp">{{comment.timestamp | date:'mediumDate'}}</span>
+          <button
+            *ngIf="comment.userId"
+            ion-button
+            icon-only
+            clear
+            class="comment__menu"
+            (click)="openCommenterMenu(comment, $event)"
+            [tooltip]="'STORYACTION_TOOLTIP' | translate"
+            event="press"
+            navTooltip
+          >
+            <ion-icon name="more"></ion-icon>
+          </button>
+        </header>
+        <p class="comment__body">{{comment.text}}</p>
+      </article>
+    </div>
+
+    <p *ngIf="commentsLoading && !story.comments?.length" class="comments-empty">
+      {{'COMMENTS_LOADING' | translate}}
+    </p>
+
+    <button ion-button block clear *ngIf="hasMoreComments()" [disabled]="commentsLoading" (click)="loadComments(true)" class="comments-loadmore">
+      <ion-spinner *ngIf="commentsLoading" name="dots"></ion-spinner>
       {{'COMMENTS_LOADMORE' | translate}}
     </button>
   </div>
