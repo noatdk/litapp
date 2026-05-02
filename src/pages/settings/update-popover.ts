@@ -4,7 +4,7 @@ import { BrowserTab } from '@ionic-native/browser-tab';
 import { ENV } from '../../app/env';
 import { handleNoCordovaError } from '../../app/utils';
 import { Api } from '../../providers/providers';
-import { GithubRefsTagsResponse, GithubTag } from '../../models/api';
+import { AppJsonResponse, GithubRefsTagsResponse, GithubTag } from '../../models/api';
 
 @IonicPage()
 @Component({
@@ -40,7 +40,7 @@ import { GithubRefsTagsResponse, GithubTag } from '../../models/api';
   ],
 })
 export class UpdatePopover {
-  data: any;
+  data: Partial<AppJsonResponse>;
   changelog: string;
 
   constructor(navParams: NavParams, private viewCtrl: ViewController, private browser: BrowserTab, private api: Api) {

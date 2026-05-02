@@ -428,8 +428,10 @@ export class Authors {
   // On cache hit we *enrich missing fields only* — never overwrite. Rich
   // fields (bio, socials, factHeight, etc.) populated by getDetails must
   // survive a feed-row visit.
-  extractFromFeed(item) {
-    const id = item.userid != null ? item.userid : item.id;
+  // Accepts either the rich profile (favorite/authors flat) or the activity
+  // wall's `who` shape (just userid/username/userpic).
+  extractFromFeed(item: ApiUserProfile | { userid: number; username: string; userpic?: string; joindate?: string }): Author {
+    const id = (item as any).userid;
     let cached = this.authors.get(id);
     if (!cached) {
       cached = new Author({
@@ -439,8 +441,17 @@ export class Authors {
       });
       this.authors.set(id, cached);
     }
-    if (item.joindate != null && cached.jointimestamp == null) {
-      cached.jointimestamp = item.joindate;
+    // joindate ships as "MM/DD/YYYY" — parse to unix seconds to match the
+    // shape Author.jointimestamp expects (and what getDetails populates).
+    // Previously the string was assigned as-is, which displayed as NaN/1970
+    // wherever a date pipe consumed it.
+    const joindate = (item as ApiUserProfile).joindate;
+    if (joindate && cached.jointimestamp == null) {
+      const [mm, dd, yyyy] = String(joindate).split('/');
+      if (mm && dd && yyyy) {
+        const t = Math.round(Date.parse(`${yyyy}-${mm}-${dd}T00:00:00Z`) / 1000);
+        if (!isNaN(t)) cached.jointimestamp = t;
+      }
     }
     cached.following = true;
     return cached;
@@ -449,8 +460,8 @@ export class Authors {
   // Search-result hydration. Same enrich-don't-overwrite contract as
   // extractFromFeed so a story search visit doesn't downgrade a previously
   // hydrated author profile.
-  extractFromSearch(item) {
-    const id = item.userid != null ? item.userid : item.id;
+  extractFromSearch(item: ApiUserProfile | { userid: number; username?: string; userpic?: string }): Author {
+    const id = (item as any).userid;
     let cached = this.authors.get(id);
     if (!cached) {
       cached = new Author({
@@ -466,8 +477,8 @@ export class Authors {
     return cached;
   }
 
-  extractFromNewSearch(item) {
-    const id = item.userid;
+  extractFromNewSearch(item: ApiUserProfile | { userid: number; username?: string; userpic?: string }): Author {
+    const id = (item as any).userid;
     let cached = this.authors.get(id);
     if (!cached) {
       cached = new Author({

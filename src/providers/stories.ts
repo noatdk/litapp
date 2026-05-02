@@ -13,6 +13,9 @@ import { Globals } from './globals';
 import { Api } from './shared/api';
 import { UX } from './shared/ux';
 import {
+  ApiActivityItem,
+  ApiActivityWhatStory,
+  ApiCommentV3,
   ApiStoryV3,
   CommentsAfterResponse,
   SearchStoriesResponse,
@@ -844,8 +847,11 @@ export class Stories {
     return !url.includes('//') ? `https://www.literotica.com/s/${url}` : url;
   }
 
-  extractFromFeed(item): Story {
-    const cached = this.stories.get(item.what.id);
+  // Caller (Feed.query) only invokes this for `published-story` activity
+  // items, where `what` carries the full ApiStoryV3 payload.
+  extractFromFeed(item: ApiActivityItem): Story {
+    const what = item.what as ApiActivityWhatStory;
+    const cached = this.stories.get(what.id);
     if (cached) {
       return cached;
     }
@@ -853,29 +859,29 @@ export class Stories {
     const author = this.a.extractFromFeed(item.who);
     const story = new Story({
       author,
-      id: item.what.id.toString(),
-      title: item.what.title,
-      description: item.what.description,
-      categoryID: item.what.category,
-      lang: this.g.getLanguage(item.what.language),
+      id: what.id.toString(),
+      title: what.title,
+      description: what.description,
+      categoryID: what.category,
+      lang: this.g.getLanguage(what.language),
       timestamp: item.when,
-      rating: item.what.rate_all,
-      viewcount: item.what.view_count,
-      url: this.parseUrl(item.what.url),
-      tags: !item.what.tags ? [] : item.what.tags.map(t => t.tag),
-      ishot: item.what.is_hot,
-      isnew: item.what.is_new,
-      iswriterspick: item.what.writers_pick,
-      iscontestwinner: item.what.contest_winner,
-      commentsenabled: item.what.enable_comments,
-      ratingenabled: item.what.allow_vote,
+      rating: what.rate_all,
+      viewcount: what.view_count,
+      url: this.parseUrl(what.url),
+      tags: !what.tags ? [] : what.tags.map(t => t.tag),
+      ishot: what.is_hot,
+      isnew: what.is_new,
+      iswriterspick: what.writers_pick,
+      iscontestwinner: what.contest_winner,
+      commentsenabled: what.enable_comments,
+      ratingenabled: what.allow_vote,
     });
 
     this.stories.set(story.id, story);
     return story;
   }
 
-  extactFromList(item): Story {
+  extactFromList(item: ApiStoryV3): Story {
     const cached = this.stories.get(item.id);
     if (cached) {
       return cached;
@@ -941,7 +947,7 @@ export class Stories {
     return story;
   }
 
-  extractFromNewSearch(item): Story {
+  extractFromNewSearch(item: ApiStoryV3): Story {
     const cached = this.stories.get(item.id);
     if (cached) {
       return cached;
@@ -976,8 +982,8 @@ export class Stories {
     return story;
   }
 
-  extractComment(item): { user: string; userId: string; text: string; timestamp: string } {
-    const userId = item.author && (item.author.userid != null ? item.author.userid : item.author.id);
+  extractComment(item: ApiCommentV3): { user: string; userId: string; text: string; timestamp: string } {
+    const userId = item.author && item.author.userid;
     return {
       user: item.author && item.author.username,
       userId: userId != null ? String(userId) : '',

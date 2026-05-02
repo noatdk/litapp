@@ -4,6 +4,7 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { Globals, Categories, Filters, UX } from '../../providers/providers';
 import { TranslateService } from '@ngx-translate/core';
 import { Category } from '../../models/category';
+import { ApiTopTag } from '../../models/api';
 
 @IonicPage({ priority: 'high', segment: 'explore' })
 @Component({
@@ -12,12 +13,12 @@ import { Category } from '../../models/category';
 })
 export class ExplorePage {
   groupedCats: Category[][];
-  popularTags: any = [];
+  popularTags: ApiTopTag[] = [];
   foldCats = true;
   foldTags = true;
 
   private allCats: Category[][] = [];
-  private allTags: any[] = [];
+  private allTags: ApiTopTag[] = [];
 
   constructor(
     public translate: TranslateService,
@@ -34,9 +35,9 @@ export class ExplorePage {
     });
 
     this.g.onReady().then(() => {
-      this.g.getPopularTags().subscribe((tags: any) => {
+      this.g.getPopularTags().subscribe(tags => {
         if (tags) {
-          this.allTags = tags as any[];
+          this.allTags = tags;
           this.refreshTags();
         }
       });
@@ -71,7 +72,7 @@ export class ExplorePage {
     this.ux.showToast('INFO', 'CATEGORY_BLOCKED');
   }
 
-  blockTag(tag: any, event: UIEvent) {
+  blockTag(tag: ApiTopTag, event: UIEvent) {
     event.stopPropagation();
     const tagName = tag && tag.tag ? tag.tag : '';
     if (!tagName) return;

@@ -1,5 +1,7 @@
 // Activity / wall endpoints (logged-in only).
 
+import { ApiStoryV3 } from './stories';
+
 /**
  * GET /api/3/activity/counters?params={...}
  * Unread counters for each activity tab.
@@ -51,18 +53,8 @@ export interface ApiActivityWho {
   userpic?: string;
 }
 
-/**
- * Embedded story from a `published-story` activity item. Structurally an
- * ApiStoryV3 but kept loose here to avoid a circular import — narrow with
- * `'id' in what && 'title' in what` if you need full story fields.
- */
-export interface ApiActivityWhatStory {
-  id: number;
-  title: string;
-  url: string;
-  authorname: string;
-  [key: string]: any;
-}
+/** Embedded story from a `published-story` activity item — full ApiStoryV3. */
+export type ApiActivityWhatStory = ApiStoryV3;
 
 /** Site-news payload from a `publish-news` activity item. */
 export interface ApiActivityWhatNews {

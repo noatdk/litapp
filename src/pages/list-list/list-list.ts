@@ -67,22 +67,18 @@ export class ListListPage {
   }
 
   private refreshLists(force: boolean = false) {
-    const callback = data => {
+    const callback = (data: List[] | null | undefined) => {
       if (data) {
         this.lists = [];
-        data.forEach((d: any) => this.lists.push(d));
+        data.forEach(d => this.lists.push(d));
         this.showLoader = false;
       }
     };
 
     if (force) {
-      this.l.refresh().subscribe((data: any) => {
-        callback(data);
-      });
+      this.l.refresh().subscribe(callback);
     } else {
-      this.l.query(true).subscribe((data: any) => {
-        callback(data);
-      });
+      this.l.query(true).subscribe(callback);
     }
   }
 }
