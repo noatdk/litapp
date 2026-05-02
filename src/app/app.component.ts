@@ -14,7 +14,10 @@ import { StatusBar } from '@ionic-native/status-bar';
       <ion-menu [content]="content" (ionOpen)="onMenuOpen()" (ionClose)="onMenuClose()">
         <ion-header>
           <ion-toolbar>
-            <ion-title class="brand-wordmark">[ literotica ]</ion-title>
+            <ion-title class="brand-wordmark" [style.font-family]="brandFont"
+              ><span class="brand-bracket">[</span> literotica
+              <span class="brand-bracket brand-bracket--close">]<span class="brand-unofficial">(Unofficial)</span></span></ion-title
+            >
           </ion-toolbar>
         </ion-header>
 
@@ -121,6 +124,11 @@ export class MyApp {
   jwtStateLabel: 'fresh' | 'stale' | 'expired' | 'unknown' = 'unknown';
   private tick: any;
   private avatarFetchedFor: any = null;
+
+  // Packaged font families used by the wordmark — picked at random whenever
+  // the drawer opens so the brand reads slightly different each time.
+  private readonly brandFonts = ['Mulish', 'OpenDyslexic', 'DejaVu Sans'];
+  brandFont: string = 'Mulish';
 
   constructor(
     public platform: Platform,
@@ -247,6 +255,7 @@ export class MyApp {
   // --- Account footer (Discord-style bottom-of-sidebar panel) ---
 
   onMenuOpen() {
+    this.brandFont = this.brandFonts[Math.floor(Math.random() * this.brandFonts.length)];
     if (!this.user.isLoggedIn()) return;
     this.user.checkIfEverythingIsFucked().then(answer => {
       if (answer) this.user.logout();

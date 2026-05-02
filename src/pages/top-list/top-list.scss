@@ -2,6 +2,7 @@
 
 page-top-list {
   ion-segment {
+    width: calc(100% + 32px);
     margin: 0 -16px $sp-3;
     padding: 0 $sp-2;
     background: $surface-bg;

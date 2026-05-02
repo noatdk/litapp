@@ -49,6 +49,22 @@
   ion-header .toolbar-ios .toolbar-background-ios {
     background: $surface-bg !important;
   }
+
+  // Decorative wordmark-style brackets around the navbar title so each page
+  // header echoes the `[ literotica ]` lockup. Skipped on the drawer header
+  // which already renders the brackets as literal characters.
+  ion-header ion-title:not(.brand-wordmark) .toolbar-title {
+    &::before {
+      content: '[ ';
+      color: $lit-blue;
+      font-weight: $fw-wordmark;
+    }
+    &::after {
+      content: ' ]';
+      color: $lit-blue;
+      font-weight: $fw-wordmark;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -371,11 +387,51 @@ ion-menu .account-footer {
 // Brand wordmark — applied to the drawer header. Reuses bundled Mulish
 // at its heaviest variable-axis weight; brackets are literal characters.
 .brand-wordmark {
-  font-family: $font-wordmark !important;
+  font-family: $font-wordmark;
   font-weight: $fw-wordmark !important;
   font-size: 22px;
   letter-spacing: 0.04em;
   color: $sidebar-text;
+}
+
+.brand-bracket {
+  color: $lit-blue;
+  display: inline-block;
+  position: relative;
+  top: -2px;
+}
+
+.brand-bracket--close {
+  position: relative;
+}
+
+// Tilted "(Unofficial)" sticker overlaid on the bottom-right corner of the
+// closing bracket. Uses OpenDyslexic for a hand-stamped feel.
+.brand-unofficial {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  font-family: 'OpenDyslexic', sans-serif !important;
+  font-weight: normal !important;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: $sidebar-text-muted;
+  opacity: 0.95;
+  transform: translate(-65%, -75%) rotate(-12deg);
+  transform-origin: center;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+// Allow the rotated sticker to escape the drawer toolbar/title clipping
+// regions; otherwise Ionic's default overflow:hidden hides the badge.
+.menu-inner ion-header,
+.menu-inner ion-toolbar,
+.menu-inner .toolbar,
+.menu-inner ion-title,
+.menu-inner .toolbar-title {
+  overflow: visible !important;
 }
 
 // Story reader needs flush-against-the-toolbar layout for the immersive
