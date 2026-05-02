@@ -1,4 +1,5 @@
 // http://ionicframework.com/docs/v2/theming/
+@import '../theme/tokens';
 
 @font-face {
   font-family: 'OpenDyslexic';
@@ -42,29 +43,69 @@
   margin-right: 10px !important;
 }
 
-// Discord-style account panel pinned at the bottom of the side menu.
+// Side menu — near-black drawer per the reference screenshot, sitting against
+// the light app surface. Uses sidebar-* tokens so the palette stays disciplined.
+ion-menu {
+  .menu-inner {
+    background-color: $sidebar-bg;
+    color: $sidebar-text;
+  }
+
+  .menu-inner ion-content,
+  .menu-inner ion-content .scroll-content {
+    background-color: $sidebar-bg;
+  }
+
+  .menu-inner ion-toolbar,
+  .menu-inner .toolbar-background {
+    background: $sidebar-bg;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .menu-inner ion-title,
+  .menu-inner .toolbar-title {
+    color: $sidebar-text;
+  }
+
+  .menu-inner .list .item,
+  .menu-inner .list .item-inner,
+  .menu-inner ion-list ion-item,
+  .menu-inner button[ion-item] {
+    background-color: transparent;
+    color: $sidebar-text;
+  }
+
+  .menu-inner .item-md.activated,
+  .menu-inner button[ion-item]:active {
+    background-color: $sidebar-row-active !important;
+    border-left: 3px solid $sidebar-accent;
+  }
+}
+
+// Account panel pinned at the bottom of the side menu — sits on the dark drawer
+// surface; uses sidebar tokens so colors stay in the white/black/Lit-blue scheme.
 ion-menu .account-footer {
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.25);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px 10px;
-  color: #dcddde;
+  padding: $sp-2 $sp-3;
+  color: $sidebar-text;
   // Kill Ionic's default footer top-shadow line.
   &::before { display: none !important; }
 
-  .muted { color: #b9bbbe; opacity: 1; }
-  .warn { color: #faa61a; }
-  .error { color: #f04747; }
+  .muted { color: $sidebar-text-muted; opacity: 1; }
+  .warn,
+  .error { color: $sidebar-text; }
 
   .signed-out {
-    padding: 4px 2px;
-    p { margin: 0 0 8px; font-size: 0.85em; opacity: 0.7; text-align: center; }
+    padding: $sp-1 2px;
+    p { margin: 0 0 $sp-2; font-size: 0.85em; opacity: 0.7; text-align: center; }
     button { margin: 0; }
   }
 
   .signed-in {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: $sp-2;
 
     .identity {
       flex: 1;
@@ -74,8 +115,8 @@ ion-menu .account-footer {
       gap: 10px;
       background: transparent;
       border: 0;
-      padding: 4px 6px;
-      border-radius: 6px;
+      padding: $sp-1 6px;
+      border-radius: $radius-sm + 2px;
       color: inherit;
       text-align: left;
       cursor: pointer;
@@ -89,8 +130,8 @@ ion-menu .account-footer {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #5865f2;
-      color: #fff;
+      background: $lit-blue;
+      color: $sidebar-text;
       font-weight: 700;
       font-size: 14px;
       display: flex;
@@ -117,7 +158,7 @@ ion-menu .account-footer {
       line-height: 1.15;
 
       .username {
-        color: #ffffff;
+        color: $sidebar-text;
         font-size: 0.95em;
         font-weight: 600;
         white-space: nowrap;
@@ -145,8 +186,8 @@ ion-menu .account-footer {
       padding: 6px;
       width: 34px;
       height: 34px;
-      border-radius: 6px;
-      color: #ffffff;
+      border-radius: $radius-sm + 2px;
+      color: $sidebar-text;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -158,10 +199,25 @@ ion-menu .account-footer {
       &:active { background: rgba(255, 255, 255, 0.2); }
       &[disabled] { opacity: 0.4; cursor: default; }
 
-      &.warn { color: #faa61a; }
-      &.danger { color: #f04747; }
+      // Affordance for state-laden actions sitting on the dark drawer surface.
+      // Reuses $accent-hot (the documented HOT exception) for danger so the
+      // logout button reads as destructive without re-introducing extra
+      // palette colors. Warn uses the same accent at lower emphasis (icon
+      // color only, no background).
+      &.warn { color: $accent-hot; }
+      &.danger { color: $accent-hot; }
     }
   }
+}
+
+// Brand wordmark — applied to the drawer header. Reuses bundled Mulish
+// at its heaviest variable-axis weight; brackets are literal characters.
+.brand-wordmark {
+  font-family: $font-wordmark !important;
+  font-weight: $fw-wordmark !important;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: $sidebar-text;
 }
 
 // Story reader needs flush-against-the-toolbar layout for the immersive
@@ -295,19 +351,20 @@ ion-item-options.icons button {
 
 // In-story search highlights — global so they reach DOM injected via
 // [innerHTML] inside the reader (component-scoped ::ng-deep does not).
-// Yellow for all matches, orange for the active one.
+// Pale-blue for all matches, Lit-blue for the active one — palette discipline
+// (no yellow/orange against the new white reader surface).
 span.reader-search-hit {
-  background-color: #ffeb3b !important;
-  color: #000 !important;
+  background-color: $highlight-all-bg !important;
+  color: $highlight-all-fg !important;
   border-radius: 2px;
   padding: 0 1px;
-  box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.9);
+  box-shadow: 0 0 0 1px $lit-blue;
 }
 
 span.reader-search-hit.current {
-  background-color: #ff9100 !important;
-  color: #000 !important;
-  box-shadow: 0 0 0 1px #ff6d00;
+  background-color: $highlight-cur-bg !important;
+  color: $highlight-cur-fg !important;
+  box-shadow: 0 0 0 1px $lit-blue-hover;
 }
 
 // Native text selection in the story reader. Scoped to .allow-text-select on

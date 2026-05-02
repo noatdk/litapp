@@ -1,3 +1,5 @@
+@import '../../theme/tokens';
+
 page-story-view {
   & > div {
     width: 100%;
@@ -36,8 +38,8 @@ page-story-view {
   }
 
   .content {
-    background: black;
-    color: white;
+    background: $body-bg;
+    color: $text-primary;
     top: 0;
     right: 0;
     bottom: 0;
@@ -65,7 +67,7 @@ page-story-view {
 
   .ng-scrollbar-thumb.grey,
   .ng-scrollbar-thumb.black {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.35);
   }
 
   .ng-scrollbar-autohide > .ng-scrollbar {
@@ -96,7 +98,7 @@ page-story-view {
   #slide-content img {
     min-width: 100%;
     padding: 5px;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.06);
   }
 
   // Restore typographic hierarchy for HTML content rendered via [innerHTML].
@@ -247,7 +249,7 @@ page-story-view {
     img {
       min-width: 100%;
       padding: 5px;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.06);
     }
   }
 
@@ -308,14 +310,14 @@ page-story-view {
   // mode switch so the user can spot their place. Fades to transparent and is
   // unwrapped by code shortly after the animation ends.
   ::ng-deep .reader-anchor-flash {
-    background: rgba(255, 220, 100, 0.45);
+    background: rgba(0, 102, 204, 0.18);
     border-radius: 2px;
     animation: reader-anchor-flash-fade 2.5s ease-out forwards;
   }
 
   @keyframes reader-anchor-flash-fade {
-    0% { background: rgba(255, 220, 100, 0.55); }
-    60% { background: rgba(255, 220, 100, 0.35); }
+    0% { background: rgba(0, 102, 204, 0.22); }
+    60% { background: rgba(0, 102, 204, 0.12); }
     100% { background: transparent; }
   }
 

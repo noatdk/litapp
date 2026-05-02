@@ -41,7 +41,7 @@ export class SettingsPage {
 
   translations;
   languages;
-  requireReloadSettings = ['offlineMode', 'amoledBlackTheme', 'forceNormalList'];
+  requireReloadSettings = ['offlineMode', 'forceNormalList'];
 
   private prevOptions: any = {};
 
@@ -131,7 +131,6 @@ export class SettingsPage {
         checkforfeedupdates: [this.options.checkforfeedupdates],
         checkforappupdates: [this.options.checkforappupdates],
         cachelists: [this.options.cachelists],
-        amoledBlackTheme: [this.options.amoledBlackTheme],
         offlineMode: [this.options.offlineMode],
         enableLock: [this.options.enableLock],
         forceNormalList: [this.options.forceNormalList],

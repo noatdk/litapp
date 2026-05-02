@@ -64,7 +64,6 @@ export function provideSettings(storage: Storage) {
     checkforfeedupdates: true,
     checkforappupdates: true,
     cachelists: true,
-    amoledBlackTheme: false,
     offlineMode: false,
     enableLock: false,
     forceNormalList: false,
