@@ -2,6 +2,23 @@
 @import '../../theme/card';
 
 page-story-detail {
+  // Deep-link cold load: detail body starts hidden and fades in once
+  // getRichById fills in title/author/etc., so content doesn't pop in
+  // abruptly. The placeholder spinner fades in similarly so the spinner
+  // itself doesn't snap on either.
+  .loading-placeholder {
+    text-align: center;
+    padding: 2em;
+    animation: story-detail-fade-in 220ms ease-out both;
+  }
+  .story-body {
+    animation: story-detail-fade-in 320ms ease-out both;
+  }
+  @keyframes story-detail-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
   // First card sits below the toolbar with breathing room.
   .card-header { margin-top: $sp-4; }
 

@@ -7,7 +7,7 @@ import { Toast } from '@ionic-native/toast';
 import { Analytics, User, UX } from '../../providers/providers';
 import { handleNoCordovaError } from '../../app/utils';
 
-@IonicPage()
+@IonicPage({ segment: 'login' })
 @Component({
   selector: 'page-login',
   templateUrl: 'login.html',

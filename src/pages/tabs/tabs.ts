@@ -3,7 +3,10 @@ import { TranslateService } from '@ngx-translate/core';
 import { IonicPage, Platform, Tabs, App, NavController } from 'ionic-angular';
 import { User, UX, Feed, Settings, Series } from '../../providers/providers';
 
-@IonicPage({ priority: 'high' })
+// segment 'app' (not 'tabs') because Ionic 3's URL parser treats 'tabs' and
+// 'nav' as reserved keywords for explicit nav-prefixing — using either as the
+// root segment makes deep-link reload fail to restore the nav stack.
+@IonicPage({ priority: 'high', name: 'TabsPage', segment: 'app' })
 @Component({
   selector: 'page-tabs',
   templateUrl: 'tabs.html',

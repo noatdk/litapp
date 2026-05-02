@@ -4,7 +4,7 @@ import { IonicPage, NavController } from 'ionic-angular';
 import { List } from '../../models/list';
 import { Lists } from '../../providers/providers';
 
-@IonicPage({ priority: 'high' })
+@IonicPage({ priority: 'high', segment: 'lists' })
 @Component({
   selector: 'page-list-list',
   templateUrl: 'list-list.html',

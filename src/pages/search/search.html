@@ -28,33 +28,41 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content padding>
-  <ion-nav #stars></ion-nav>
-  <ion-menu side="right" [content]="stars" class="starredmenu" #panel ion-fixed>
-    <ion-list>
-      <div class="scroll-content">
-        <ion-item-divider color="light" *ngIf="starredQueries.length > 0">{{ 'SEARCH_STARREDQUERIES' | translate }}</ion-item-divider>
+<!--
+  The right-side starred-queries menu's [content] used to point at a dummy
+  empty <ion-nav #stars> nested inside <ion-content>. That inner nav
+  registered as a child of the search tab's NavController, so on push the
+  upstream NavControllerBase saw `hasChildren() === true` and skipped its
+  own _linker.navChange() call — meaning URLs never updated when you
+  opened a story / author from the search results. Pointing [content] at
+  the page's <ion-content> avoids the nested NavController.
+-->
+<ion-menu side="right" [content]="stars" class="starredmenu" #panel ion-fixed>
+  <ion-list>
+    <div class="scroll-content">
+      <ion-item-divider color="light" *ngIf="starredQueries.length > 0">{{ 'SEARCH_STARREDQUERIES' | translate }}</ion-item-divider>
 
-        <button ion-item *ngFor="let query of starredQueries" (click)="search(query)">
-          <ion-label>{{query}}</ion-label>
-          <div item-end>
-            <ion-icon name="close" color="danger" (click)="delete($event, query)"></ion-icon>
-          </div>
-        </button>
+      <button ion-item *ngFor="let query of starredQueries" (click)="search(query)">
+        <ion-label>{{query}}</ion-label>
+        <div item-end>
+          <ion-icon name="close" color="danger" (click)="delete($event, query)"></ion-icon>
+        </div>
+      </button>
 
-        <ion-item-divider color="light">{{ 'SEARCH_HISTORY' | translate }}</ion-item-divider>
-        <ion-item class="placeholder" *ngIf="recentQueries.length < 1">{{ 'SEARCH_HISTORY_EMPTY' | translate }}</ion-item>
+      <ion-item-divider color="light">{{ 'SEARCH_HISTORY' | translate }}</ion-item-divider>
+      <ion-item class="placeholder" *ngIf="recentQueries.length < 1">{{ 'SEARCH_HISTORY_EMPTY' | translate }}</ion-item>
 
-        <button ion-item *ngFor="let query of (recentQueries | reverse)" (click)="search(query)">
-          <ion-label>{{query}}</ion-label>
-          <div item-end>
-            <ion-icon name="star" color="secondary" (click)="pinSearch($event, query)"></ion-icon>
-            <ion-icon name="close" color="danger" (click)="delete($event, query)"></ion-icon>
-          </div>
-        </button>
-      </div>
-    </ion-list>
-  </ion-menu>
+      <button ion-item *ngFor="let query of (recentQueries | reverse)" (click)="search(query)">
+        <ion-label>{{query}}</ion-label>
+        <div item-end>
+          <ion-icon name="star" color="secondary" (click)="pinSearch($event, query)"></ion-icon>
+          <ion-icon name="close" color="danger" (click)="delete($event, query)"></ion-icon>
+        </div>
+      </button>
+    </div>
+  </ion-list>
+</ion-menu>
 
+<ion-content padding #stars>
   <story-list #list [stories]="currentStories" infinite="true" (ionInfinite)="loadMore($event)"></story-list>
 </ion-content>

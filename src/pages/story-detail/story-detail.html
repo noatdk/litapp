@@ -71,6 +71,16 @@
 </ion-header>
 
 <ion-content padding>
+  <!--
+    Gate the body on story.title — for URL deep-link entry the local story
+    starts as just `{id}` and getRichById fills in title/author/category
+    asynchronously. Without this, the unguarded `story.author.name` etc.
+    crash the renderer before the rich fetch resolves.
+  -->
+  <div *ngIf="!story?.title" class="loading-placeholder">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+  <div class="story-body" *ngIf="story?.title">
   <div class="lit-card card-header">
     <h2 class="story-title">{{story.title}}</h2>
     <p class="story-desc" *ngIf="story.description">{{story.description}}</p>
@@ -198,5 +208,6 @@
       <ion-spinner *ngIf="commentsLoading" name="dots"></ion-spinner>
       {{'COMMENTS_LOADMORE' | translate}}
     </button>
+  </div>
   </div>
 </ion-content>

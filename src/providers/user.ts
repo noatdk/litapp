@@ -3,7 +3,7 @@ import { Observable } from 'rxjs/Rx';
 import 'rxjs/add/operator/toPromise';
 import { Storage } from '@ionic/storage';
 import { TranslateService } from '@ngx-translate/core';
-import { Md5 } from 'ts-md5/dist/cjs/md5';
+import { Md5 } from 'ts-md5/dist/md5';
 
 import { USER_KEY, FEED_KEY, LIST_KEY } from './db';
 import { Api, AUTH_URL_INDEX } from './shared/api';
@@ -48,12 +48,7 @@ export class User {
 
   private refreshAuthToken(): Promise<boolean> {
     return this.api
-      .get(
-        `check?timestamp=${Math.floor(Date.now() / 1000)}`,
-        null,
-        { withCredentials: true, responseType: 'text' },
-        AUTH_URL_INDEX,
-      )
+      .get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, { withCredentials: true, responseType: 'text' }, AUTH_URL_INDEX)
       .toPromise()
       .then(() => {
         this.jwtRefreshedAt = Date.now();
@@ -61,7 +56,7 @@ export class User {
         return true;
       })
       .catch((err: any) => {
-        const status = (err && typeof err.status === 'number') ? err.status : 0;
+        const status = err && typeof err.status === 'number' ? err.status : 0;
         this.jwtLastErrorStatus = status || -1;
         // 401 means the underlying sessionid cookie is dead — the JWT is
         // unrecoverable without a re-login. Invalidate the cached timestamp
@@ -121,7 +116,7 @@ export class User {
     // keep working. If it fails, the JWT flow is still authoritative and
     // login as a whole succeeds; just the legacy session_id stays unset.
     const v2LoginBody = new FormData();
-    v2LoginBody.append('lang', (typeof navigator !== 'undefined' && navigator.language || 'en').slice(0, 2));
+    v2LoginBody.append('lang', ((typeof navigator !== 'undefined' && navigator.language) || 'en').slice(0, 2));
     v2LoginBody.append('username', info.username);
     // v2 auth/login expects MD5-hashed password (matches official mobile app's
     // me.vertex.lib.util.MD5 hashing of the password before POSTing).
@@ -141,12 +136,21 @@ export class User {
       });
 
     return this.api
-      .post('login', JSON.stringify({ login: info.username, password: info.password }), {
-        ...authOpts,
-        headers: { 'Content-Type': 'application/json' },
-      }, false, AUTH_URL_INDEX)
+      .post(
+        'login',
+        JSON.stringify({ login: info.username, password: info.password }),
+        {
+          ...authOpts,
+          headers: { 'Content-Type': 'application/json' },
+        },
+        false,
+        AUTH_URL_INDEX,
+      )
       .switchMap(() => this.api.get(`check?timestamp=${Math.floor(Date.now() / 1000)}`, null, authOpts, AUTH_URL_INDEX))
-      .do(() => { this.jwtRefreshedAt = Date.now(); this.jwtLastErrorStatus = 0; })
+      .do(() => {
+        this.jwtRefreshedAt = Date.now();
+        this.jwtLastErrorStatus = 0;
+      })
       .switchMap(() => this.api.get('3/users/session'))
       .switchMap((res: any) => v2Login$.map(sessionId => ({ res, sessionId })))
       .map(({ res, sessionId }: any) => {
@@ -195,14 +199,18 @@ export class User {
   ensureWallId(): Promise<number> {
     if (!this.user) return Promise.resolve(0);
     if (this.user.wallId) return Promise.resolve(this.user.wallId);
-    return this.api.get('3/users/session').toPromise().then((res: any) => {
-      const id = Number(res && res.wall_id) || 0;
-      if (id) {
-        this.user.wallId = id;
-        this.storage.set(USER_KEY, this.user);
-      }
-      return id;
-    }).catch(() => 0);
+    return this.api
+      .get('3/users/session')
+      .toPromise()
+      .then((res: any) => {
+        const id = Number(res && res.wall_id) || 0;
+        if (id) {
+          this.user.wallId = id;
+          this.storage.set(USER_KEY, this.user);
+        }
+        return id;
+      })
+      .catch(() => 0);
   }
 
   // Persist the avatar URL on the user record so the sidebar can render it
