@@ -1,0 +1,61 @@
+// Design tokens — single source of truth for the visual restyle.
+// Phase-01 of plans/2026-05-02-visual-restyle-litapp/.
+// Palette is intentionally restricted to white + black + Lit-blue.
+// `$accent-hot` is the SOLE non-monochrome+blue color in the system,
+// reserved for the HOT badge (and by Ionic-slot necessity, `danger`).
+
+// Brand
+$lit-blue:           #0066cc;
+$lit-blue-hover:     #004c99;
+$lit-blue-tint:      #cfe3ff;
+
+// Surfaces
+$body-bg:            #ffffff;
+$surface-bg:         #ffffff;
+$surface-alt:        #f5f5f5;       // subtle off-white for dividers / item-divider color="light"
+$divider:            #e6e6e6;
+
+// Text
+$text-primary:       #111111;
+$text-secondary:     #555555;
+$text-muted:         #888888;
+$text-inverse:       #ffffff;
+
+// Drawer (near-black per reference screenshot)
+$sidebar-bg:         #1f1f1f;
+$sidebar-row-active: #2a2a2a;
+$sidebar-text:       #ffffff;
+$sidebar-text-muted: #b3b3b3;
+$sidebar-accent:     $lit-blue;
+
+// Accent exception — HOT pill / Ionic `danger` slot.
+$accent-hot:         #ff3b30;
+
+// Search highlight (light bg, no yellow)
+$highlight-all-bg:   $lit-blue-tint;
+$highlight-all-fg:   $text-primary;
+$highlight-cur-bg:   $lit-blue;
+$highlight-cur-fg:   $text-inverse;
+
+// Typography (Mulish loaded via @font-face in src/app/app.scss as a variable font;
+// no new font assets shipped here).
+$font-sans:          'Mulish', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+$font-wordmark:      $font-sans;
+$fw-wordmark:        900;
+
+$fs-page-title:      28px;  $lh-page-title: 1.2;  $fw-page-title: 600;
+$fs-section:         18px;  $lh-section:    1.3;  $fw-section:    600;
+$fs-row-title:       16px;  $lh-row-title:  1.4;  $fw-row-title:  600;
+$fs-meta:            13px;  $lh-meta:       1.5;  $fw-meta:       400;
+
+// Spacing
+$sp-1: 4px;  $sp-2: 8px;  $sp-3: 12px;  $sp-4: 16px;  $sp-5: 24px;  $sp-6: 32px;
+
+// Radii
+$radius-sm:  4px;
+$radius-md:  8px;
+$radius-pill: 999px;
+
+// Shadow (light bg)
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 2px 6px rgba(0, 0, 0, 0.08);
