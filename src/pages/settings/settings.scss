@@ -6,7 +6,7 @@ page-settings {
   }
 
   // *ngIf="settingsReady" makes Ionic miss the auto-reflow that pushes
-  // scroll-content below the toolbar. Force it manually so the first h2
+  // scroll-content below the toolbar. Force it manually so the first heading
   // banner can't render tucked under the toolbar at initial paint.
   ion-content {
     > .scroll-content {
@@ -14,111 +14,131 @@ page-settings {
     }
   }
 
-  .label {
-    white-space: pre-wrap;
-  }
+  .label { white-space: pre-wrap; }
+
   .version {
     color: $text-muted;
     font-size: 0.85em;
   }
 
-  // h2 = top-level section banner ("App settings", "About the app").
-  // Lit-blue with a left accent bar + bottom divider. Top space is
-  // delivered via PADDING (not margin) so it can't margin-collapse with
-  // the ion-content padding boundary — that collapse is what was tucking
-  // the first banner under the toolbar.
-  h2 {
-    margin: 0 0 $sp-3 !important;
-    padding: $sp-4 0 $sp-2 $sp-3;
-    color: $lit-blue;
-    font-size: $fs-page-title;
-    font-weight: 700;
-    line-height: 1.2;
-    border-bottom: 1px solid $divider;
-    border-left: 4px solid $lit-blue;
-    text-transform: none;
-    clear: both;
-  }
+  // ---------------------------------------------------------------------
+  // Every section heading (General / Tweaks / Filters / About) renders
+  // as the cap of a white card that fuses flush with the ion-list (or
+  // body content) immediately below it. This was already the look used
+  // for the blocked-* sections via `.filter-heading` — the rest of the
+  // page now picks up the same treatment so the page reads as a stack
+  // of consistent cards on the tinted bg, matching the History/Author
+  // card surfaces. The accent-bar + bottom-divider banner styling has
+  // been retired.
+  // ---------------------------------------------------------------------
 
-  // Banners after the first one need extra breathing room from the section
-  // above (which now has a card border ending right above this h2).
-  h2 + *,
-  ion-list + h2,
-  form + h2,
-  button[ion-button] + h2 {
-    margin-top: $sp-4;
-  }
-
-  // h3 = mid-level section ("Tweaks", "Filters", "About the app").
-  // Same Lit-blue, lighter weight than h2; no accent bar so the visual
-  // hierarchy stays distinct from h2.
-  h3 {
-    margin: $sp-5 0 $sp-2 !important;
-    color: $lit-blue;
-    font-size: $fs-section;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-  }
-
-  // Summary paragraph under a section heading — secondary text, slightly
-  // looser line-height so it feels like a subtitle.
-  h2 + p,
-  h3 + p {
-    margin: -$sp-2 0 $sp-3;
-    color: $text-secondary;
-    font-size: $fs-meta;
-  }
-
-  // Wrap form/list groups in a card so each settings cluster reads as a
-  // discrete row of options on the tinted page bg.
-  ion-list,
-  form ion-list {
-    background: $surface-bg;
-    border: 1px solid $divider;
-    border-radius: $radius-md;
-    margin: 0 0 $sp-3;
-    overflow: hidden;
-  }
-
-  ion-item {
-    background: $surface-bg;
-  }
-
-  // Action buttons (Export / Import / Save error log / Check updates).
-  button[ion-button][block],
-  button[ion-button] {
-    margin: $sp-2 0;
-  }
-
-  // Filter heading — h4 with optional inline "+" button. Visually fused
-  // with the list below into a single card so each blocked-* group reads
-  // as one unit instead of a floating header + floating list.
-  // Heading sits flush on top of the list so each blocked-* group reads as
-  // one card. The "+" trigger lives at the bottom of the card as a full-
-  // width add row (see `.filter-add` below) to avoid the tiny right-aligned
-  // icon that didn't line up with the X delete buttons in the list rows.
+  h2,
+  h3:not(.section-banner),
   .filter-heading {
     margin: $sp-4 0 0 !important;
-    padding: $sp-2 $sp-4;
+    padding: $sp-3 $sp-4 $sp-2;
     color: $lit-blue;
-    font-size: $fs-row-title;
     font-weight: 700;
     background: $surface-bg;
     border: 1px solid $divider;
     border-bottom: 0;
     border-radius: $radius-md $radius-md 0 0;
+    text-transform: none;
+    line-height: 1.25;
   }
 
-  .filter-heading + ion-list {
-    margin: 0 0 $sp-3;
-    border-radius: 0 0 $radius-md $radius-md;
+  // Section banner — used by groups whose body is a stack of sub-cards
+  // (e.g. Filters, where each blocked-* group is its own card). The
+  // banner is a plain heading that lives directly on the page bg, with
+  // its description sitting underneath.
+  h3.section-banner {
+    margin: $sp-5 0 $sp-1 !important;
+    padding: 0 $sp-1;
+    color: $lit-blue;
+    font-size: $fs-section;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .section-banner__hint {
+    margin: 0 0 $sp-2;
+    padding: 0 $sp-1;
+    color: $text-secondary;
+    font-size: $fs-meta;
+    line-height: 1.45;
+  }
+
+  h2 { font-size: $fs-section; }
+  h3 { font-size: $fs-section; }
+  .filter-heading { font-size: $fs-row-title; }
+
+  // Hint paragraph under a section heading — slipped INSIDE the card by
+  // anchoring directly under the heading with no margin gap. The
+  // `.section-banner` flow has its own hint rules above; exclude here.
+  h2 + p:not(.section-banner__hint),
+  h3:not(.section-banner) + p,
+  .filter-heading + p {
+    margin: 0;
+    padding: 0 $sp-4 $sp-2;
+    background: $surface-bg;
+    border-left: 1px solid $divider;
+    border-right: 1px solid $divider;
+    color: $text-secondary;
+    font-size: $fs-meta;
+    line-height: 1.45;
+  }
+
+  // ion-list right under a heading (or hint paragraph) finishes the card —
+  // flush top, rounded bottom, single-card surface on the tinted bg.
+  h2 + form > ion-list,
+  h2 + ion-list,
+  h3 + form > ion-list,
+  h3 + ion-list,
+  h2 + p + form > ion-list,
+  h2 + p + ion-list,
+  h3 + p + form > ion-list,
+  h3 + p + ion-list,
+  .filter-heading + ion-list,
+  .filter-heading + p + ion-list {
+    background: $surface-bg;
+    border: 1px solid $divider;
     border-top: 0;
+    border-radius: 0 0 $radius-md $radius-md;
+    margin: 0 0 $sp-3;
+    overflow: hidden;
   }
 
-  // "+" action row at the bottom of each filter card. Same height as a
-  // regular blocked-entry row — Ionic's stock min-height (48px on .item,
-  // 44px on .item-inner) gets clamped to 40px to match the visible row
-  // chrome, with the icon centered horizontally.
+  // Generic ion-list fallback (rare — shouldn't appear orphaned, but in
+  // case it does we still surface a card rather than a row-on-bg).
+  ion-list {
+    background: $surface-bg;
+    margin: 0 0 $sp-3;
+  }
+
+  ion-item { background: $surface-bg; }
+
+  // Action buttons (Export / Import / Check-updates / Save-log) — sit on
+  // the tinted page bg between cards, not inside one. Keeps the card-
+  // closing rounded corners clean and makes the actions read as separate
+  // affordances rather than a card footer.
+  .settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-2;
+    margin: 0 0 $sp-4;
+    padding: 0 $sp-1;
+
+    button[ion-button] { margin: 0; }
+  }
+
+  // Default ion-button vertical rhythm (overridden inside `.settings-actions`
+  // so the action row sits flush against its surrounding cards).
+  button[ion-button][block],
+  button[ion-button] {
+    margin: $sp-2 0;
+  }
+
+  // "+" action row at the bottom of each filter card — full-width tap target
+  // that mirrors the row chrome of the blocked entries above it.
   .filter-add.item,
   .filter-add {
     min-height: 40px !important;
@@ -135,9 +155,7 @@ page-settings {
       justify-content: center;
     }
 
-    .input-wrapper {
-      flex: 0 0 auto;
-    }
+    .input-wrapper { flex: 0 0 auto; }
 
     ion-icon {
       width: 20px;
@@ -161,5 +179,24 @@ page-settings {
     margin-left: 6px;
     color: $text-muted;
     font-size: 0.85em;
+  }
+
+  // About paragraph + version — closes the About card directly under the
+  // h3 cap (no list body in this section), so renders with a rounded
+  // bottom and full divider border.
+  .about-body {
+    margin: 0 0 $sp-3;
+    padding: $sp-3 $sp-4;
+    background: $surface-bg;
+    border: 1px solid $divider;
+    border-top: 0;
+    border-radius: 0 0 $radius-md $radius-md;
+    color: $text-secondary;
+    font-size: $fs-meta;
+    line-height: 1.5;
+
+    p { margin: 0 0 $sp-2; }
+    a { color: $lit-blue; text-decoration: none; }
+    .version { display: inline-block; margin-top: $sp-1; }
   }
 }
