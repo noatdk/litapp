@@ -15,7 +15,7 @@ import { ApiLanguage, AppJsonResponse, ConstantsResponse, TagsportalTopResponse 
 export class Globals {
   private globals: ConstantsResponse;
   private ready: Promise<void>;
-  private version = 36; // just increase number, unrelated to version number
+  private version = 37; // just increase number, unrelated to version number
 
   constructor(
     public api: Api,
